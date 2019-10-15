@@ -1,3 +1,5 @@
+# Exports of the `union!` macro implementation which are reexported by `union` crate.
+
 # `union!`
 
 `union!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, provides single and multi thread (sync/async) step by step execution of branches.

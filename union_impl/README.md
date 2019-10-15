@@ -1,3 +1,5 @@
+# Implementation of the `union!` macro.
+
 # `union!`
 
 `union!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, provides single and multi thread (sync/async) step by step execution of branches.
@@ -33,20 +35,20 @@ fn get_url_to_get_random_number() -> String {
     "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new".to_owned()
 }
 
-async fn read_number_from_stdin() -> Result<u16, Error> {
+async fn read_number_from_stdin() -> Result<usize, Error> {
     use tokio::*;
     use futures::stream::StreamExt;
     
     let map_parse_error =
         |value|
             move |error|
-                format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
+                format_err!("Value from stdin isn't a correct `usize`: {:?}, input: {}", error, value);
 
     let mut result;
     let mut reader = codec::FramedRead::new(io::BufReader::new(io::stdin()), codec::LinesCodec::new());
 
     while {
-        println!("Please, enter number (`u16`)");
+        println!("Please, enter number (`usize`)");
 
         let next = reader.next();
     
@@ -153,7 +155,7 @@ fn main() {
                                 => |value|  
                                     ready(
                                         value
-                                            .parse::<u16>()
+                                            .parse::<usize>()
                                             .map_err(map_parse_error(value))
                                     )
                         }

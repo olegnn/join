@@ -1,17 +1,7 @@
-[package]
-name = "union"
-version = "0.0.2"
-authors = ["olegnn <olegnosov1@gmail.com>"]
-license = "MIT"
-description = "Universal macro to combine sync and async results."
-edition = "2018"
-repository = "https://github.com/olegnn/union"
-documentation = "https://docs.rs/union/0.0.1/union"
+[workspace]
 
-[lib]
-name = "union"
-
-[dependencies]
-proc-macro-hack = "0.5.10"
-proc-macro-nested = "0.1.3"
-union_impl = { path = "./union_impl", version = "0.0.2" }
+members = [
+    "union",
+    "union_impl",
+    "union_export"
+]

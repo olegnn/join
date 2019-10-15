@@ -1,0 +1,23 @@
+[package]
+name = "union_export"
+version = "0.1.0-alpha.1"
+authors = ["olegnn <olegnosov1@gmail.com>"]
+edition = "2018"
+license = "MIT"
+description = "Implementation of the union! macro."
+repository = "https://github.com/olegnn/union"
+documentation = "https://docs.rs/union/0.1.0-alpha.1/union_export"
+readme = "README.md"
+
+[lib]
+name = "union_export"
+proc-macro = true
+
+[features]
+std = []
+
+[dependencies]
+union_impl = { path = "../union_impl", version = "0.1.0-alpha.1" }
+proc-macro-hack = "0.5.10"
+quote = "1.0.2"
+syn = { version = "1.0", features = ["full", "extra-traits"] }
