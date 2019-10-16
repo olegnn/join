@@ -381,8 +381,8 @@ mod union_async_tests {
             )
         }
 
-        fn get_url_to_get_random_number() -> String {
-            "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new".to_owned()
+        fn get_url_to_get_random_number() -> &'static str {
+            "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
         }
 
         async fn read_number_from_stdin() -> Result<usize, Error> {
@@ -474,7 +474,7 @@ mod union_async_tests {
                         move |url| {
                             union_async! {
                                 client
-                                    .get(&url)
+                                    .get(url)
                                     .send()
                                     => |value| value.text()
                                     !> |err| format_err!("Error retrieving random number: {:#?}", err)

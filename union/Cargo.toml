@@ -1,6 +1,6 @@
 [package]
 name = "union"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 license = "MIT"
 description = """
@@ -9,7 +9,7 @@ supports single and multi thread (sync/async) step by step execution of branches
 """
 edition = "2018"
 repository = "https://github.com/olegnn/union"
-documentation = "https://docs.rs/union/0.1.0/union"
+documentation = "https://docs.rs/union"
 readme = "README.md"
 
 [lib]

@@ -6,7 +6,7 @@ edition = "2018"
 license = "MIT"
 description = "Exports of the `union!`, `union_async!`, `asyncion!`, `union_spawn!`, `union_async_spawn!`, `async_spawn!` macros which are reexported by `union` crate."
 repository = "https://github.com/olegnn/union"
-documentation = "https://docs.rs/union_export/0.1.0/union_export"
+documentation = "https://docs.rs/union_export"
 readme = "README.md"
 
 [lib]

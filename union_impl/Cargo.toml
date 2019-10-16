@@ -6,7 +6,7 @@ edition = "2018"
 license = "MIT"
 description = "Implementation of the `union!` macro."
 repository = "https://github.com/olegnn/union"
-documentation = "https://docs.rs/union_impl/0.1.0/union_impl"
+documentation = "https://docs.rs/union_impl"
 readme = "README.md"
 
 [lib]

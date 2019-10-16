@@ -2,6 +2,59 @@
 //! 
 //! `union!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, supports single and multi thread (sync/async) step by step execution of branches.
 //! 
+//! ## Combinators
+//! 
+//! - Map: `|>` expr - `value`.map(`expr`)
+//! 
+//! - AndThen: `=>` expr - `value`.and_then(`expr`),
+//! 
+//! - Then: `->` expr - `expr`(`value`)
+//! 
+//! - Dot: `>.` expr - `value`.`expr`
+//! 
+//! - Or: `<|` expr - `value`.or(`expr`)
+//! 
+//! - OrElse: `<=` expr - `value`.or_else(`expr`)  
+//! 
+//! - MapErr: `!>` expr - `value`.map_err(`expr`)
+//! 
+//! - Inspect: `?>` expr - (|`value`| { `expr`(&`value`); `value` })(`value`) for sync chains and (|`value`| `value`.inspect(`expr`))(`value`) for futures
+//! 
+//! where `value` is the previous value.
+//! 
+//! Every combinator prefixed by `~` will act as deferred action (all actions will wait until completion in every step and only after move to the next one).
+//! 
+//! ## Handler
+//! 
+//! might be one of
+//! 
+//! - `map` => will act as results.map(|(result0, result1, ..)| handler(result0, result1, ..))
+//! 
+//! - `and_then` => will act as results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))
+//! 
+//! - `then` => will act as handler(result0, result1, ..)
+//! 
+//! or not specified - then Result<(result0, result1, ..), Error> or Option<(result0, result1, ..)> will be returned.
+//! 
+//! ## Custom futures crate path
+//! 
+//! You can specify custom path (`futures_crate_path`) at the beginning of macro call
+//! 
+//! ```rust
+//! use union::union_async;
+//! use futures::future::ok;
+//! 
+//! #[tokio::main]
+//! async fn main() {
+//!     let value = union_async! {
+//!         futures_crate_path(::futures)
+//!         ok::<_,u8>(2u16)
+//!     }.await.unwrap();
+//!     
+//!     println!("{}", value);
+//! }
+//! ```
+//! 
 //! Using this macro you can write things like
 //! 
 //! ```rust no_run
@@ -23,8 +76,8 @@
 //!     )   
 //! }
 //! 
-//! fn get_url_to_get_random_number() -> String {
-//!     "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new".to_owned()
+//! fn get_url_to_get_random_number() -> &'static str {
+//!     "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
 //! }
 //! 
 //! async fn read_number_from_stdin() -> Result<u16, Error> {
@@ -88,8 +141,7 @@
 //!                 // If pass block statement instead of fn, it will be placed before current step,
 //!                 // so it will us allow to capture some variables from context
 //!                 let ref client = client;
-//!                 move |url| {
-//!                     let client = client.clone();
+//!                 move |url|
 //!                     // `union_async!` wraps its content into `async move { }` 
 //!                     union_async! {
 //!                         client
@@ -97,7 +149,6 @@
 //!                             => |value| value.text()
 //!                             => |body| ok((url, body))
 //!                     }
-//!                 }
 //!             }
 //!             >.collect::<Vec<_>>()
 //!             |> Ok
@@ -130,15 +181,15 @@
 //!             => {
 //!                 // If pass block statement instead of fn, it will be placed before current step,
 //!                 // so it will allow us to capture some variables from context
-//!                 let client = client.clone();
+//!                 let ref client = client;
 //!                 let map_parse_error =
 //!                     |value|
 //!                         move |err|
 //!                             format_err!("Failed to parse random number: {:#?}, value: {}", err, value);
-//!                 move |url| {
+//!                 move |url|
 //!                     union_async! {
 //!                         client
-//!                             .get(&url)
+//!                             .get(url)
 //!                             .send()
 //!                             => |value| value.text()
 //!                             !> |err| format_err!("Error retrieving random number: {:#?}", err)
@@ -150,7 +201,6 @@
 //!                                         .map_err(map_parse_error(value))
 //!                                 )
 //!                     }
-//!                 }
 //!             }
 //!             // It waits for input in stdin before log random value
 //!             ~?> |random| {
@@ -184,59 +234,6 @@
 //!                 }
 //!             )
 //!     ).unwrap();  
-//! }
-//! ```
-//! 
-//! ## Combinators
-//! 
-//! - Map: `|>` expr - `value`.map(`expr`)
-//! 
-//! - AndThen: `=>` expr - `value`.and_then(`expr`),
-//! 
-//! - Then: `->` expr - `expr`(`value`)
-//! 
-//! - Dot: `>.` expr - `value`.`expr`
-//! 
-//! - Or: `<|` expr - `value`.or(`expr`)
-//! 
-//! - OrElse: `<=` expr - `value`.or_else(`expr`)  
-//! 
-//! - MapErr: `!>` expr - `value`.map_err(`expr`)
-//! 
-//! - Inspect: `?>` expr - (|`value`| { `expr`(&`value`); `value` })(`value`) for sync chains and (|`value`| `value`.inspect(`expr`))(`value`) for futures
-//! 
-//! where `value` is the previous value.
-//! 
-//! Every combinator prefixed by `~` will act as deferred action (all actions will wait until completion in every step and only after move to the next one).
-//! 
-//! ## Handler
-//! 
-//! might be one of
-//! 
-//! - `map` => will act as results.map(|(result0, result1, ..)| handler(result0, result1, ..))
-//! 
-//! - `and_then` => will act as results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))
-//! 
-//! - `then` => will act as handler(result0, result1, ..)
-//! 
-//! or not specified - then Result<(result0, result1, ..), Error> or Option<(result0, result1, ..)> will be returned.
-//! 
-//! ## Custom futures crate path
-//! 
-//! You can specify custom path (`futures_crate_path`) at the beginning of macro call
-//! 
-//! ```rust
-//! use union::union_async;
-//! use futures::future::ok;
-//! 
-//! #[tokio::main]
-//! async fn main() {
-//!     let value = union_async! {
-//!         futures_crate_path(::futures)
-//!         ok::<_,u8>(2u16)
-//!     }.await.unwrap();
-//!     
-//!     println!("{}", value);
 //! }
 //! ```
 //! 
@@ -276,7 +273,7 @@
 //! 
 //! ### Futures combination
 //! 
-//! Each branch will represent chain of tasks. All branches will be joined using `join!` macro and macro will return `unpolled` future.
+//! Each branch will represent chain of tasks. All branches will be joined using `::futures::join!` macro and `union_async!` will return `unpolled` future.
 //! 
 //! ```rust
 //! #![recursion_limit="256"]
