@@ -1,6 +1,5 @@
 //!
-//! Export of the `union!` macro.
-//!
+//! Exports of the `union!`, `union_async!`, `asyncion!`, `union_spawn!`, `union_async_spawn!`, `async_spawn!` macros.
 //!
 
 extern crate proc_macro;

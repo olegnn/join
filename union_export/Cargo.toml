@@ -1,12 +1,12 @@
 [package]
 name = "union_export"
-version = "0.1.0-alpha.2"
+version = "0.1.0"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 edition = "2018"
 license = "MIT"
-description = "Exports of the `union!` macro implementation which are reexported by `union` crate."
+description = "Exports of the `union!`, `union_async!`, `asyncion!`, `union_spawn!`, `union_async_spawn!`, `async_spawn!` macros which are reexported by `union` crate."
 repository = "https://github.com/olegnn/union"
-documentation = "https://docs.rs/union_export/0.1.0-alpha.2/union_export"
+documentation = "https://docs.rs/union_export/0.1.0/union_export"
 readme = "README.md"
 
 [lib]
@@ -17,7 +17,7 @@ proc-macro = true
 std = []
 
 [dependencies]
-union_impl = { path = "../union_impl", version = "0.1.0-alpha.2" }
+union_impl = { path = "../union_impl", version = "0.1.0" }
 proc-macro-hack = "0.5.10"
 quote = "1.0.2"
 syn = { version = "1.0", features = ["full", "extra-traits"] }

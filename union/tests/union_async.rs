@@ -494,7 +494,7 @@ mod union_async_tests {
                     ~?> |random| {
                         random
                             .as_ref()
-                            .map(|number| println!("Random: {:?}", number))
+                            .map(|number| println!("Random: {}", number))
                             .unwrap_or(()); 
                     },
                 // In parallel it reads value from stdin
