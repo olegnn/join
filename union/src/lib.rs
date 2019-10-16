@@ -307,7 +307,7 @@
 //! 
 //! ## Multi-thread combinations
 //! 
-//! To execute several tasks in parallel you could use `union_spawn!` (`spawnion!`) for sync tasks
+//! To execute several tasks in parallel you could use `union_spawn!` (`spawn!`) for sync tasks
 //! and `union_async_spawn!` (`async_spawn!`) for futures. Since `union_async` already provides parallel futures execution in one thread, `union_async_spawn!` spawns every branch into `tokio` executor so they will be evaluated in multi-threaded executor.
 //! 
 //! ### Multi-thread sync branches
