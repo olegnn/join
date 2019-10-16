@@ -1,6 +1,6 @@
 # `union!`
 
-`union!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, provides single and multi thread (sync/async) step by step execution of branches.
+`union!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, supports single and multi thread (sync/async) step by step execution of branches.
 
 Using this macro you could do things like
 

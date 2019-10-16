@@ -1,12 +1,12 @@
 [package]
 name = "union_impl"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 edition = "2018"
 license = "MIT"
-description = "Implementation of the union! macro."
+description = "Implementation of the `union!` macro."
 repository = "https://github.com/olegnn/union"
-documentation = "https://docs.rs/union/0.1.0-alpha.1/union_impl"
+documentation = "https://docs.rs/union_impl/0.1.0-alpha.2/union_impl"
 readme = "README.md"
 
 [lib]
@@ -22,4 +22,4 @@ quote = "1.0.2"
 syn = { version = "1.0", features = ["full", "extra-traits"] }
 
 [dev-dependencies]
-union = { path = "../union", version = "0.1.0-alpha.1" }
+union = { path = "../union", version = "0.1.0-alpha.2" }

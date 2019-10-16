@@ -1,12 +1,15 @@
 [package]
 name = "union"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 license = "MIT"
-description = "Universal combinator, useful executor."
+description = """
+Macro which provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, 
+supports single and multi thread (sync/async) step by step execution of branches.
+"""
 edition = "2018"
 repository = "https://github.com/olegnn/union"
-documentation = "https://docs.rs/union/0.1.0-alpha.1/union"
+documentation = "https://docs.rs/union/0.1.0-alpha.2/union"
 readme = "README.md"
 
 [lib]
@@ -15,7 +18,7 @@ name = "union"
 [dependencies]
 proc-macro-hack = "0.5.10"
 proc-macro-nested = "0.1.3"
-union_export = { path = "../union_export", version = "0.1.0-alpha.1" }
+union_export = { path = "../union_export", version = "0.1.0-alpha.2" }
 
 [dev-dependencies]
 futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
