@@ -68,6 +68,84 @@ async fn main() {
 
 Using this macro you can write things like
 
+```rust
+#![recursion_limit = "256"]
+
+use rand::prelude::*;
+use std::sync::Arc;
+use union::{union_spawn};
+
+fn generate_random_vec(size: usize, max: usize) -> Vec<usize> {
+    let mut rng = rand::thread_rng();
+    (0..size.into()).map(|_| rng.gen_range(0, max)).collect()
+}
+
+fn is_even(value: usize) -> bool {
+    value % 2 == 0
+}
+
+fn get_sqrt(value: usize) -> usize {
+    { value as f64 }.sqrt() as usize
+}
+
+fn power2<T>(value: T) -> T
+where
+    T: std::ops::Mul<Output = T> + Copy,
+{
+    value * value
+}
+
+// Problem: generate vecs filled by random numbers in parallel, make some operations on them in parallel,
+// find max of each vec in parallel and find final max of 3 vecs
+
+// Solution:
+fn main() {
+    // Branches will be executed in parallel, each in its own thread
+    let max = union_spawn! {
+        let branch_0 = generate_random_vec(1000, 10000).into_iter()
+                        // Multiply every element by himself
+                        |> power2
+                        >.filter(|value| is_even(*value)).collect::<Vec<_>>()
+                        // To share data with branch 1
+                        -> Arc::new
+                        // Extract raw vec after sharing
+                        ~-> |v| unsafe { &*Arc::into_raw(v) }
+                        // Find max value
+                        >.into_iter().max()
+                        // Clone value to make &usize => usize
+                        |> Clone::clone,
+        let branch_1 = generate_random_vec(10000, 10000000)
+                        .into_iter()
+                        // Extract sqrt from every element
+                        |> get_sqrt
+                        // Add index in order to compare with the values of branch 0
+                        >.enumerate()
+                        ~|> {
+                            // Get data from branch 0 by cloning arc
+                            let branch_0 = branch_0.clone();
+                            let len = branch_0.len();
+                            // Compare every element of branch 1 with element of branch 0
+                            // with the same index and take min
+                            move |(index, value)|
+                                if index < len && value > branch_0[index] {
+                                    branch_0[index]
+                                } else {
+                                    value
+                                }
+                        }
+                        >.max(),
+        let branch_2 = generate_random_vec(100000, 100000).into_iter().max(),
+        map => |max0, max1, max2| {
+            // Find final max
+            *[max0, max1, max2].into_iter().max().unwrap()
+        }
+    }.unwrap();
+    println!("Max: {}", max);
+}
+```
+
+And like this
+
 ```rust no_run
 #![recursion_limit="1024"]
 

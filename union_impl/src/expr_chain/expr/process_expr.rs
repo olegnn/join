@@ -100,15 +100,23 @@ impl ExtractExpr for ProcessExpr {
 }
 
 impl ReplaceExpr for ProcessExpr {
-    fn replace_expr(&self, expr: Expr) -> Self {
+    fn replace_expr(&self, expr: Expr) -> Option<Self> {
         match self {
-            Self::Map(_) => Self::Map(expr),
-            Self::Dot(_) => Self::Dot(expr),
-            Self::MapErr(_) => Self::MapErr(expr),
-            Self::AndThen(_) => Self::AndThen(expr),
-            Self::Then(_) => Self::Then(expr),
-            Self::Initial(_) => Self::Initial(expr),
-            Self::Inspect(_) => Self::Inspect(expr),
+            Self::Map(_) => Some(Self::Map(expr)),
+            Self::Dot(_) => None,
+            Self::MapErr(_) => Some(Self::MapErr(expr)),
+            Self::AndThen(_) => Some(Self::AndThen(expr)),
+            Self::Then(_) => Some(Self::Then(expr)),
+            Self::Initial(_) => Some(Self::Initial(expr)),
+            Self::Inspect(_) => Some(Self::Inspect(expr)),
+        }
+    }
+
+    fn is_replaceable(&self) -> bool {
+        if let Self::Dot(_) = self {
+            false
+        } else {
+            true
         }
     }
 }
@@ -155,11 +163,10 @@ mod tests {
     #[test]
     fn it_tests_replace_expr_trait_impl_for_process_expr() {
         let expr: ::syn::Expr = ::syn::parse2(::quote::quote! { |v| v + 1 }).unwrap();
-        let replace_expr: ::syn::Expr = ::syn::parse2(::quote::quote! { |v| 1 + v }).unwrap();
+        let replace_expr: ::syn::Expr = ::syn::parse2(::quote::quote! { |v| 3 + v }).unwrap();
 
         for process_expr in vec![
             ProcessExpr::Map(expr.clone()),
-            ProcessExpr::Dot(expr.clone()),
             ProcessExpr::MapErr(expr.clone()),
             ProcessExpr::AndThen(expr.clone()),
             ProcessExpr::Then(expr.clone()),
@@ -171,11 +178,17 @@ mod tests {
             assert_eq!(
                 process_expr
                     .replace_expr(replace_expr.clone())
+                    .unwrap()
                     .extract_expr()
                     .clone(),
                 replace_expr
             );
         }
+
+        assert_eq!(
+            ProcessExpr::Dot(expr.clone()).replace_expr(replace_expr),
+            None
+        );
     }
 
     #[test]

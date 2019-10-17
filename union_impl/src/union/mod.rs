@@ -13,9 +13,11 @@ use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
 use syn::{parenthesized, Path};
 
-use super::expr_chain::expr::{DefaultActionExpr, ProcessActionExpr, ProcessExpr, ReplaceExpr, ExtractExpr};
-use super::expr_chain::{Chain, ExprChainWithDefault, ProcessWithDefault};
+use super::expr_chain::expr::{
+    DefaultActionExpr, ExtractExpr, ProcessActionExpr, ProcessExpr, ReplaceExpr,
+};
 use super::expr_chain::utils::is_block_expr;
+use super::expr_chain::{Chain, ExprChainWithDefault, ProcessWithDefault};
 use super::handler::Handler;
 use super::name_constructors::*;
 
@@ -105,15 +107,15 @@ fn separate_block_expr<ExprType: ReplaceExpr + ExtractExpr + Clone>(
     chain_index: impl Into<usize>,
 ) -> (TokenStream, ExprType) {
     let expr = inner_expr.extract_expr();
-    if is_block_expr(expr) && step_number.into() > 0 {
+    if inner_expr.is_replaceable() && is_block_expr(expr) && step_number.into() > 0 {
         let wrapper_name = construct_result_wrapper_name(chain_index.into());
-        (
-            quote! { let #wrapper_name = #expr; },
-            inner_expr.replace_expr(syn::parse2(quote! { #wrapper_name }).unwrap()),
-        )
-    } else {
-        (quote! {}, inner_expr.clone())
+        if let Some(replaced) =
+            inner_expr.replace_expr(syn::parse2(quote! { #wrapper_name }).unwrap())
+        {
+            return (quote! { let #wrapper_name = #expr; }, replaced);
+        }
     }
+    (quote! {}, inner_expr.clone())
 }
 
 ///

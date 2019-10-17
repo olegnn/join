@@ -56,11 +56,11 @@ impl ExtractExpr for DefaultExpr {
 }
 
 impl ReplaceExpr for DefaultExpr {
-    fn replace_expr(&self, expr: Expr) -> Self {
-        match self {
+    fn replace_expr(&self, expr: Expr) -> Option<Self> {
+        Some(match self {
             Self::Or(_) => Self::Or(expr),
             Self::OrElse(_) => Self::OrElse(expr),
-        }
+        })
     }
 }
 
@@ -107,6 +107,7 @@ mod tests {
             assert_eq!(
                 default_expr
                     .replace_expr(replace_expr.clone())
+                    .unwrap()
                     .extract_expr()
                     .clone(),
                 replace_expr

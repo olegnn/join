@@ -15,7 +15,7 @@ use crate::instant_and_deferred_determiners;
 
 ///
 /// Defines inner struct of `ExprChain`.
-/// 
+///
 struct ExprChainInternal<Member, GroupDeterminer> {
     members: Vec<Member>,
     group_determiners: Vec<GroupDeterminer>,
@@ -24,7 +24,7 @@ struct ExprChainInternal<Member, GroupDeterminer> {
 
 ///
 /// Defines public struct with inner `ExprChainInternal`.
-/// 
+///
 pub struct ExprChain<Member, GroupDeterminer> {
     inner: Rc<RefCell<ExprChainInternal<Member, GroupDeterminer>>>,
 }
@@ -38,12 +38,12 @@ pub struct ProcessWithDefault(pub Option<ProcessActionExpr>, pub Option<DefaultA
 
 ///
 /// ExprChain of `ProcessWithDefault` with determiner `GroupDeterminer`.
-/// 
+///
 pub type ExprChainWithDefault = ExprChain<ProcessWithDefault, GroupDeterminer>;
 
 ///
 /// Implementation of `Chain` with `Member=ProcessWithDefault`.
-/// 
+///
 impl Chain for ExprChainWithDefault {
     type Member = ProcessWithDefault;
 

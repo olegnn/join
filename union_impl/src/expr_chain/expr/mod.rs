@@ -40,7 +40,15 @@ where
     Self: Sized,
 {
     ///
-    /// Replaces current expr by given `Expr`, returning new `Self` with given `Expr`.
+    /// Replaces current expr by given `Expr` if it's possible, returning Some(new `Self`) with given `Expr`,
+    /// otherwise returns None.
     ///
-    fn replace_expr(&self, expr: Expr) -> Self;
+    fn replace_expr(&self, expr: Expr) -> Option<Self>;
+
+    ///
+    /// Can expr be replaced or not.
+    ///
+    fn is_replaceable(&self) -> bool {
+        true
+    }
 }
