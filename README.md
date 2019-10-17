@@ -20,19 +20,35 @@ Using this macro you can write things like
 
 use rand::prelude::*;
 use std::sync::Arc;
-use union::{union_spawn};
+use union::union_spawn;
 
-fn generate_random_vec(size: usize, max: usize) -> Vec<usize> {
+fn generate_random_vec<T>(size: usize, max: T) -> Vec<T>
+where
+    T: From<u8>
+        + rand::distributions::uniform::SampleUniform
+        + rand::distributions::uniform::SampleBorrow<T>
+        + Copy,
+{
     let mut rng = rand::thread_rng();
-    (0..size.into()).map(|_| rng.gen_range(0, max)).collect()
+    (0..size)
+        .map(|_| rng.gen_range(T::from(0u8), max))
+        .collect()
 }
 
-fn is_even(value: usize) -> bool {
-    value % 2 == 0
+fn is_even<T>(value: T) -> bool
+where
+    T: std::ops::Rem<Output = T> + std::cmp::PartialEq + From<u8>,
+{
+    value % 2u8.into() == 0u8.into()
 }
 
-fn get_sqrt(value: usize) -> usize {
-    { value as f64 }.sqrt() as usize
+fn get_sqrt<T>(value: T) -> T
+where
+    T: Into<f64>,
+    f64: Into<T>,
+{
+    let value_f64: f64 = value.into();
+    value_f64.sqrt().into()
 }
 
 fn power2<T>(value: T) -> T
@@ -49,44 +65,55 @@ where
 fn main() {
     // Branches will be executed in parallel, each in its own thread
     let max = union_spawn! {
-        let branch_0 = generate_random_vec(1000, 10000).into_iter()
-                        // Multiply every element by himself
-                        |> power2
-                        >.filter(|value| is_even(*value)).collect::<Vec<_>>()
-                        // To share data with branch 1
-                        -> Arc::new
-                        // Extract raw vec after sharing
-                        ~-> |v| unsafe { &*Arc::into_raw(v) }
-                        // Find max value
-                        >.into_iter().max()
-                        // Clone value to make &usize => usize
-                        |> Clone::clone,
-        let branch_1 = generate_random_vec(10000, 10000000)
-                        .into_iter()
-                        // Extract sqrt from every element
-                        |> get_sqrt
-                        // Add index in order to compare with the values of branch 0
-                        >.enumerate()
-                        ~|> {
-                            // Get data from branch 0 by cloning arc
-                            let branch_0 = branch_0.clone();
-                            let len = branch_0.len();
-                            // Compare every element of branch 1 with element of branch 0
-                            // with the same index and take min
-                            move |(index, value)|
-                                if index < len && value > branch_0[index] {
-                                    branch_0[index]
-                                } else {
-                                    value
-                                }
-                        }
-                        >.max(),
-        let branch_2 = generate_random_vec(100000, 100000).into_iter().max(),
-        map => |max0, max1, max2| {
+        let branch_0 =
+            generate_random_vec(1000, 10000000u64)
+                .into_iter()
+                // Multiply every element by himself
+                |> power2
+                >.filter(|value| is_even(*value)).collect::<Vec<_>>()
+                // Use `Arc` to share data with branch 1
+                -> Arc::new
+                ~-> |v: Arc<Vec<_>>| {
+                    // Extract raw poiner after sharing
+                    let pointer = Arc::into_raw(v); 
+                    unsafe {(
+                        // Find max and clone its value
+                        (&*pointer)
+                            .iter()
+                            .max()
+                            .map(Clone::clone),
+                        // After this we call `from_raw` to prevent memory leak
+                        Arc::from_raw(pointer)
+                    )}.0 
+                },
+        generate_random_vec(10000, 100000000000000f64)
+            .into_iter()
+            // Extract sqrt from every element
+            |> get_sqrt
+            // Add index in order to compare with the values of branch 0
+            >.enumerate()
+            ~|> {
+                // Get data from branch 0 by cloning arc
+                let branch_0 = branch_0.clone();
+                let len = branch_0.len();
+                // Compare every element of branch 1 with element of branch 0
+                // with the same index and take min
+                move |(index, value)|
+                    if index < len && value as u64 > branch_0[index] {
+                        branch_0[index]
+                    } else {
+                        value as u64
+                    }
+            }
+            >.max(),
+        generate_random_vec(100000, 100000u32)
+            .into_iter()
+            ~>.max(),
+        map => |max0, max1, max2|
             // Find final max
-            *[max0, max1, max2].into_iter().max().unwrap()
-        }
-    }.unwrap();
+            *[max0, max1, max2 as u64].into_iter().max().unwrap()
+    }
+    .unwrap();
     println!("Max: {}", max);
 }
 ```
