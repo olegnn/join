@@ -34,7 +34,7 @@ fn main() {
         let branch_0 =
             generate_random_vec(1000, 10000000u64)
                 .into_iter()
-                // Multiply every element by himself
+                // Multiply every element by itself
                 |> power2
                 >.filter(|value| is_even(*value)).collect::<Vec<_>>()
                 // Use `Arc` to share data with branch 1
