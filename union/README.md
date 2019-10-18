@@ -75,42 +75,6 @@ use rand::prelude::*;
 use std::sync::Arc;
 use union::union_spawn;
 
-fn generate_random_vec<T>(size: usize, max: T) -> Vec<T>
-where
-    T: From<u8>
-        + rand::distributions::uniform::SampleUniform
-        + rand::distributions::uniform::SampleBorrow<T>
-        + Copy,
-{
-    let mut rng = rand::thread_rng();
-    (0..size)
-        .map(|_| rng.gen_range(T::from(0u8), max))
-        .collect()
-}
-
-fn is_even<T>(value: T) -> bool
-where
-    T: std::ops::Rem<Output = T> + std::cmp::PartialEq + From<u8>,
-{
-    value % 2u8.into() == 0u8.into()
-}
-
-fn get_sqrt<T>(value: T) -> T
-where
-    T: Into<f64>,
-    f64: Into<T>,
-{
-    let value_f64: f64 = value.into();
-    value_f64.sqrt().into()
-}
-
-fn power2<T>(value: T) -> T
-where
-    T: std::ops::Mul<Output = T> + Copy,
-{
-    value * value
-}
-
 // Problem: generate vecs filled by random numbers in parallel, make some operations on them in parallel,
 // find max of each vec in parallel and find final max of 3 vecs
 
@@ -159,6 +123,42 @@ fn main() {
     .unwrap();
     println!("Max: {}", max);
 }
+
+fn generate_random_vec<T>(size: usize, max: T) -> Vec<T>
+where
+    T: From<u8>
+        + rand::distributions::uniform::SampleUniform
+        + rand::distributions::uniform::SampleBorrow<T>
+        + Copy,
+{
+    let mut rng = rand::thread_rng();
+    (0..size)
+        .map(|_| rng.gen_range(T::from(0u8), max))
+        .collect()
+}
+
+fn is_even<T>(value: T) -> bool
+where
+    T: std::ops::Rem<Output = T> + std::cmp::PartialEq + From<u8>,
+{
+    value % 2u8.into() == 0u8.into()
+}
+
+fn get_sqrt<T>(value: T) -> T
+where
+    T: Into<f64>,
+    f64: Into<T>,
+{
+    let value_f64: f64 = value.into();
+    value_f64.sqrt().into()
+}
+
+fn power2<T>(value: T) -> T
+where
+    T: std::ops::Mul<Output = T> + Copy,
+{
+    value * value
+}
 ```
 
 And like this
@@ -171,56 +171,6 @@ use futures::stream::{iter, Stream};
 use reqwest::Client;
 use futures::future::{try_join_all, ok, ready};
 use failure::{format_err, Error};
-
-fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
-    iter(
-        vec![
-            "https://en.wikipedia.org/w/api.php?format=json&action=query&generator=random&grnnamespace=0&prop=revisions|images&rvprop=content&grnlimit=100",
-            "https://github.com/explore",
-            "https://twitter.com/search?f=tweets&vertical=news&q=%23news&src=unkn"
-        ]
-    )   
-}
-
-fn get_url_to_get_random_number() -> &'static str {
-    "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
-}
-
-async fn read_number_from_stdin() -> Result<u16, Error> {
-    use tokio::*;
-    use futures::stream::StreamExt;
-    
-    let map_parse_error =
-        |value|
-            move |error|
-                format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
-
-    let mut result;
-    let mut reader = codec::FramedRead::new(io::BufReader::new(io::stdin()), codec::LinesCodec::new());
-
-    while {
-        println!("Please, enter number (`u16`)");
-
-        let next = reader.next();
-    
-        result = union_async! {
-            next
-                |> |value| value.ok_or(format_err!("Unexpected end of input"))
-                => |result| ready(result.map_err(|err| format_err!("Failed to apply codec: {:?}", err)))
-                => |value|
-                    ready(
-                        value
-                            .parse()
-                            .map_err(map_parse_error(value))
-                    )
-                !> |error| { eprintln!("Error: {:#?}", error); error}
-        }.await;
-
-        result.is_err()
-    } {}
-
-    result
-}
 
 #[tokio::main]
 async fn main() {
@@ -340,6 +290,56 @@ async fn main() {
                 }
             )
     ).unwrap();  
+}
+
+fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
+    iter(
+        vec![
+            "https://en.wikipedia.org/w/api.php?format=json&action=query&generator=random&grnnamespace=0&prop=revisions|images&rvprop=content&grnlimit=100",
+            "https://github.com/explore",
+            "https://twitter.com/search?f=tweets&vertical=news&q=%23news&src=unkn"
+        ]
+    )   
+}
+
+fn get_url_to_get_random_number() -> &'static str {
+    "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
+}
+
+async fn read_number_from_stdin() -> Result<u16, Error> {
+    use tokio::*;
+    use futures::stream::StreamExt;
+    
+    let map_parse_error =
+        |value|
+            move |error|
+                format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
+
+    let mut result;
+    let mut reader = codec::FramedRead::new(io::BufReader::new(io::stdin()), codec::LinesCodec::new());
+
+    while {
+        println!("Please, enter number (`u16`)");
+
+        let next = reader.next();
+    
+        result = union_async! {
+            next
+                |> |value| value.ok_or(format_err!("Unexpected end of input"))
+                => |result| ready(result.map_err(|err| format_err!("Failed to apply codec: {:?}", err)))
+                => |value|
+                    ready(
+                        value
+                            .parse()
+                            .map_err(map_parse_error(value))
+                    )
+                !> |error| { eprintln!("Error: {:#?}", error); error}
+        }.await;
+
+        result.is_err()
+    } {}
+
+    result
 }
 ```
 
