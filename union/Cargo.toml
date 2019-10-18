@@ -1,6 +1,6 @@
 [package]
 name = "union"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 license = "MIT"
 description = """

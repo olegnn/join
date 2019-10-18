@@ -126,19 +126,9 @@ fn main() {
                 >.filter(|value| is_even(*value)).collect::<Vec<_>>()
                 // Use `Arc` to share data with branch 1
                 -> Arc::new
-                ~-> |v: Arc<Vec<_>>| {
-                    // Extract raw poiner after sharing
-                    let pointer = Arc::into_raw(v); 
-                    unsafe {(
-                        // Find max and clone its value
-                        (&*pointer)
-                            .iter()
-                            .max()
-                            .map(Clone::clone),
-                        // After this we call `from_raw` to prevent memory leak
-                        Arc::from_raw(pointer)
-                    )}.0 
-                },
+                // Find max and clone its value
+                ~>.iter().max()
+                |> Clone::clone,
         generate_random_vec(10000, 100000000000000f64)
             .into_iter()
             // Extract sqrt from every element
