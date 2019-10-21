@@ -1,8 +1,8 @@
 #![recursion_limit = "256"]
 
 #[cfg(test)]
-mod union_tests {
-    use union::union;
+mod join_tests {
+    use join::join;
 
     type Result<T> = std::result::Result<T, u8>;
 
@@ -46,7 +46,7 @@ mod union_tests {
 
     #[test]
     fn it_produces_n_branches_with_length_1() {
-        let product = union! {
+        let product = join! {
             Ok(2u16),
             Ok(get_three()),
             get_ok_four(),
@@ -56,7 +56,7 @@ mod union_tests {
 
         assert_eq!(product, Ok(120));
 
-        let err = union! {
+        let err = join! {
             Ok(2),
             Ok(get_three()),
             get_ok_four(),
@@ -66,7 +66,7 @@ mod union_tests {
 
         assert_eq!(err, get_err());
 
-        let product = union! {
+        let product = join! {
             Some(2),
             Some(get_three()),
             get_some_five(),
@@ -76,7 +76,7 @@ mod union_tests {
 
         assert_eq!(product, Some(120));
 
-        let none = union! {
+        let none = join! {
             Some(2),
             Some(get_three()),
             get_some_five(),
@@ -90,7 +90,7 @@ mod union_tests {
 
     #[test]
     fn it_produces_n_branches_with_any_length() {
-        let product = union! {
+        let product = join! {
             Ok(2u16).map(add_one).and_then(add_one_ok), //4
             Ok(get_three()).and_then(add_one_ok).map(add_one).map(add_one).map(add_one), //7
             get_ok_four().map(add_one), //5
@@ -100,7 +100,7 @@ mod union_tests {
 
         assert_eq!(product, Ok(700));
 
-        let err = union! {
+        let err = join! {
             Ok(2).map(add_one),
             Ok(get_three()).and_then(to_err),
             get_ok_four().and_then(|_| -> Result<u16> { Err(10) }),
@@ -113,7 +113,7 @@ mod union_tests {
 
     #[test]
     fn it_produces_n_branches_with_any_length_using_combinators() {
-        let product = union! {
+        let product = join! {
             Ok(2u16) |> add_one => add_one_ok, //4
             Ok(get_three()) => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
@@ -123,7 +123,7 @@ mod union_tests {
 
         assert_eq!(product, Ok(700));
 
-        let sum = union! {
+        let sum = join! {
             2u16 -> Ok |> add_one => add_one_ok, //4
             get_three() -> Ok => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
@@ -133,7 +133,7 @@ mod union_tests {
 
         assert_eq!(sum, Ok(21));
 
-        let err = union! {
+        let err = join! {
             Ok(2) |> add_one,
             Ok(get_three()) => to_err,
             get_ok_four() => |_| -> Result<u16> { Err(10) },
@@ -143,7 +143,7 @@ mod union_tests {
 
         assert_eq!(err, to_err(get_three()));
 
-        let none = union! {
+        let none = join! {
             2 -> Some |> add_one,
             Some(get_three()) => to_none,
             get_ok_four() => |_| -> Result<u16> { Ok(10) } >.ok(),
@@ -156,7 +156,7 @@ mod union_tests {
 
     #[test]
     fn it_tests_handler_behaviour() {
-        let ok = union! {
+        let ok = join! {
             Ok(2),
             Ok(3),
             get_ok_four(),
@@ -165,7 +165,7 @@ mod union_tests {
 
         assert_eq!(ok, Ok(None));
 
-        let err = union! {
+        let err = join! {
             Ok(2),
             Ok(3),
             get_ok_four(),
@@ -174,7 +174,7 @@ mod union_tests {
 
         assert_eq!(err, Err(2));
 
-        let some = union! {
+        let some = join! {
             Some(2),
             Some(3),
             get_some_five(),
@@ -183,7 +183,7 @@ mod union_tests {
 
         assert_eq!(some, Some(2));
 
-        let none = union! {
+        let none = join! {
             Some(2),
             Some(3),
             get_some_five(),
@@ -192,7 +192,7 @@ mod union_tests {
 
         assert_eq!(none, None);
 
-        let some = union! {
+        let some = join! {
             Some(2u16),
             Some(3u16),
             get_some_five(),
@@ -201,7 +201,7 @@ mod union_tests {
 
         assert_eq!(some, Some(10));
 
-        let none: Option<u16> = union! {
+        let none: Option<u16> = join! {
             Some(2u16),
             None,
             get_some_five(),
@@ -214,7 +214,7 @@ mod union_tests {
         let map: Result<u16> = Ok(3);
         let and_then = get_ok_four;
 
-        let ok = union! {
+        let ok = join! {
             then,
             map,
             and_then(),
@@ -223,7 +223,7 @@ mod union_tests {
 
         assert_eq!(ok, Ok(9));
 
-        let err = union! {
+        let err = join! {
             Ok(2),
             Ok(3),
             get_ok_four(),
@@ -235,7 +235,7 @@ mod union_tests {
 
     #[test]
     fn it_tests_steps() {
-        let product = union! {
+        let product = join! {
             let branch_0 = Ok(2u16) ~|> |value| {
                 assert_eq!(branch_0, Ok(value));
                 assert_eq!(branch_1, Ok(3));
@@ -260,13 +260,13 @@ mod union_tests {
 
     #[test]
     fn it_produces_tuple() {
-        let values = union! { Ok::<_,u8>(2), Ok::<_,u8>(3) };
+        let values = join! { Ok::<_,u8>(2), Ok::<_,u8>(3) };
         assert_eq!(values.unwrap(), (2, 3));
     }
 
     #[test]
     fn it_produces_single_value() {
-        let value = union! { Some(1) };
+        let value = join! { Some(1) };
         assert_eq!(value.unwrap(), 1);
     }
 }

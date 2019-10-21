@@ -1,12 +1,12 @@
 #![recursion_limit = "1024"]
 
 #[cfg(test)]
-mod union_async_tests {
+mod join_async_tests {
     use futures::executor::block_on;
     use futures::future::{err, ok, ready};
     use futures_timer::Delay;
     use std::error::Error;
-    use union::union_async;
+    use join::join_async;
 
     type BoxedError = Box<dyn Error>;
 
@@ -61,7 +61,7 @@ mod union_async_tests {
     #[test]
     fn it_produces_n_branches_with_length_1() {
         block_on(async {
-            let product = union_async! {
+            let product = join_async! {
                 ok(2u16),
                 ok(get_three().await),
                 get_ok_four(),
@@ -71,7 +71,7 @@ mod union_async_tests {
 
             assert_eq!(product.await.unwrap(), 120u16);
 
-            let err = union_async! {
+            let err = join_async! {
                 ok(2u16),
                 ok(get_three().await),
                 get_ok_four(),
@@ -89,7 +89,7 @@ mod union_async_tests {
     #[test]
     fn it_produces_n_branches_with_any_length() {
         block_on(async {
-            let product = union_async! {
+            let product = join_async! {
                 ok(2u16).map(add_one_to_ok).and_then(add_one_ok), //4
                 ok(get_three().await).and_then(add_one_ok).map(add_one_to_ok).map(add_one_to_ok).map(add_one_to_ok), //7
                 get_ok_four().map(add_one_to_ok), //5
@@ -99,7 +99,7 @@ mod union_async_tests {
 
             assert_eq!(product.await.unwrap(), 700u16);
 
-            let err = union_async! {
+            let err = join_async! {
                 ok(2).map(add_one_to_ok),
                 ok(get_three().await).and_then(to_err),
                 get_ok_four(),
@@ -116,7 +116,7 @@ mod union_async_tests {
     #[test]
     fn it_produces_n_branches_with_any_length_using_combinators() {
         block_on(async {
-            let product = union_async! {
+            let product = join_async! {
                 ok(2u16) |> add_one_to_ok => add_one_ok, //4
                 ok(get_three().await) => add_one_ok |> add_one_to_ok |> add_one_to_ok |> add_one_to_ok, //7
                 get_ok_four() |> add_one_to_ok, //5
@@ -126,7 +126,7 @@ mod union_async_tests {
 
             assert_eq!(product.await.unwrap(), 700);
 
-            let sum = union_async! {
+            let sum = join_async! {
                 2u16 -> ok |> add_one_to_ok => add_one_ok, //4
                 get_three().await -> ok => add_one_ok |> add_one_to_ok |> add_one_to_ok |> add_one_to_ok, //7
                 get_ok_four() |> add_one_to_ok, //5
@@ -136,7 +136,7 @@ mod union_async_tests {
 
             assert_eq!(sum.await.unwrap(), 21);
 
-            let err: Result<u16> = union_async! {
+            let err: Result<u16> = join_async! {
                 ok(2) |> add_one_to_ok,
                 ok(get_three().await) => to_err,
                 get_ok_four() => |_| err("some error".into()),
@@ -150,7 +150,7 @@ mod union_async_tests {
                 format!("{:?}", to_err(get_three().await).await.unwrap_err())
             );
 
-            let none = union_async! {
+            let none = join_async! {
                 2 -> to_some,
                 get_some_five().await -> ready |> |_| None,
                 get_ok_four() |> |v| v.ok(),
@@ -165,7 +165,7 @@ mod union_async_tests {
     #[test]
     fn it_tests_handler_behaviour() {
         block_on(async {
-            let ok_value = union_async! {
+            let ok_value = join_async! {
                 ok(2u16),
                 ok(3u16),
                 get_ok_four(),
@@ -174,7 +174,7 @@ mod union_async_tests {
 
             assert_eq!(ok_value.await.unwrap(), None);
 
-            let err_value = union_async! {
+            let err_value = join_async! {
                 ok(2u16),
                 ok(3u16),
                 get_ok_four(),
@@ -186,7 +186,7 @@ mod union_async_tests {
                 format!("{:?}", to_err(2).await.unwrap_err())
             );
 
-            let some = union_async! {
+            let some = join_async! {
                 ready(Some(2u16)),
                 ready(Some(3u16)),
                 get_some_five(),
@@ -195,7 +195,7 @@ mod union_async_tests {
 
             assert_eq!(some.await, Some(2u16));
 
-            let none = union_async! {
+            let none = join_async! {
                 ready(Some(2u16)),
                 ready(Some(3u16)),
                 get_some_five(),
@@ -204,7 +204,7 @@ mod union_async_tests {
 
             assert_eq!(none.await, None);
 
-            let some = union_async! {
+            let some = join_async! {
                 ready(Some(2u16)),
                 ready(Some(3u16)),
                 get_some_five(),
@@ -213,7 +213,7 @@ mod union_async_tests {
 
             assert_eq!(some.await, Some(10));
 
-            let none = union_async! {
+            let none = join_async! {
                 ready(Some(2u16)),
                 None -> ready,
                 get_some_five(),
@@ -222,7 +222,7 @@ mod union_async_tests {
 
             assert_eq!(none.await, None);
 
-            let ok_value = union_async! {
+            let ok_value = join_async! {
                 ok(2u16),
                 ok(3u16),
                 get_ok_four(),
@@ -231,7 +231,7 @@ mod union_async_tests {
 
             assert_eq!(ok_value.await.unwrap(), 9u16);
 
-            let err_value = union_async! {
+            let err_value = join_async! {
                 ok(2u16),
                 ok(3u16),
                 get_ok_four(),
@@ -245,7 +245,7 @@ mod union_async_tests {
     #[test]
     fn it_tests_steps() {
         block_on(async {
-            let product = union_async! {
+            let product = join_async! {
                 let branch_0 = ok(2u16) ~|> {
                     let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
                     let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
@@ -291,7 +291,7 @@ mod union_async_tests {
 
             let (values0, values1, values2) = (values.clone(), values.clone(), values.clone());
 
-            let _ = union_async! {
+            let _ = join_async! {
                 ok((values0, 1u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(1)).await;
@@ -332,7 +332,7 @@ mod union_async_tests {
     #[test]
     fn it_produces_tuple() {
         block_on(async {
-            let values = union_async! {
+            let values = join_async! {
                 futures_crate_path(::futures)
                 ok::<_,u8>(2), ok::<_,u8>(3)
             }
@@ -344,7 +344,7 @@ mod union_async_tests {
     #[test]
     fn it_produces_single_value() {
         block_on(async {
-            let value = union_async! { ready(Some(1)) }.await;
+            let value = join_async! { ready(Some(1)) }.await;
             assert_eq!(value.unwrap(), 1);
         });
     }
@@ -353,7 +353,7 @@ mod union_async_tests {
     #[test]
     fn it_creates_unpolled_future() {
         block_on(async {
-            let _fut = union_async! {
+            let _fut = join_async! {
                 ready(panic!()),
                 ready(unreachable!()),
                 then => |a: Result<u8>, b: Result<u8>| ready(a)
@@ -367,7 +367,7 @@ mod union_async_tests {
         use ::futures::future::{ok, ready, try_join_all};
         use ::futures::stream::{iter, Stream};
         use ::reqwest::Client;
-        use union::{union, union_async};
+        use join::{join, join_async};
 
         type Result<T, E> = std::result::Result<T, E>;
 
@@ -387,7 +387,7 @@ mod union_async_tests {
 
         async fn read_number_from_stdin() -> Result<usize, Error> {
             let mut input = iter(vec!["100"]);
-            let result = union_async! {
+            let result = join_async! {
                 input
                     .next()
                     |> |value| value.ok_or(format_err!("Failed to read from input"))
@@ -418,7 +418,7 @@ mod union_async_tests {
 
             let client = Client::new();
             
-            let task = union_async! {
+            let task = join_async! {
                 // This programs makes requests to several sites 
                 // and calculates count of links starting from `https://`
                 get_urls_to_calculate_link_count() 
@@ -472,7 +472,7 @@ mod union_async_tests {
                                 move |err| 
                                     format_err!("Failed to parse random number: {:#?}, value: {}", err, value);
                         move |url| {
-                            union_async! {
+                            join_async! {
                                 client
                                     .get(url)
                                     .send()
@@ -511,9 +511,9 @@ mod union_async_tests {
                 }    
             };
 
-            // Use sync union because we don't need parallel execution and sync map
+            // Use sync join because we don't need parallel execution and sync map
             // is more convenient
-            let _ = union! {
+            let _ = join! {
                 task 
                     .await
                     |> |result| 

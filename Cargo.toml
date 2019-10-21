@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "union",
-    "union_impl",
-    "union_export"
+    "join",
+    "join_impl",
+    "join_export"
 ]

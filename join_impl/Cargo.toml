@@ -1,16 +1,16 @@
 [package]
-name = "union_impl"
-version = "0.1.3"
+name = "join_impl"
+version = "0.1.0-alpha.1"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 edition = "2018"
 license = "MIT"
-description = "Implementation of the `union!` macro."
-repository = "https://github.com/olegnn/union"
-documentation = "https://docs.rs/union_impl"
+description = "Implementation of the `join!` macro."
+repository = "https://github.com/olegnn/join"
+documentation = "https://docs.rs/join_impl"
 readme = "README.md"
 
 [lib]
-name = "union_impl"
+name = "join_impl"
 
 [features]
 std = []
@@ -22,4 +22,4 @@ quote = "1.0.2"
 syn = { version = "1.0", features = ["full", "extra-traits"] }
 
 [dev-dependencies]
-union = { path = "../union", version = "0.1.5" }
+join = { path = "../join", version = "0.1.0-alpha.1" }

@@ -1,5 +1,5 @@
 //!
-//! Defines `Union` struct and `generate_union` function to generate output of the `union!` macro based on input and given config.
+//! Defines `Join` struct and `generate_join` function to generate output of the `join!` macro based on input and given config.
 //!
 
 pub mod config;
@@ -22,9 +22,9 @@ use super::handler::Handler;
 use super::name_constructors::*;
 
 ///
-/// Result of parsing `union!` macro input.
+/// Result of parsing `join!` macro input.
 ///
-pub struct Union {
+pub struct Join {
     pub futures_crate_path: Option<Path>,
     pub branches: Vec<ExprChainWithDefault>,
     pub handler: Option<Handler>,
@@ -39,9 +39,9 @@ mod keywords {
 /// and handler (one of `map`, `and_then`, `then`) and puts it into `handler` field.
 /// Handler can be either defined once or not defined.
 ///
-impl Parse for Union {
+impl Parse for Join {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let mut union = Union {
+        let mut join = Join {
             branches: Vec::new(),
             handler: None,
             futures_crate_path: None,
@@ -51,30 +51,30 @@ impl Parse for Union {
             input.parse::<keywords::futures_crate_path>()?;
             let content;
             parenthesized!(content in input);
-            union.futures_crate_path = Some(content.parse()?);
+            join.futures_crate_path = Some(content.parse()?);
         }
 
         while !input.is_empty() {
             if Handler::is_handler(&input) {
-                if union.handler.is_some() {
+                if join.handler.is_some() {
                     return Err(input.error("Multiple `handler` cases found, only one allowed. Please, specify one of `map`, `and_then`, `then`."));
                 }
                 let handler = Handler::new(input)?.expect(
-                    "union: Handler `is_handler` check failed. This's a bug, please report it.",
+                    "join: Handler `is_handler` check failed. This's a bug, please report it.",
                 );
-                union.handler = Some(handler);
+                join.handler = Some(handler);
             } else {
                 let expr_chain = ExprChainWithDefault::new(input, Box::new(Handler::is_handler))?;
                 if let Some(expr_chain) = expr_chain {
-                    union.branches.push(expr_chain)
+                    join.branches.push(expr_chain)
                 };
             };
         }
 
-        if union.branches.is_empty() {
-            Err(input.error("union must contain at least 1 branch."))
+        if join.branches.is_empty() {
+            Err(input.error("join must contain at least 1 branch."))
         } else {
-            Ok(union)
+            Ok(join)
         }
     }
 }
@@ -119,19 +119,19 @@ fn separate_block_expr<ExprType: ReplaceExpr + ExtractExpr + Clone>(
 }
 
 ///
-/// Generates output of the `union!` macro based on parsed input and given config.
+/// Generates output of the `join!` macro based on parsed input and given config.
 ///
-pub fn generate_union(
-    Union {
+pub fn generate_join(
+    Join {
         branches,
         handler,
         futures_crate_path,
-    }: Union,
+    }: Join,
     Config { is_async, spawn }: Config,
 ) -> TokenStream {
     let futures_crate_path = if let Some(futures_crate_path) = futures_crate_path {
         if !is_async {
-            panic!("futures_crate_path should be only provided for `async` `union!`")
+            panic!("futures_crate_path should be only provided for `async` `join!`")
         } else {
             futures_crate_path
         }
@@ -151,13 +151,9 @@ pub fn generate_union(
     //
     let sync_spawn = spawn && !is_async;
 
-    //
-    // Spawn async threads using `::tokio::spawn` from `tokio` crate.
-    //
-
     let previous_result_handler: Box<dyn Fn(TokenStream) -> TokenStream> = if is_async {
         //
-        // In case of async `union` we should wrap given result into a `Future`
+        // In case of async `join` we should wrap given result into a `Future`
         //
         Box::new(|value| quote! { { async move { #value } } })
     } else {
@@ -216,7 +212,7 @@ pub fn generate_union(
         .unzip();
 
     //
-    // Returns `Pat` name if exists, otherwise generate default chain result name.
+    // Returns `Pat` name if exists, otherwise generates default chain result name.
     //
     let get_chain_result_name = |chain_index: usize| -> TokenStream {
         branches[chain_index]
@@ -299,7 +295,7 @@ pub fn generate_union(
                                             let (def_expr, or_clause) = separate_block_expr(default_expr.extract_inner_expr(), step_number, chain_index);
                                             (quote!{ #previous_def_expr #def_expr }, quote! { #previous_result#or_clause })
                                         }
-                                        _ => panic!("union: Unexpected expression type. This is a bug, please report it."),
+                                        _ => panic!("join: Unexpected expression type. This is a bug, please report it."),
                                     }
                             )
                             .or_else(|| 
@@ -367,7 +363,7 @@ pub fn generate_union(
             }
         } else {
             //
-            // In case of sync spawn generate thread builder for every chain.
+            // In case of sync spawn generates thread builder for every chain.
             //
             let thread_builders = if spawn {
                 (0..branch_count)
@@ -405,12 +401,12 @@ pub fn generate_union(
     let last_step_results = construct_step_result_name(max_depth - 1);
 
     //
-    // Return last step results at the end of expression.
+    // Returns last step results at the end of expression.
     //
     let results = quote! { { #( #results_by_step )* #last_step_results } };
 
     //
-    // Define variable names to be used when destructuring results.
+    // Defines variable names to be used when destructuring results.
     //
     let result_vars: Vec<_> = (0..branch_count)
         .map(|index| {
@@ -463,14 +459,14 @@ pub fn generate_union(
             let unwrap_results = generate_results_unwrapper();
             if branch_count == 1 && is_async {
                 //
-                // Return first tuple element if have one branch
+                // Returns first tuple element if we have one branch
                 //
                 quote! {
                     __results.0
                 }
             } else {
                 //
-                // Transform tuple of results in result of tuple
+                // Transforms tuple of results in result of tuple
                 //
                 quote! {
                     let (#( #result_vars ),*) = __results;
@@ -482,7 +478,7 @@ pub fn generate_union(
         |handler| match handler {
             Handler::Then(handler) => {
                 //
-                // Don't unwrap results because handler accepts results.
+                // Doesn't unwrap results because handler accepts results.
                 //
                 quote! {
                     let __handler = #handler;
@@ -492,7 +488,7 @@ pub fn generate_union(
             }
             Handler::Map(handler) => {
                 //
-                // Unwrap results and pass them to handler if all of them are `Ok` (`Some`). Otherwise return `Err` (`None`).
+                // Unwraps results and pass them to handler if all of them are `Ok` (`Some`). Otherwise returns `Err` (`None`).
                 //
                 let unwrap_results = generate_results_unwrapper();
 
@@ -522,7 +518,7 @@ pub fn generate_union(
             }
             Handler::AndThen(handler) => {
                 //
-                // Unwrap results and pass them to handler if all of them are `Ok` (`Some`). Otherwise return `Err` (`None`).
+                // Unwraps results and pass them to handler if all of them are `Ok` (`Some`). Otherwise returns `Err` (`None`).
                 //
                 let unwrap_results = generate_results_unwrapper();
 

@@ -68,11 +68,11 @@ impl GroupDeterminer {
     /// Constructs new `GroupDeterminer`.
     /// Example:
     /// ```
-    /// extern crate union_impl;
+    /// extern crate join_impl;
     /// extern crate syn;
     ///
     /// use syn::Token;
-    /// use union_impl::expr_chain::group::GroupDeterminer;
+    /// use join_impl::expr_chain::group::GroupDeterminer;
     ///
     /// fn main() {
     ///     let first_comma_determiner = GroupDeterminer::new(

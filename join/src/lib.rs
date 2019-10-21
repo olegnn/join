@@ -1,6 +1,6 @@
-//! # `union!`
+//! # `join!`
 //!
-//! `union!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, supports single and multi thread (sync/async) step by step execution of branches.
+//! `join!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, supports single and multi thread (sync/async) step by step execution of branches.
 //!
 //! ## Combinators
 //!
@@ -41,12 +41,12 @@
 //! You can specify custom path (`futures_crate_path`) at the beginning of macro call
 //!
 //! ```rust
-//! use union::union_async;
+//! use join::join_async;
 //! use futures::future::ok;
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let value = union_async! {
+//!     let value = join_async! {
 //!         futures_crate_path(::futures)
 //!         ok::<_,u8>(2u16)
 //!     }.await.unwrap();
@@ -62,7 +62,7 @@
 //!
 //! use rand::prelude::*;
 //! use std::sync::Arc;
-//! use union::union_spawn;
+//! use join::join_spawn;
 //!
 //! // Problem: generate vecs filled by random numbers in parallel, make some operations on them in parallel,
 //! // find max of each vec in parallel and find final max of 3 vecs
@@ -70,7 +70,7 @@
 //! // Solution:
 //! fn main() {
 //!     // Branches will be executed in parallel, each in its own thread
-//!     let max = union_spawn! {
+//!     let max = join_spawn! {
 //!         let branch_0 =
 //!             generate_random_vec(1000, 10000000u64)
 //!                 .into_iter()
@@ -155,7 +155,7 @@
 //! ```rust no_run
 //! #![recursion_limit="1024"]
 //!
-//! use union::union_async;
+//! use join::join_async;
 //! use futures::stream::{iter, Stream};
 //! use reqwest::Client;
 //! use futures::future::{try_join_all, ok, ready};
@@ -178,7 +178,7 @@
 //!
 //!     let client = Client::new();
 //!     
-//!     let game = union_async! {
+//!     let game = join_async! {
 //!         // Make requests to several sites
 //!         // and calculate count of links starting from `https://`
 //!         get_urls_to_calculate_link_count()
@@ -187,8 +187,8 @@
 //!                 // so it will us allow to capture some variables from context
 //!                 let ref client = client;
 //!                 move |url|
-//!                     // `union_async!` wraps its content into `async move { }`
-//!                     union_async! {
+//!                     // `join_async!` wraps its content into `async move { }`
+//!                     join_async! {
 //!                         client
 //!                             .get(url).send()
 //!                             => |value| value.text()
@@ -232,7 +232,7 @@
 //!                         move |err|
 //!                             format_err!("Failed to parse random number: {:#?}, value: {}", err, value);
 //!                 move |url|
-//!                     union_async! {
+//!                     join_async! {
 //!                         client
 //!                             .get(url)
 //!                             .send()
@@ -312,7 +312,7 @@
 //!
 //!         let next = reader.next();
 //!     
-//!         result = union_async! {
+//!         result = join_async! {
 //!             next
 //!                 |> |value| value.ok_or(format_err!("Unexpected end of input"))
 //!                 => |result| ready(result.map_err(|err| format_err!("Failed to apply codec: {:?}", err)))
@@ -341,7 +341,7 @@
 //! ```rust
 //!
 //! use std::error::Error;
-//! use union::union;
+//! use join::join;
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error>>;
 //!
@@ -354,7 +354,7 @@
 //! }
 //!
 //! fn main() {
-//!     let sum = union! {
+//!     let sum = join! {
 //!         action_1(),
 //!         action_2().map(|v| v as u16),
 //!         action_2().map(|v| v as u16 + 1).and_then(|v| Ok(v * 4)),
@@ -368,13 +368,13 @@
 //!
 //! ### Futures combination
 //!
-//! Each branch will represent chain of tasks. All branches will be joined using `::futures::join!` macro and `union_async!` will return `unpolled` future.
+//! Each branch will represent chain of tasks. All branches will be joined using `::futures::join!` macro and `join_async!` will return `unpolled` future.
 //!
 //! ```rust
 //! #![recursion_limit="256"]
 //!
 //! use std::error::Error;
-//! use union::union_async;
+//! use join::join_async;
 //! use futures::future::{ok, err};
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -388,7 +388,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let sum = union_async! {
+//!     let sum = join_async! {
 //!         action_1(),
 //!         action_2().and_then(|v| ok(v as u16)),
 //!         action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16)),
@@ -402,17 +402,17 @@
 //!
 //! ## Multi-thread combinations
 //!
-//! To execute several tasks in parallel you could use `union_spawn!` (`spawn!`) for sync tasks
-//! and `union_async_spawn!` (`async_spawn!`) for futures. Since `union_async` already provides parallel futures execution in one thread, `union_async_spawn!` spawns every branch into `tokio` executor so they will be evaluated in multi-threaded executor.
+//! To execute several tasks in parallel you could use `join_spawn!` (`spawn!`) for sync tasks
+//! and `join_async_spawn!` (`async_spawn!`) for futures. Since `join_async` already provides parallel futures execution in one thread, `join_async_spawn!` spawns every branch into `tokio` executor so they will be evaluated in multi-threaded executor.
 //!
 //! ### Multi-thread sync branches
 //!
-//! `union_spawn` spawns one `::std::thread` per each step of each branch (number of branches is the max thread count at the time).
+//! `join_spawn` spawns one `::std::thread` per each step of each branch (number of branches is the max thread count at the time).
 //!
 //! ```rust
 //!
 //! use std::error::Error;
-//! use union::union_spawn;
+//! use join::join_spawn;
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 //!
@@ -426,7 +426,7 @@
 //!
 //! fn main() {
 //!     // Branches will be executed in parallel
-//!     let sum = union_spawn! {
+//!     let sum = join_spawn! {
 //!         action_1(),
 //!         action_2().map(|v| v as usize),
 //!         action_2().map(|v| v as usize + 1).and_then(|v| Ok(v * 4)),
@@ -438,7 +438,7 @@
 //! }
 //! ```
 //!
-//! `union_async_spawn!` uses `::tokio::spawn` function to spawn tasks so it should be done inside `tokio` runtime
+//! `join_async_spawn!` uses `::tokio::spawn` function to spawn tasks so it should be done inside `tokio` runtime
 //! (number of branches is the max count of `tokio` tasks at the time).
 //!
 //! ### Multi-thread futures
@@ -447,7 +447,7 @@
 //! #![recursion_limit="256"]
 //!
 //! use std::error::Error;
-//! use union::union_async_spawn;
+//! use join::join_async_spawn;
 //! use futures::future::{ok, err};
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
@@ -462,7 +462,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let sum = union_async_spawn! {
+//!     let sum = join_async_spawn! {
 //!         action_1(),
 //!         action_2().and_then(|v| ok(v as u16)),
 //!         action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16)),
@@ -479,7 +479,7 @@
 //! ```rust
 //!
 //! use std::error::Error;
-//! use union::union;
+//! use join::join;
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error>>;
 //!
@@ -492,7 +492,7 @@
 //! }
 //!
 //! fn main() {
-//!     let sum = union! {
+//!     let sum = join! {
 //!         action_1(),
 //!         action_2() |> |v| v as u16,
 //!         action_2() |> |v| v as u16 + 1 => |v| Ok(v * 4),
@@ -510,7 +510,7 @@
 //! #![recursion_limit="256"]
 //!
 //! use std::error::Error;
-//! use union::union;
+//! use join::join;
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 //!
@@ -523,7 +523,7 @@
 //! }
 //!
 //! fn main() {
-//!     let sum = union! {
+//!     let sum = join! {
 //!         action_1(),
 //!         let result_1 = action_2() ~|> |v| v as u16 + 1,
 //!         action_2() ~|> {
@@ -556,7 +556,7 @@
 
 extern crate proc_macro_hack;
 extern crate proc_macro_nested;
-extern crate union_export;
+extern crate join_export;
 
 use proc_macro_hack::proc_macro_hack;
 
@@ -564,12 +564,12 @@ use proc_macro_hack::proc_macro_hack;
 /// Use to combine sync results.
 ///
 /// ```rust
-/// extern crate union;
+/// extern crate join;
 ///
-/// use union::union;
+/// use join::join;
 ///
 /// fn main() {
-///     let product = union! {
+///     let product = join! {
 ///         Ok::<_,u8>(2) |> |v| v + 2,
 ///         Ok::<_,u8>(3),
 ///         Ok::<_,u8>(4),
@@ -581,21 +581,21 @@ use proc_macro_hack::proc_macro_hack;
 /// ```
 ///
 #[proc_macro_hack(support_nested)]
-pub use union_export::union;
+pub use join_export::join;
 
 ///
 /// Use to combine futures.
 ///
 /// ```rust
-/// extern crate union;
+/// extern crate join;
 /// extern crate futures;
 ///
-/// use union::union_async;
+/// use join::join_async;
 /// use futures::future::ok;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let product = union_async! {
+///     let product = join_async! {
 ///         ok::<_,u8>(2u16) => |v| ok::<_,u8>(v + 2u16),
 ///         ok::<_,u8>(3u16),
 ///         ok::<_,u8>(4u16),
@@ -607,24 +607,18 @@ pub use union_export::union;
 /// ```
 ///
 #[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use union_export::union_async;
-
-///
-/// Alias for `union_async!`.
-///
-#[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use union_export::asyncion;
+pub use join_export::join_async;
 
 ///
 /// Use to spawn `::std::thread` per each step of each branch.
 ///
 /// ```rust
-/// extern crate union;
+/// extern crate join;
 ///
-/// use union::union_spawn;
+/// use join::join_spawn;
 ///
 /// fn main() {
-///     let product = union_spawn! {
+///     let product = join_spawn! {
 ///         Ok::<_,u8>(2) |> |v| v + 2 ?> |_| {
 ///             println!("Hello from parallel world!");
 ///             ::std::thread::sleep(::std::time::Duration::from_secs(1));
@@ -643,29 +637,29 @@ pub use union_export::asyncion;
 /// }
 ///```
 #[proc_macro_hack(support_nested)]
-pub use union_export::union_spawn;
+pub use join_export::join_spawn;
 
 ///
-/// Alias for `union_spawn!`.
+/// Alias for `join_spawn!`.
 ///
 #[proc_macro_hack(support_nested)]
-pub use union_export::spawn;
+pub use join_export::spawn;
 
 ///
 /// Use to spawn `::tokio::spawn` per each step of each branch.
 /// ```rust
 /// #![recursion_limit="512"]
 ///
-/// extern crate union;
+/// extern crate join;
 /// extern crate futures;
 /// extern crate tokio;
 ///
-/// use union::union_async_spawn;
+/// use join::join_async_spawn;
 /// use futures::future::ok;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let product = union_async_spawn! {
+///     let product = join_async_spawn! {
 ///         ok::<_,u8>(2u16) |> |v| Ok::<_,u8>(v.unwrap() + 2u16) ?> |_| {
 ///             println!("Hello from parallel world!");
 ///             // !!! Don't use std::thread::sleep to wait inside future because it will block executor thread !!!
@@ -688,10 +682,10 @@ pub use union_export::spawn;
 /// }
 ///```
 #[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use union_export::union_async_spawn;
+pub use join_export::join_async_spawn;
 
 ///
-/// Alias for `union_async_spawn!`.
+/// Alias for `join_async_spawn!`.
 ///
 #[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use union_export::async_spawn;
+pub use join_export::async_spawn;

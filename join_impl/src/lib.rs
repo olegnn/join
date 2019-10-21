@@ -1,5 +1,5 @@
 //!
-//! Implementation of the `union!` macro.
+//! Implementation of the `join!` macro.
 //!
 //!
 
@@ -11,6 +11,6 @@ extern crate syn;
 
 pub mod expr_chain;
 pub mod handler;
-pub mod union;
+pub mod join;
 
-pub use crate::union::*;
+pub use crate::join::*;

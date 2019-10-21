@@ -1,5 +1,5 @@
 //!
-//! Name constructors for code generation by `union!` macro.
+//! Name constructors for code generation by `join!` macro.
 //!
 
 use proc_macro2::Ident;
@@ -29,7 +29,7 @@ pub fn construct_result_name(index: impl Into<usize>) -> Ident {
 /// Constructs thread builder name with given index. For internal usage.
 ///
 pub fn construct_thread_builder_name(index: impl Into<usize>) -> Ident {
-    format_ident!("__union_thread_builder_{}", index.into())
+    format_ident!("__join_thread_builder_{}", index.into())
 }
 
 ///
@@ -61,29 +61,29 @@ pub fn construct_result_wrapper_name(index: impl Into<usize>) -> Ident {
 /// Constructs thread name with given index. This name will be displayed as result of thread::current().name().unwrap() or
 /// in case of thread's panic.
 /// ```
-/// extern crate union;
+/// extern crate join;
 ///
 /// use std::thread;
-/// use union::union_spawn;
+/// use join::join_spawn;
 ///
 /// fn main() {
-///     union_spawn! {
+///     join_spawn! {
 ///         Ok::<_, ()>("hello world") |> |value| {
-///             println!("{}", thread::current().name().unwrap()); // main_union_0
+///             println!("{}", thread::current().name().unwrap()); // main_join_0
 ///             value
 ///         }
 ///     };
 /// }
 /// ```
-/// In runtime thread's name will be constructed from {(name of parent thread (if it's `Some`) + `_`) or `` (if it's None)}union_{index of branch (starting from 0)}.
+/// In runtime thread's name will be constructed from {(name of parent thread (if it's `Some`) + `_`) or `` (if it's None)}join_{index of branch (starting from 0)}.
 ///
 /// Example code with many branches.
 /// ```
-/// extern crate union;
+/// extern crate join;
 ///
 /// use std::thread;
 ///
-/// use union::union_spawn;
+/// use join::join_spawn;
 ///
 /// fn get_current_thread_name() -> String {
 ///     thread::current().name().unwrap().to_owned()
@@ -94,25 +94,25 @@ pub fn construct_result_wrapper_name(index: impl Into<usize>) -> Ident {
 /// }
 ///
 /// fn main() {
-///     let _ = union_spawn! {
+///     let _ = join_spawn! {
 ///         Ok(0) ?> print_branch_thread_name,
 ///         Ok(1) ?> print_branch_thread_name,
-///         union_spawn! {
+///         join_spawn! {
 ///             Ok(2) ?> print_branch_thread_name,
-///             union_spawn! {
+///             join_spawn! {
 ///                 Ok(3) ?> print_branch_thread_name,
 ///             }
 ///         }
 ///     }.unwrap();
 /// }
 ///
-/// // Branch: 0. Thead name: main_union_0.
-/// // Branch: 1. Thead name: main_union_1.
-/// // Branch: 2. Thead name: main_union_2_union_0.
-/// // Branch: 3. Thead name: main_union_2_union_1_union_0.
+/// // Branch: 0. Thead name: main_join_0.
+/// // Branch: 1. Thead name: main_join_1.
+/// // Branch: 2. Thead name: main_join_2_join_0.
+/// // Branch: 3. Thead name: main_join_2_join_1_join_0.
 /// // Order could be different.
 /// ```
 ///
 pub fn construct_thread_name(index: impl Into<usize>) -> String {
-    format!("union_{}", index.into())
+    format!("join_{}", index.into())
 }

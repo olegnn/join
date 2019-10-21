@@ -1,17 +1,17 @@
-# Exports of the `union!`, `union_async!`, `asyncion!`, `union_spawn!`, `union_async_spawn!`, `async_spawn!` macros which are reexported by `union` crate.
+# Implementation of the `join!` macro.
 
-# `union!`
+# `join!`
 
-`union!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, supports single and multi thread (sync/async) step by step execution of branches.
+`join!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, supports single and multi thread (sync/async) step by step execution of branches.
 
 [![Docs][docs-badge]][docs-url]
 [![Crates.io][crates-badge]][crates-url]
 [![MIT licensed][mit-badge]][mit-url]
 
-[docs-badge]: https://docs.rs/union/badge.svg
-[docs-url]: https://docs.rs/union
-[crates-badge]: https://img.shields.io/crates/v/union.svg
-[crates-url]: https://crates.io/crates/union
+[docs-badge]: https://docs.rs/join/badge.svg
+[docs-url]: https://docs.rs/join
+[crates-badge]: https://img.shields.io/crates/v/join.svg
+[crates-url]: https://crates.io/crates/join
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [mit-url]: LICENSE
 
@@ -22,7 +22,7 @@ Using this macro you can write things like
 
 use rand::prelude::*;
 use std::sync::Arc;
-use union::union_spawn;
+use join::join_spawn;
 
 // Problem: generate vecs filled by random numbers in parallel, make some operations on them in parallel,
 // find max of each vec in parallel and find final max of 3 vecs
@@ -30,7 +30,7 @@ use union::union_spawn;
 // Solution:
 fn main() {
     // Branches will be executed in parallel, each in its own thread
-    let max = union_spawn! {
+    let max = join_spawn! {
         let branch_0 =
             generate_random_vec(1000, 10000000u64)
                 .into_iter()
@@ -115,7 +115,7 @@ And like this
 ```rust no_run
 #![recursion_limit="1024"]
 
-use union::union_async;
+use join::join_async;
 use futures::stream::{iter, Stream};
 use reqwest::Client;
 use futures::future::{try_join_all, ok, ready};
@@ -138,7 +138,7 @@ async fn main() {
 
     let client = Client::new();
     
-    let game = union_async! {
+    let game = join_async! {
         // Make requests to several sites
         // and calculate count of links starting from `https://`
         get_urls_to_calculate_link_count()
@@ -147,8 +147,8 @@ async fn main() {
                 // so it will us allow to capture some variables from context
                 let ref client = client;
                 move |url|
-                    // `union_async!` wraps its content into `async move { }` 
-                    union_async! {
+                    // `join_async!` wraps its content into `async move { }` 
+                    join_async! {
                         client
                             .get(url).send()
                             => |value| value.text()
@@ -192,7 +192,7 @@ async fn main() {
                         move |err|
                             format_err!("Failed to parse random number: {:#?}, value: {}", err, value);
                 move |url|
-                    union_async! {
+                    join_async! {
                         client
                             .get(url)
                             .send()
@@ -272,7 +272,7 @@ async fn read_number_from_stdin() -> Result<u16, Error> {
 
         let next = reader.next();
     
-        result = union_async! {
+        result = join_async! {
             next
                 |> |value| value.ok_or(format_err!("Unexpected end of input"))
                 => |result| ready(result.map_err(|err| format_err!("Failed to apply codec: {:?}", err)))
@@ -331,12 +331,12 @@ or not specified - then Result<(result0, result1, ..), Error> or Option<(result0
 You can specify custom path (`futures_crate_path`) at the beginning of macro call
 
 ```rust
-use union::union_async;
+use join::join_async;
 use futures::future::ok;
 
 #[tokio::main]
 async fn main() {
-    let value = union_async! {
+    let value = join_async! {
         futures_crate_path(::futures)
         ok::<_,u8>(2u16)
     }.await.unwrap();
@@ -354,7 +354,7 @@ Converts input in series of chained results and joins them step by step.
 ```rust
 
 use std::error::Error;
-use union::union;
+use join::join;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -367,7 +367,7 @@ fn action_2() -> Result<u8> {
 }
 
 fn main() {
-    let sum = union! {
+    let sum = join! {
         action_1(),
         action_2().map(|v| v as u16),
         action_2().map(|v| v as u16 + 1).and_then(|v| Ok(v * 4)),
@@ -381,13 +381,13 @@ fn main() {
 
 ### Futures combination
 
-Each branch will represent chain of tasks. All branches will be joined using `::futures::join!` macro and `union_async!` will return `unpolled` future.
+Each branch will represent chain of tasks. All branches will be joined using `::futures::join!` macro and `join_async!` will return `unpolled` future.
 
 ```rust
 #![recursion_limit="256"]
 
 use std::error::Error;
-use union::union_async;
+use join::join_async;
 use futures::future::{ok, err};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -401,7 +401,7 @@ async fn action_2() -> Result<u8> {
 
 #[tokio::main]
 async fn main() {
-    let sum = union_async! {
+    let sum = join_async! {
         action_1(),
         action_2().and_then(|v| ok(v as u16)),
         action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16)),
@@ -415,17 +415,17 @@ async fn main() {
 
 ## Multi-thread combinations
 
-To execute several tasks in parallel you could use `union_spawn!` (`spawn!`) for sync tasks
-and `union_async_spawn!` (`async_spawn!`) for futures. Since `union_async` already provides parallel futures execution in one thread, `union_async_spawn!` spawns every branch into `tokio` executor so they will be evaluated in multi-threaded executor.
+To execute several tasks in parallel you could use `join_spawn!` (`spawn!`) for sync tasks
+and `join_async_spawn!` (`async_spawn!`) for futures. Since `join_async` already provides parallel futures execution in one thread, `join_async_spawn!` spawns every branch into `tokio` executor so they will be evaluated in multi-threaded executor.
 
 ### Multi-thread sync branches
 
-`union_spawn` spawns one `::std::thread` per each step of each branch (number of branches is the max thread count at the time).
+`join_spawn` spawns one `::std::thread` per each step of each branch (number of branches is the max thread count at the time).
 
 ```rust
 
 use std::error::Error;
-use union::union_spawn;
+use join::join_spawn;
 
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -439,7 +439,7 @@ fn action_2() -> Result<u16> {
 
 fn main() {
     // Branches will be executed in parallel
-    let sum = union_spawn! {
+    let sum = join_spawn! {
         action_1(),
         action_2().map(|v| v as usize),
         action_2().map(|v| v as usize + 1).and_then(|v| Ok(v * 4)),
@@ -451,7 +451,7 @@ fn main() {
 }
 ```
 
-`union_async_spawn!` uses `::tokio::spawn` function to spawn tasks so it should be done inside `tokio` runtime
+`join_async_spawn!` uses `::tokio::spawn` function to spawn tasks so it should be done inside `tokio` runtime
 (number of branches is the max count of `tokio` tasks at the time).
 
 ### Multi-thread futures
@@ -460,7 +460,7 @@ fn main() {
 #![recursion_limit="256"]
 
 use std::error::Error;
-use union::union_async_spawn;
+use join::join_async_spawn;
 use futures::future::{ok, err};
 
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
@@ -475,7 +475,7 @@ async fn action_2() -> Result<u8> {
 
 #[tokio::main]
 async fn main() {
-    let sum = union_async_spawn! {
+    let sum = join_async_spawn! {
         action_1(),
         action_2().and_then(|v| ok(v as u16)),
         action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16)),
@@ -492,7 +492,7 @@ Using combinators we can rewrite first sync example like
 ```rust
 
 use std::error::Error;
-use union::union;
+use join::join;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -505,7 +505,7 @@ fn action_2() -> Result<u8> {
 }
 
 fn main() {
-    let sum = union! {
+    let sum = join! {
         action_1(),
         action_2() |> |v| v as u16,
         action_2() |> |v| v as u16 + 1 => |v| Ok(v * 4),
@@ -523,7 +523,7 @@ By separating chain in actions, you will make actions wait for completion of all
 #![recursion_limit="256"]
 
 use std::error::Error;
-use union::union;
+use join::join;
 
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -536,7 +536,7 @@ fn action_2() -> Result<u8> {
 }
 
 fn main() {
-    let sum = union! {
+    let sum = join! {
         action_1(),
         let result_1 = action_2() ~|> |v| v as u16 + 1,
         action_2() ~|> {

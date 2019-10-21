@@ -1,0 +1,23 @@
+[package]
+name = "join_export"
+version = "0.1.0-alpha.1"
+authors = ["olegnn <olegnosov1@gmail.com>"]
+edition = "2018"
+license = "MIT"
+description = "Exports of the `join!`, `join_async!`, `join_spawn!`, `join_async_spawn!`, `async_spawn!` macros which are reexported by `join` crate."
+repository = "https://github.com/olegnn/join"
+documentation = "https://docs.rs/join_export"
+readme = "README.md"
+
+[lib]
+name = "join_export"
+proc-macro = true
+
+[features]
+std = []
+
+[dependencies]
+join_impl = { path = "../join_impl", version = "0.1.0-alpha.1" }
+proc-macro-hack = "0.5.10"
+quote = "1.0.2"
+syn = { version = "1.0", features = ["full", "extra-traits"] }

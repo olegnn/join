@@ -1,6 +1,6 @@
 [package]
-name = "union"
-version = "0.1.7"
+name = "join"
+version = "0.1.0-alpha.1"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 license = "MIT"
 description = """
@@ -8,17 +8,17 @@ Macro which provides useful shortcut combinators, combines sync/async chains, tr
 supports single and multi thread (sync/async) step by step execution of branches.
 """
 edition = "2018"
-repository = "https://github.com/olegnn/union"
-documentation = "https://docs.rs/union"
+repository = "https://github.com/olegnn/join"
+documentation = "https://docs.rs/join"
 readme = "README.md"
 
 [lib]
-name = "union"
+name = "join"
 
 [dependencies]
 proc-macro-hack = "0.5.10"
 proc-macro-nested = "0.1.3"
-union_export = { path = "../union_export", version = "0.1.3" }
+join_export = { path = "../join_export", version = "0.1.0-alpha.1" }
 
 [dev-dependencies]
 futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
