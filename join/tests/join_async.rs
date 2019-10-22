@@ -5,8 +5,8 @@ mod join_async_tests {
     use futures::executor::block_on;
     use futures::future::{err, ok, ready};
     use futures_timer::Delay;
-    use std::error::Error;
     use join::join_async;
+    use std::error::Error;
 
     type BoxedError = Box<dyn Error>;
 

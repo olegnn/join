@@ -25,7 +25,7 @@ struct ExprChainInternal<Member, GroupDeterminer> {
 ///
 /// Defines public struct with inner `ExprChainInternal`.
 ///
-pub struct ExprChain<Member, GroupDeterminer> {
+pub struct ExprChain<Member: Sized, GroupDeterminer: Sized> {
     inner: Rc<RefCell<ExprChainInternal<Member, GroupDeterminer>>>,
 }
 
@@ -44,49 +44,11 @@ pub type ExprChainWithDefault = ExprChain<ProcessWithDefault, GroupDeterminer>;
 ///
 /// Implementation of `Chain` with `Member=ProcessWithDefault`.
 ///
-impl Chain for ExprChainWithDefault {
+impl Chain for ExprChainWithDefault
+where
+    Self: Sized,
+{
     type Member = ProcessWithDefault;
-
-    fn new(
-        input: ParseStream,
-        other_pattern_check: Box<dyn Fn(ParseStream<'_>) -> bool>,
-    ) -> syn::Result<Option<ExprChainWithDefault>> {
-        let mut group_determiners = instant_and_deferred_determiners! {
-            Map => Token![|], Token![>]; 2,
-            Then => Token![->]; 2,
-            AndThen => Token![=>]; 2,
-            Or => Token![<], Token![|]; 2,
-            OrElse => Token![<=]; 2,
-            Dot => Token![>], Token![.]; 2,
-            MapErr => Token![!], Token![>]; 2,
-            Inspect => Token![?], Token![>]; 2
-        };
-
-        group_determiners.extend(vec![
-            GroupDeterminer::new(None, other_pattern_check, Some(Box::new(is_valid_expr)), 0),
-            GroupDeterminer::new(
-                None,
-                Box::new(|input| input.peek(Token![,])),
-                Some(Box::new(is_valid_expr)),
-                0,
-            ),
-        ]);
-
-        let inner = Rc::new(RefCell::new(ExprChainInternal {
-            members: Vec::new(),
-            group_determiners,
-            pat: None,
-        }));
-
-        let expr_chain = ExprChain { inner };
-
-        if input.is_empty() {
-            Ok(None)
-        } else {
-            expr_chain.process(input)?;
-            Ok(Some(expr_chain))
-        }
-    }
 
     fn get_members(&self) -> Ref<'_, Vec<Self::Member>> {
         Ref::map(RefCell::borrow(&self.inner), |inner| &inner.members)
@@ -95,21 +57,11 @@ impl Chain for ExprChainWithDefault {
     fn get_pat(&self) -> Ref<'_, Option<Pat>> {
         Ref::map(RefCell::borrow(&self.inner), |inner| &inner.pat)
     }
-}
-
-impl ExprChainWithDefault {
-    ///
-    /// Parses unit using self `GroupDeterminer`'s to determine unit end.
-    ///
-    fn parse_unit(&self, input: ParseStream) -> UnitResult {
-        let expr_chain = RefCell::borrow(&self.inner);
-        parse_until(input, &expr_chain.group_determiners[..])
-    }
 
     ///
     /// Parses input, fills self members with given expressions.
     ///
-    fn process(&self, input: ParseStream) -> syn::Result<()> {
+    fn generate_from_stream(&mut self, input: ParseStream) -> syn::Result<()> {
         let mut group_type = Some(ActionGroup::Instant(CommandGroup::Initial));
         let mut is_block;
         let mut member_index = 0;
@@ -207,6 +159,61 @@ impl ExprChainWithDefault {
             }
             Ok(())
         }
+    }
+}
+
+impl ExprChainWithDefault
+where
+    Self: Sized,
+{
+    pub fn new(
+        input: ParseStream,
+        other_pattern_check: Box<dyn Fn(ParseStream<'_>) -> bool>,
+    ) -> syn::Result<Option<Self>> {
+        let mut group_determiners = instant_and_deferred_determiners! {
+            Map => Token![|], Token![>]; 2,
+            Then => Token![->]; 2,
+            AndThen => Token![=>]; 2,
+            Or => Token![<], Token![|]; 2,
+            OrElse => Token![<=]; 2,
+            Dot => Token![>], Token![.]; 2,
+            MapErr => Token![!], Token![>]; 2,
+            Inspect => Token![?], Token![>]; 2,
+            Filter => Token![@], Token![>]; 2
+        };
+
+        group_determiners.extend(vec![
+            GroupDeterminer::new(None, other_pattern_check, Some(Box::new(is_valid_expr)), 0),
+            GroupDeterminer::new(
+                None,
+                Box::new(|input| input.peek(Token![,])),
+                Some(Box::new(is_valid_expr)),
+                0,
+            ),
+        ]);
+
+        let inner = Rc::new(RefCell::new(ExprChainInternal {
+            members: Vec::new(),
+            group_determiners,
+            pat: None,
+        }));
+
+        let mut expr_chain = ExprChain { inner };
+
+        if input.is_empty() {
+            Ok(None)
+        } else {
+            expr_chain.generate_from_stream(input)?;
+            Ok(Some(expr_chain))
+        }
+    }
+
+    ///
+    /// Parses unit using self `GroupDeterminer`'s to determine unit end.
+    ///
+    fn parse_unit(&self, input: ParseStream) -> UnitResult {
+        let expr_chain = RefCell::borrow(&self.inner);
+        parse_until(input, &expr_chain.group_determiners[..])
     }
 }
 

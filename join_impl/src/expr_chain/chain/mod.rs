@@ -12,16 +12,10 @@ mod unit;
 
 pub use unit::{Unit, UnitResult};
 
-pub trait Chain
-where
-    Self: Sized,
-{
-    type Member;
+pub trait Chain {
+    type Member: Sized;
 
-    fn new(
-        input: ParseStream,
-        other_pattern_check: Box<dyn Fn(ParseStream<'_>) -> bool>,
-    ) -> syn::Result<Option<Self>>;
+    fn generate_from_stream(&mut self, input: ParseStream) -> syn::Result<()>;
 
     fn get_members(&self) -> Ref<'_, Vec<Self::Member>>;
 

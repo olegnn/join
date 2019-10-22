@@ -13,6 +13,8 @@ pub enum CommandGroup {
     Map,
     /// [ProcessExpr::Dot]
     Dot,
+    /// [ProcessExpr::Filter]
+    Filter,
     /// [ProcessExpr::Inspect]
     Inspect,
     /// [ProcessExpr::Then]
@@ -38,6 +40,7 @@ impl CommandGroup {
         match self {
             CommandGroup::Map => Some(ProcessExpr::Map(expr)),
             CommandGroup::AndThen => Some(ProcessExpr::AndThen(expr)),
+            CommandGroup::Filter => Some(ProcessExpr::Filter(expr)),
             CommandGroup::Dot => Some(ProcessExpr::Dot(expr)),
             CommandGroup::Then => Some(ProcessExpr::Then(expr)),
             CommandGroup::MapErr => Some(ProcessExpr::MapErr(expr)),
@@ -71,6 +74,7 @@ mod tests {
         let groups_vec: Vec<(CommandGroup, Box<dyn Fn(Expr) -> ProcessExpr>)> = vec![
             (CommandGroup::Map, Box::new(ProcessExpr::Map)),
             (CommandGroup::Dot, Box::new(ProcessExpr::Dot)),
+            (CommandGroup::Filter, Box::new(ProcessExpr::Filter)),
             (CommandGroup::Inspect, Box::new(ProcessExpr::Inspect)),
             (CommandGroup::Then, Box::new(ProcessExpr::Then)),
             (CommandGroup::AndThen, Box::new(ProcessExpr::AndThen)),

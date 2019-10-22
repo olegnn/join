@@ -3,10 +3,10 @@
 #[cfg(test)]
 mod join_async_spawn_tests {
     use futures::future::{err, ok, ready};
+    use join::join_async_spawn;
     use std::error::Error;
     use std::thread;
     use tokio::runtime::Runtime;
-    use join::join_async_spawn;
 
     type BoxedError = Box<dyn Error + Send + Sync>;
 

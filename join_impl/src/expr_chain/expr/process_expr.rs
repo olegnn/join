@@ -23,7 +23,12 @@ pub enum ProcessExpr {
     ///
     AndThen(Expr),
     ///
-    /// |value| { Expr(value); value }
+    /// .filter(Expr)
+    ///
+    Filter(Expr),
+    ///
+    /// Sync: |value| { Expr(&value); value }
+    /// Async: |value| value.inspect(Expr)
     ///
     Inspect(Expr),
     ///
@@ -54,6 +59,9 @@ impl ToTokens for ProcessExpr {
             }
             ProcessExpr::Dot(expr) => {
                 quote! { .#expr }
+            }
+            ProcessExpr::Filter(expr) => {
+                quote! { .filter(#expr) }
             }
             ProcessExpr::Then(expr) => {
                 quote! {{ let __handler = #expr; __handler }}
@@ -90,6 +98,7 @@ impl ExtractExpr for ProcessExpr {
         match self {
             Self::Map(expr) => expr,
             Self::Dot(expr) => expr,
+            Self::Filter(expr) => expr,
             Self::MapErr(expr) => expr,
             Self::AndThen(expr) => expr,
             Self::Then(expr) => expr,
@@ -104,6 +113,7 @@ impl ReplaceExpr for ProcessExpr {
         match self {
             Self::Map(_) => Some(Self::Map(expr)),
             Self::Dot(_) => None,
+            Self::Filter(_) => Some(Self::Filter(expr)),
             Self::MapErr(_) => Some(Self::MapErr(expr)),
             Self::AndThen(_) => Some(Self::AndThen(expr)),
             Self::Then(_) => Some(Self::Then(expr)),
@@ -136,6 +146,7 @@ mod tests {
         for process_expr in vec![
             ProcessExpr::Map(expr.clone()),
             ProcessExpr::Dot(expr.clone()),
+            ProcessExpr::Filter(expr.clone()),
             ProcessExpr::MapErr(expr.clone()),
             ProcessExpr::AndThen(expr.clone()),
             ProcessExpr::Then(expr.clone()),
@@ -150,6 +161,7 @@ mod tests {
                 match process_expr {
                     ProcessExpr::Map(expr) => expr,
                     ProcessExpr::Dot(expr) => expr,
+                    ProcessExpr::Filter(expr) => expr,
                     ProcessExpr::MapErr(expr) => expr,
                     ProcessExpr::AndThen(expr) => expr,
                     ProcessExpr::Then(expr) => expr,
@@ -167,6 +179,7 @@ mod tests {
 
         for process_expr in vec![
             ProcessExpr::Map(expr.clone()),
+            ProcessExpr::Filter(expr.clone()),
             ProcessExpr::MapErr(expr.clone()),
             ProcessExpr::AndThen(expr.clone()),
             ProcessExpr::Then(expr.clone()),
@@ -197,6 +210,7 @@ mod tests {
 
         for process_expr in vec![
             ProcessExpr::Map(expr.clone()),
+            ProcessExpr::Filter(expr.clone()),
             ProcessExpr::Dot(expr.clone()),
             ProcessExpr::MapErr(expr.clone()),
             ProcessExpr::AndThen(expr.clone()),
@@ -222,6 +236,9 @@ mod tests {
                     }
                     ProcessExpr::MapErr(expr) => {
                         quote! { .map_err(#expr) }
+                    }
+                    ProcessExpr::Filter(expr) => {
+                        quote! { .filter(#expr) }
                     }
                     ProcessExpr::Dot(expr) => {
                         quote! { .#expr }

@@ -26,7 +26,7 @@ use super::name_constructors::*;
 ///
 pub struct Join {
     pub futures_crate_path: Option<Path>,
-    pub branches: Vec<ExprChainWithDefault>,
+    pub branches: Vec<Box<dyn Chain<Member = ProcessWithDefault>>>,
     pub handler: Option<Handler>,
 }
 
@@ -66,8 +66,8 @@ impl Parse for Join {
             } else {
                 let expr_chain = ExprChainWithDefault::new(input, Box::new(Handler::is_handler))?;
                 if let Some(expr_chain) = expr_chain {
-                    join.branches.push(expr_chain)
-                };
+                    join.branches.push(Box::new(expr_chain));
+                }
             };
         }
 

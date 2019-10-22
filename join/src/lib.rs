@@ -9,6 +9,8 @@
 //! - AndThen: `=>` expr - `value`.and_then(`expr`),
 //!
 //! - Then: `->` expr - `expr`(`value`)
+//! 
+//! - Filter: `@>` expr - `value`.filter(`expr`)
 //!
 //! - Dot: `>.` expr - `value`.`expr`
 //!
@@ -76,7 +78,9 @@
 //!                 .into_iter()
 //!                 // Multiply every element by itself
 //!                 |> power2
-//!                 >.filter(|value| is_even(*value)).collect::<Vec<_>>()
+//!                 // Filter even values
+//!                 @> |value| is_even(*value)
+//!                 >.collect::<Vec<_>>()
 //!                 // Use `Arc` to share data with branch 1
 //!                 -> Arc::new
 //!                 // Find max and clone its value
@@ -112,7 +116,7 @@
 //!     .unwrap();
 //!     println!("Max: {}", max);
 //! }
-//! 
+//!
 //! fn generate_random_vec<T>(size: usize, max: T) -> Vec<T>
 //! where
 //!     T: From<u8>
@@ -280,7 +284,7 @@
 //!             )
 //!     ).unwrap();  
 //! }
-//! 
+//!
 //! fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
 //!     iter(
 //!         vec![
@@ -554,9 +558,9 @@
 //! }
 //! ```
 
+extern crate join_export;
 extern crate proc_macro_hack;
 extern crate proc_macro_nested;
-extern crate join_export;
 
 use proc_macro_hack::proc_macro_hack;
 

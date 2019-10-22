@@ -2,9 +2,9 @@
 //! Exports of the `join!`, `join_async!`, `join_spawn!`, `join_async_spawn!`, `async_spawn!` macros.
 //!
 
+extern crate join_impl;
 extern crate proc_macro;
 extern crate syn;
-extern crate join_impl;
 
 use proc_macro::TokenStream;
 use proc_macro_hack::proc_macro_hack;

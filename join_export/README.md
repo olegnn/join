@@ -36,7 +36,9 @@ fn main() {
                 .into_iter()
                 // Multiply every element by itself
                 |> power2
-                >.filter(|value| is_even(*value)).collect::<Vec<_>>()
+                // Filter even values
+                @> |value| is_even(*value)
+                >.collect::<Vec<_>>()
                 // Use `Arc` to share data with branch 1
                 -> Arc::new
                 // Find max and clone its value
@@ -301,6 +303,8 @@ async fn read_number_from_stdin() -> Result<u16, Error> {
 - Then: `->` expr - `expr`(`value`)
 
 - Dot: `>.` expr - `value`.`expr`
+
+- Filter: `@>` expr - `value`.filter(`expr`)
 
 - Or: `<|` expr - `value`.or(`expr`)
 
