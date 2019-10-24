@@ -149,7 +149,7 @@ async fn main() {
                 // so it will us allow to capture some variables from context
                 let ref client = client;
                 move |url|
-                    // `join_async!` wraps its content into `async move { }` 
+                    // `join_async!` wraps its content into `Box::pin(async move { })`  
                     join_async! {
                         client
                             .get(url).send()

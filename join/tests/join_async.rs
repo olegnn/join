@@ -362,6 +362,21 @@ mod join_async_tests {
     }
 
     #[test]
+    fn it_works_with_references_correcly() {
+        let mut arr = [1u8, 2, 3, 4, 5];
+        let refer = &mut arr;
+        block_on(Box::pin(async move {
+            let _ = join_async! {
+                ok::<_,u8>(refer) ~|> |v| Ok::<_, u8>(v.unwrap()) => |arr_ref: &mut [u8; 5]| {
+                    arr_ref.into_iter().for_each(|v| { *v += 1; }); ok(())
+                },
+            }
+            .await;
+        }));
+        assert_eq!(arr, [2, 3, 4, 5, 6]);
+    }
+
+    #[test]
     fn it_tests_readme_demo_async_behaviour_and_requires_internet_connection() {
         use ::failure::{format_err, Error};
         use ::futures::future::{ok, ready, try_join_all};

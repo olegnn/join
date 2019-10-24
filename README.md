@@ -147,7 +147,7 @@ async fn main() {
                 // so it will us allow to capture some variables from context
                 let ref client = client;
                 move |url|
-                    // `join_async!` wraps its content into `async move { }` 
+                    // `join_async!` wraps its content into `Box::pin(async move { })`  
                     join_async! {
                         client
                             .get(url).send()
@@ -453,10 +453,10 @@ fn main() {
 }
 ```
 
+### Multi-thread futures
+
 `join_async_spawn!` uses `::tokio::spawn` function to spawn tasks so it should be done inside `tokio` runtime
 (number of branches is the max count of `tokio` tasks at the time).
-
-### Multi-thread futures
 
 ```rust
 #![recursion_limit="256"]
@@ -542,9 +542,9 @@ fn main() {
         action_1(),
         let result_1 = action_2() ~|> |v| v as u16 + 1,
         action_2() ~|> {
+            // `result_1` now is the result of `action_2()` [Ok(1u8)]
             let result_1 = result_1.as_ref().ok().map(Clone::clone);
             move |v| {
-                // `result_1` now is the result of `action_2()` [Ok(1u8)]
                 if result_1.is_some() {
                     v as u16 + 1
                 } else {
@@ -552,9 +552,9 @@ fn main() {
                 }
             }
         } ~=> {
+            // `result_1` now is the result of `|v| v as u16 + 1` [Ok(2u16)]
             let result_1 = result_1.as_ref().ok().map(Clone::clone);
             move |v| {
-                // `result_1` now is the result of `|v| v as u16 + 1` [Ok(2u16)]
                 if let Some(result_1) = result_1 {
                     Ok(v * 4 + result_1)
                 } else {

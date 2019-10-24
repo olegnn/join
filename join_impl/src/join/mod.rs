@@ -4,20 +4,20 @@
 
 pub mod config;
 pub mod name_constructors;
+pub mod parse;
 
 pub use config::Config;
 
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
-use syn::parse::{Parse, ParseStream};
-use syn::{parenthesized, Path};
+use syn::Path;
 
 use super::expr_chain::expr::{
     DefaultActionExpr, ExtractExpr, ProcessActionExpr, ProcessExpr, ReplaceExpr,
 };
 use super::expr_chain::utils::is_block_expr;
-use super::expr_chain::{Chain, ExprChainWithDefault, ProcessWithDefault};
+use super::expr_chain::{Chain, ProcessWithDefault};
 use super::handler::Handler;
 use super::name_constructors::*;
 
@@ -28,55 +28,6 @@ pub struct Join {
     pub futures_crate_path: Option<Path>,
     pub branches: Vec<Box<dyn Chain<Member = ProcessWithDefault>>>,
     pub handler: Option<Handler>,
-}
-
-mod keywords {
-    syn::custom_keyword!(futures_crate_path);
-}
-
-///
-/// Parser which takes expression chains and puts them into `branches` field,
-/// and handler (one of `map`, `and_then`, `then`) and puts it into `handler` field.
-/// Handler can be either defined once or not defined.
-///
-impl Parse for Join {
-    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let mut join = Join {
-            branches: Vec::new(),
-            handler: None,
-            futures_crate_path: None,
-        };
-
-        if input.peek(keywords::futures_crate_path) {
-            input.parse::<keywords::futures_crate_path>()?;
-            let content;
-            parenthesized!(content in input);
-            join.futures_crate_path = Some(content.parse()?);
-        }
-
-        while !input.is_empty() {
-            if Handler::is_handler(&input) {
-                if join.handler.is_some() {
-                    return Err(input.error("Multiple `handler` cases found, only one allowed. Please, specify one of `map`, `and_then`, `then`."));
-                }
-                let handler = Handler::new(input)?.expect(
-                    "join: Handler `is_handler` check failed. This's a bug, please report it.",
-                );
-                join.handler = Some(handler);
-            } else {
-                let expr_chain = ExprChainWithDefault::new(input, Box::new(Handler::is_handler))?;
-                if let Some(expr_chain) = expr_chain {
-                    join.branches.push(Box::new(expr_chain));
-                }
-            };
-        }
-
-        if join.branches.is_empty() {
-            Err(input.error("join must contain at least 1 branch."))
-        } else {
-            Ok(join)
-        }
-    }
 }
 
 fn expand_process_expr(
@@ -151,9 +102,9 @@ pub fn generate_join(
     //
     let sync_spawn = spawn && !is_async;
 
-    let previous_result_handler: Box<dyn Fn(TokenStream) -> TokenStream> = if is_async {
+    let wrap_previous_result: Box<dyn Fn(TokenStream) -> TokenStream> = if is_async {
         //
-        // In case of async `join` we should wrap given result into a `Future`
+        // In case of async `join` we should wrap given result into `Future`
         //
         Box::new(|value| quote! { { async move { #value } } })
     } else {
@@ -303,7 +254,7 @@ pub fn generate_join(
                                     match expr {
                                         Some(ProcessActionExpr::Deferred(process_expr)) => {
                                             let previous_result_name = get_chain_result_name(chain_index);
-                                            let previous_result = previous_result_handler(quote! { #previous_result_name });
+                                            let previous_result = wrap_previous_result(quote! { #previous_result_name });
                                             let (def_expr, process_expr) = separate_block_expr(process_expr, step_number, chain_index);
                                             let process_expr = expand_process_expr(previous_result, &process_expr, is_async);
                                             (def_expr, quote! { #process_expr#or_clause })
@@ -314,7 +265,7 @@ pub fn generate_join(
                                         }
                                         None => {
                                             let previous_result_name = get_chain_result_name(chain_index);
-                                            let previous_result = previous_result_handler(quote! { #previous_result_name });
+                                            let previous_result = wrap_previous_result(quote! { #previous_result_name });
                                             let default_expr = default_expr.as_ref().unwrap().clone();
                                             let (def_expr, or_clause) = separate_block_expr(default_expr.extract_inner_expr(), step_number, chain_index);
                                             (def_expr, quote! { #previous_result#or_clause })
@@ -330,7 +281,7 @@ pub fn generate_join(
                                     if is_async {
                                         let spawn_tokio_function_name = construct_spawn_tokio_function_name();
                                         quote! {
-                                            { #spawn_tokio_function_name(#chain) }
+                                            { #spawn_tokio_function_name(Box::pin(#chain)) }
                                         }
                                     } else {
                                         let thread_builder_name = construct_thread_builder_name(chain_index);
@@ -339,14 +290,18 @@ pub fn generate_join(
                                         }
                                     }
                                 } else {
-                                    quote! { #chain }
+                                    if is_async {
+                                        quote! { Box::pin(#chain) }
+                                    } else {
+                                        quote! { #chain }
+                                    }
                                 }
                             )
                         )
                         .unwrap_or_else(|| (empty_stream.clone(), empty_stream.clone())),
                     None => {
                         let previous_result_name = get_chain_result_name(chain_index);
-                        (empty_stream.clone(), previous_result_handler(quote! { #previous_result_name }))
+                        (empty_stream.clone(), wrap_previous_result(quote! { #previous_result_name }))
                     }
                 })
                 .unzip();
@@ -357,9 +312,14 @@ pub fn generate_join(
         let step_result_name = construct_step_result_name(step_number);
 
         results_by_step.push(if is_async {
+            let await_results = if branch_count > 1 {
+                quote! { #futures_crate_path::join!(#( #step_exprs ),*) }
+            } else {
+                quote! { (#( #step_exprs ),*.await) }
+            };
             quote! {
                 #(#def_exprs)*
-                let #step_result_name = #futures_crate_path::join!(#( #step_exprs ),*);
+                let #step_result_name = #await_results;
             }
         } else {
             //
@@ -457,22 +417,13 @@ pub fn generate_join(
     let handle_results = handler.as_ref().map_or_else(
         || {
             let unwrap_results = generate_results_unwrapper();
-            if branch_count == 1 && is_async {
-                //
-                // Returns first tuple element if we have one branch
-                //
-                quote! {
-                    __results.0
-                }
-            } else {
-                //
-                // Transforms tuple of results in result of tuple
-                //
-                quote! {
-                    let (#( #result_vars ),*) = __results;
-                    let __results = #unwrap_results;
-                    __results
-                }
+            //
+            // Transforms tuple of results in result of tuple
+            //
+            quote! {
+                let (#( #result_vars ),*) = __results;
+                let __results = #unwrap_results;
+                __results
             }
         },
         |handler| match handler {
@@ -579,13 +530,15 @@ pub fn generate_join(
             empty_stream.clone()
         };
         quote! {
-            async move {
-                use #futures_crate_path::{FutureExt, TryFutureExt, StreamExt, TryStreamExt};
-                #async_spawn_fn_definition
-                #inspect_definition
-                let __results = #results;
-                #handle_results#await_handler
-            }
+            Box::pin(
+                async move {
+                    use #futures_crate_path::{FutureExt, TryFutureExt, StreamExt, TryStreamExt};
+                    #async_spawn_fn_definition
+                    #inspect_definition
+                    let __results = #results;
+                    #handle_results#await_handler
+                }
+            )
         }
     } else {
         quote! {{
