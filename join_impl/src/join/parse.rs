@@ -4,11 +4,11 @@
 //! Handler can be either defined once or not defined.
 //!
 
-use syn::parenthesized;
-use syn::parse::{Parse, ParseStream};
 use super::super::expr_chain::ExprChainWithDefault;
 use super::super::handler::Handler;
 use super::Join;
+use syn::parenthesized;
+use syn::parse::{Parse, ParseStream};
 
 mod keywords {
     syn::custom_keyword!(futures_crate_path);
@@ -53,4 +53,3 @@ impl Parse for Join {
         }
     }
 }
-

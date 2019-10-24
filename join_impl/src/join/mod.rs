@@ -289,12 +289,10 @@ pub fn generate_join(
                                             { #thread_builder_name.spawn(move || #chain ).unwrap() }
                                         }
                                     }
+                                } else if is_async {
+                                    quote! { Box::pin(#chain) }
                                 } else {
-                                    if is_async {
-                                        quote! { Box::pin(#chain) }
-                                    } else {
-                                        quote! { #chain }
-                                    }
+                                    quote! { #chain }
                                 }
                             )
                         )

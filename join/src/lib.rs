@@ -2,6 +2,20 @@
 //!
 //! `join!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, supports single and multi thread (sync/async) step by step execution of branches.
 //!
+//! [![Docs][docs-badge]][docs-url]
+//! [![Crates.io][crates-badge]][crates-url]
+//! [![MIT licensed][mit-badge]][mit-url]
+//! [![Build Status][travis-badge]][travis-url]
+//!
+//! [docs-badge]: https://docs.rs/join/badge.svg
+//! [docs-url]: https://docs.rs/join
+//! [crates-badge]: https://img.shields.io/crates/v/join.svg
+//! [crates-url]: https://crates.io/crates/join
+//! [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+//! [mit-url]: LICENSE
+//! [travis-badge]: https://travis-ci.org/olegnn/join.svg?branch=master
+//! [travis-url]: https://travis-ci.org/olegnn/join
+//!
 //! ## Combinators
 //!
 //! - Map: `|>` expr - `value`.map(`expr`)
@@ -191,7 +205,7 @@
 //!                 // so it will us allow to capture some variables from context
 //!                 let ref client = client;
 //!                 move |url|
-//!                     // `join_async!` wraps its content into `Box::pin(async move { })` 
+//!                     // `join_async!` wraps its content into `Box::pin(async move { })`
 //!                     join_async! {
 //!                         client
 //!                             .get(url).send()
@@ -530,7 +544,7 @@
 //!         action_1(),
 //!         let result_1 = action_2() ~|> |v| v as u16 + 1,
 //!         action_2() ~|> {
-//!             `result_1` now is the result of `action_2()` [Ok(1u8)]
+//!             // `result_1` now is the result of `action_2()` [Ok(1u8)]
 //!             let result_1 = result_1.as_ref().ok().map(Clone::clone);
 //!             move |v| {
 //!                 if result_1.is_some() {
@@ -591,7 +605,7 @@ pub use join_export::join;
 ///
 /// ```rust
 /// #![recursion_limit="256"]
-/// 
+///
 /// extern crate join;
 /// extern crate futures;
 ///

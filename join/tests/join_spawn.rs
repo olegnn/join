@@ -353,4 +353,10 @@ mod join_spawn_tests {
         let value = join_spawn! { Some(1) };
         assert_eq!(value.unwrap(), 1);
     }
+
+    #[test]
+    fn multi_step_single_branch() {
+        let values = join_spawn! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~@> |v| v % 3 != 0 >.collect::<Vec<_>>() ~-> Some }.unwrap();
+        assert_eq!(values, vec![1, 2, 4, 5, 7, 8]);
+    }
 }

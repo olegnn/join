@@ -377,6 +377,14 @@ mod join_async_tests {
     }
 
     #[test]
+    fn multi_step_single_branch() {
+        block_on(async {
+            let values = join_async! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~>.await @> |v| v % 3 != 0 >.collect::<Vec<_>>() -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
+            assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
+        });
+    }
+
+    #[test]
     fn it_tests_readme_demo_async_behaviour_and_requires_internet_connection() {
         use ::failure::{format_err, Error};
         use ::futures::future::{ok, ready, try_join_all};

@@ -7,6 +7,7 @@
 [![Docs][docs-badge]][docs-url]
 [![Crates.io][crates-badge]][crates-url]
 [![MIT licensed][mit-badge]][mit-url]
+[![Build Status][travis-badge]][travis-url]
 
 [docs-badge]: https://docs.rs/join/badge.svg
 [docs-url]: https://docs.rs/join
@@ -14,6 +15,8 @@
 [crates-url]: https://crates.io/crates/join
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [mit-url]: LICENSE
+[travis-badge]: https://travis-ci.org/olegnn/join.svg?branch=master
+[travis-url]: https://travis-ci.org/olegnn/join
 
 Using this macro you can write things like
 
@@ -149,7 +152,7 @@ async fn main() {
                 // so it will us allow to capture some variables from context
                 let ref client = client;
                 move |url|
-                    // `join_async!` wraps its content into `Box::pin(async move { })`  
+                    // `join_async!` wraps its content into `Box::pin(async move { })`
                     join_async! {
                         client
                             .get(url).send()

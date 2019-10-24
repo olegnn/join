@@ -286,7 +286,10 @@ mod join_async_spawn_tests {
     }
     #[test]
     fn it_checks_mutli_threading() {
-        let rt = Runtime::new().unwrap();
+        let rt = tokio::runtime::Builder::new()
+            .core_threads(3)
+            .build()
+            .unwrap();
         rt.block_on(async {
             use futures::lock::Mutex;
             use std::sync::Arc;
@@ -380,5 +383,14 @@ mod join_async_spawn_tests {
             }))
             .is_err()
         );
+    }
+
+    #[test]
+    fn multi_step_single_branch() {
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            let values = join_async_spawn! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~>.await @> |v| v % 3 != 0 >.collect::<Vec<_>>() -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
+            assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
+        });
     }
 }
