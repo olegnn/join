@@ -1,5 +1,5 @@
 //!
-//! `ProcessExpr` used to define type of expressions in process position.
+//! Contains `ProcessExpr` definition.
 //!
 
 use proc_macro2::TokenStream;
@@ -8,6 +8,9 @@ use syn::Expr;
 
 use super::{ExtractExpr, ReplaceExpr};
 
+///
+/// `ProcessExpr` used to define type of expressions in process position.
+///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ProcessExpr {
     ///
@@ -32,10 +35,6 @@ pub enum ProcessExpr {
     ///
     Inspect(Expr),
     ///
-    /// .map_err(Expr)
-    ///
-    MapErr(Expr),
-    ///
     /// .Expr
     ///
     Dot(Expr),
@@ -53,9 +52,6 @@ impl ToTokens for ProcessExpr {
             }
             ProcessExpr::Map(expr) => {
                 quote! { .map(#expr) }
-            }
-            ProcessExpr::MapErr(expr) => {
-                quote! { .map_err(#expr) }
             }
             ProcessExpr::Dot(expr) => {
                 quote! { .#expr }
@@ -99,7 +95,6 @@ impl ExtractExpr for ProcessExpr {
             Self::Map(expr) => expr,
             Self::Dot(expr) => expr,
             Self::Filter(expr) => expr,
-            Self::MapErr(expr) => expr,
             Self::AndThen(expr) => expr,
             Self::Then(expr) => expr,
             Self::Initial(expr) => expr,
@@ -114,7 +109,6 @@ impl ReplaceExpr for ProcessExpr {
             Self::Map(_) => Some(Self::Map(expr)),
             Self::Dot(_) => None,
             Self::Filter(_) => Some(Self::Filter(expr)),
-            Self::MapErr(_) => Some(Self::MapErr(expr)),
             Self::AndThen(_) => Some(Self::AndThen(expr)),
             Self::Then(_) => Some(Self::Then(expr)),
             Self::Initial(_) => Some(Self::Initial(expr)),
@@ -147,7 +141,6 @@ mod tests {
             ProcessExpr::Map(expr.clone()),
             ProcessExpr::Dot(expr.clone()),
             ProcessExpr::Filter(expr.clone()),
-            ProcessExpr::MapErr(expr.clone()),
             ProcessExpr::AndThen(expr.clone()),
             ProcessExpr::Then(expr.clone()),
             ProcessExpr::Initial(expr.clone()),
@@ -162,7 +155,6 @@ mod tests {
                     ProcessExpr::Map(expr) => expr,
                     ProcessExpr::Dot(expr) => expr,
                     ProcessExpr::Filter(expr) => expr,
-                    ProcessExpr::MapErr(expr) => expr,
                     ProcessExpr::AndThen(expr) => expr,
                     ProcessExpr::Then(expr) => expr,
                     ProcessExpr::Initial(expr) => expr,
@@ -180,7 +172,6 @@ mod tests {
         for process_expr in vec![
             ProcessExpr::Map(expr.clone()),
             ProcessExpr::Filter(expr.clone()),
-            ProcessExpr::MapErr(expr.clone()),
             ProcessExpr::AndThen(expr.clone()),
             ProcessExpr::Then(expr.clone()),
             ProcessExpr::Initial(expr.clone()),
@@ -212,7 +203,6 @@ mod tests {
             ProcessExpr::Map(expr.clone()),
             ProcessExpr::Filter(expr.clone()),
             ProcessExpr::Dot(expr.clone()),
-            ProcessExpr::MapErr(expr.clone()),
             ProcessExpr::AndThen(expr.clone()),
             ProcessExpr::Then(expr.clone()),
             ProcessExpr::Initial(expr.clone()),
@@ -233,9 +223,6 @@ mod tests {
                     }
                     ProcessExpr::Map(expr) => {
                         quote! { .map(#expr) }
-                    }
-                    ProcessExpr::MapErr(expr) => {
-                        quote! { .map_err(#expr) }
                     }
                     ProcessExpr::Filter(expr) => {
                         quote! { .filter(#expr) }

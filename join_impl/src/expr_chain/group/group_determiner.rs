@@ -1,5 +1,5 @@
 //!
-//! `GroupDeterminer` is used to determine any `ActionGroup` or separator (for ex. `,`) in `ParseStream`
+//! Definition of `GroupDeterminer` and related macros.
 //!
 
 use proc_macro2::{TokenStream, TokenTree};
@@ -7,6 +7,9 @@ use syn::parse::ParseStream;
 
 use super::ActionGroup;
 
+///
+/// `GroupDeterminer` is used to determine any `ActionGroup` or separator (for ex. `,`) in `ParseStream`
+///
 pub struct GroupDeterminer {
     group_type: Option<ActionGroup>,
     check_input_fn: Box<dyn Fn(ParseStream) -> bool>,
@@ -14,22 +17,30 @@ pub struct GroupDeterminer {
     length: usize,
 }
 
+///
+/// Creates instant and deferred `GroupDeterminer`'s for given `ActionGroup`.
+/// Deferred are prefixed by `~`.
+/// For example: `->` is instant, `~->` is deferred.
+///
 #[macro_export]
 macro_rules! instant_and_deferred_determiners {
     ($($group_type: ident => $($tokens: expr),+; $length: expr),+) => {
         vec![
             $(
-                crate::group_determiner!(
-                    crate::expr_chain::ActionGroup::Instant(crate::expr_chain::CommandGroup::$group_type) => $($tokens),+; $length
+                $crate::group_determiner!(
+                    $crate::expr_chain::group::ActionGroup::Instant($crate::expr_chain::group::CommandGroup::$group_type) => $($tokens),+; $length
                 ),
-                crate::group_determiner!(
-                    crate::expr_chain::ActionGroup::Deferred(crate::expr_chain::CommandGroup::$group_type) => Token![~], $($tokens),+; $length + 1
+                $crate::group_determiner!(
+                    $crate::expr_chain::group::ActionGroup::Deferred($crate::expr_chain::group::CommandGroup::$group_type) => Token![~], $($tokens),+; $length + 1
                 )
             ),*
         ]
     };
 }
 
+///
+/// Creates function which checks if `ParseStream` next values are provided tokens. (Max = 3).
+///
 #[macro_export]
 macro_rules! tokens_checker {
     ($token1: expr, $token2:expr, $token3:expr) => {
@@ -45,11 +56,24 @@ macro_rules! tokens_checker {
     };
 }
 
+///
+/// Creates `GroupDeterminer` with given (`ActionGroup` => tokens; length; Fn that checks `TokenStream` of parsed tokens`)
+/// Example:
+/// ```
+/// use join_impl::expr_chain::group::{ActionGroup, CommandGroup};
+/// use join_impl::group_determiner;
+/// use syn::Token;
+///
+/// fn main() {
+///     let then_determiner = group_determiner!(ActionGroup::Instant(CommandGroup::Then) => Token![->]; 2); // last param fn is optional
+/// }
+/// ```
+///
 #[macro_export]
 macro_rules! group_determiner {
     ($group_type: expr => $($tokens: expr),+; $length: expr; $check_parsed_fn: expr) => {{
-        let check_input_fn = crate::tokens_checker!($($tokens),*);
-        crate::expr_chain::GroupDeterminer::new(
+        let check_input_fn = $crate::tokens_checker!($($tokens),*);
+        $crate::expr_chain::group::GroupDeterminer::new(
             $group_type,
             check_input_fn,
             Some($check_parsed_fn),
@@ -57,8 +81,8 @@ macro_rules! group_determiner {
         )
     }};
     ($group_type: expr => $($tokens: expr),+; $length: expr) => {
-        crate::group_determiner!(
-            $group_type => $($tokens),+; $length; Box::new(is_valid_expr)
+        $crate::group_determiner!(
+            $group_type => $($tokens),+; $length; Box::new($crate::expr_chain::utils::is_valid_expr)
         )
     };
 }

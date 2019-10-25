@@ -4,9 +4,3 @@ rust:
 script:
 - cargo build --verbose --all
 - cargo test --verbose --all
-deploy:
-  on:
-    tags: true
-  provider: cargo
-  token:
-    secure: j9NBYP/l6P/Tn2HpaQK0rgAXr2h7eJCotrWe4Zq/96Asnh5nYY+Uumv2UIhASm++jRgOsuHj8rbf+MK92vT3rv4b2sLC2IgrGSRYcAEYCjZIt7HZd9qNqHOw1vj4GbNgGHdbBmor5/6zW3hAYM0cL/BaQguoZY7gQ78l5xDxCLG0xYln/tIxtNYtp6+aj92IC54kfKBYqUxph84OGVvQYjVqN+b6JOGvlo1Vdfmdsx2XmRuTIoRexpctZ+8RmzUKLC9ZPfri4nfHhUbLTxKUczM5nVZCHSf2kKwRugeq6rYt3CpnvYX5TzoSI6Ghh/kBMLjPWooPT3vubWgrhug/cmqukrJ6KGwGKCZxKXEIDp3EZBW2RvL7gtmnckeKk64ZSHx/2xCFH6Q/wh0pVKQSElUntd3b5DgMiG7r/52f9biDqO6EYhiwCvgVDXucIuwR3ZctPrZT+PCRv9kOvSeARtch5DDPnT/wzT+zhyXXW759C/3IiBDtA7DbRTUIZCnlAkcD3MOQxUteWUpUA8pITvNwJWzuqKm7x6Ya55jU0Dk+rdzNxo1E+Tgi0hhplqUabD1+JnVXxncx/4ICXFR59at27yvEpQsB8MBh3YeRBiUbIbx2kjVAs51PG3fV9eS5ezNq7C6+5zotjIFSyrpbRI19HeM7H2zwjjr9fWZ4ld8=

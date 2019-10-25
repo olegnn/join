@@ -1,6 +1,5 @@
 //!
-//! `ActionGroup` represents two possible types of action: `Instant` and `Deferred`.
-//! Any type could be any of `CommandGroup`.
+//! Definition of `ActionGroup`.
 //!
 
 use syn::Expr;
@@ -8,6 +7,10 @@ use syn::Expr;
 use super::super::expr::{DefaultActionExpr, ProcessActionExpr};
 use super::command_group::CommandGroup;
 
+///
+/// `ActionGroup` represents two possible types of action: `Instant` and `Deferred`.
+/// `Instant` and `Deferred` type could be any of type `CommandGroup`.
+///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ActionGroup {
     Instant(CommandGroup),

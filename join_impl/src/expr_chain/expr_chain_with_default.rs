@@ -82,19 +82,11 @@ where
 
             let (default_expr, next_group_type) = match next_group_type {
                 Some(ActionGroup::Instant(CommandGroup::Or))
-                | Some(ActionGroup::Deferred(CommandGroup::Or)) => {
-                    let current_group_type = next_group_type.unwrap();
-                    let Unit {
-                        expr,
-                        next_group_type,
-                    } = self.parse_unit(input)?;
-                    Some((
-                        current_group_type.map_to_default_action_expr(expr),
-                        next_group_type,
-                    ))
-                }
-                Some(ActionGroup::Instant(CommandGroup::OrElse))
-                | Some(ActionGroup::Deferred(CommandGroup::OrElse)) => {
+                | Some(ActionGroup::Deferred(CommandGroup::Or))
+                | Some(ActionGroup::Instant(CommandGroup::OrElse))
+                | Some(ActionGroup::Deferred(CommandGroup::OrElse))
+                | Some(ActionGroup::Instant(CommandGroup::MapErr))
+                | Some(ActionGroup::Deferred(CommandGroup::MapErr)) => {
                     let current_group_type = next_group_type.unwrap();
                     let Unit {
                         expr,
@@ -162,6 +154,10 @@ where
     }
 }
 
+///
+/// Impl of Chain with `ProcessExprWithDefault` member.
+///
+///
 impl ExprChainWithDefault
 where
     Self: Sized,

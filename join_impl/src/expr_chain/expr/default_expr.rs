@@ -1,13 +1,15 @@
 //!
-//! `DefaultExpr` used to define types of expression in default position.
+//! Definition of `DefaultExpr`.
 //!
-
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::Expr;
 
 use super::{ExtractExpr, ReplaceExpr};
 
+///
+/// `DefaultExpr` used to define types of expression in default position.
+///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DefaultExpr {
     ///
@@ -18,6 +20,10 @@ pub enum DefaultExpr {
     /// .or_else(Expr)
     ///
     OrElse(Expr),
+    ///
+    /// .map_err(Expr)
+    ///
+    MapErr(Expr),
 }
 
 impl ToTokens for DefaultExpr {
@@ -28,6 +34,9 @@ impl ToTokens for DefaultExpr {
             }
             DefaultExpr::OrElse(expr) => {
                 quote! { .or_else(#expr) }
+            }
+            DefaultExpr::MapErr(expr) => {
+                quote! { .map_err(#expr) }
             }
         };
         output.extend(tokens);
@@ -51,6 +60,7 @@ impl ExtractExpr for DefaultExpr {
         match self {
             Self::Or(expr) => expr,
             Self::OrElse(expr) => expr,
+            Self::MapErr(expr) => expr,
         }
     }
 }
@@ -60,6 +70,7 @@ impl ReplaceExpr for DefaultExpr {
         Some(match self {
             Self::Or(_) => Self::Or(expr),
             Self::OrElse(_) => Self::OrElse(expr),
+            Self::MapErr(_) => Self::MapErr(expr),
         })
     }
 }
@@ -79,6 +90,7 @@ mod tests {
         for default_expr in vec![
             DefaultExpr::Or(expr.clone()),
             DefaultExpr::OrElse(expr.clone()),
+            DefaultExpr::MapErr(expr.clone()),
         ]
         .into_iter()
         {
@@ -88,6 +100,7 @@ mod tests {
                 match default_expr {
                     DefaultExpr::Or(expr) => expr,
                     DefaultExpr::OrElse(expr) => expr,
+                    DefaultExpr::MapErr(expr) => expr,
                 }
             );
         }
@@ -101,6 +114,7 @@ mod tests {
         for default_expr in vec![
             DefaultExpr::Or(expr.clone()),
             DefaultExpr::OrElse(expr.clone()),
+            DefaultExpr::MapErr(expr.clone()),
         ]
         .into_iter()
         {
@@ -122,6 +136,7 @@ mod tests {
         for default_expr in vec![
             DefaultExpr::Or(expr.clone()),
             DefaultExpr::OrElse(expr.clone()),
+            DefaultExpr::MapErr(expr.clone()),
         ]
         .into_iter()
         {
@@ -139,6 +154,9 @@ mod tests {
                     }
                     DefaultExpr::OrElse(expr) => {
                         quote! { .or_else(#expr) }
+                    }
+                    DefaultExpr::MapErr(expr) => {
+                        quote! { .map_err(#expr) }
                     }
                 }
             ))
