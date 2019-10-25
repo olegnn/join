@@ -1,5 +1,5 @@
 ///
-/// Defines configuration of the `union!` macro.
+/// Defines configuration of the `join!` macro.
 ///
 pub struct Config {
     pub is_async: bool,

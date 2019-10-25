@@ -1,5 +1,5 @@
 //!
-//! Utils for `union!` macro parsing and code generation.
+//! Utils for `join!` macro parsing and code generation.
 //!
 
 use proc_macro2::{TokenStream, TokenTree};
