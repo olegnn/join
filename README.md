@@ -128,7 +128,7 @@ use failure::{format_err, Error};
 async fn main() {
     println!(
         "{} {}\n{}",
-        "Hello.\nThis's is the game where winner is player, which abs(value) is closest to",
+        "Hello.\nThis's is the game where winner is player, which number is closest to",
         "the max count of links (starting with `https://`) found on one of random pages.",
         "You play against random generator (0-500)."
     );
