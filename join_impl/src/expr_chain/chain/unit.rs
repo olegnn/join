@@ -7,6 +7,9 @@ use syn::Expr;
 
 use super::super::group::ActionGroup;
 
+///
+/// `Unit` defines one unit of expression parsing.
+///
 pub struct Unit {
     pub expr: Expr,
     pub next_group_type: Option<ActionGroup>,

@@ -3,7 +3,7 @@
 //! and handler (one of `map`, `and_then`, `then`) and puts it into `handler` field.
 //! Handler can be either defined once or not defined.
 //!
-
+//!
 use super::super::expr_chain::ExprChainWithDefault;
 use super::super::handler::Handler;
 use super::Join;

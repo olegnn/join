@@ -1,12 +1,15 @@
 //!
-//! `CommandGroup` is an enum of all possible `ProcessExpr` and `DefaultExpr` operations.
-//! Used to express group which was found in input `ParseStream`
+//! Definition of `CommandGroup`.
 //!
-
+//!
 use syn::Expr;
 
 use super::super::expr::{DefaultExpr, ProcessExpr};
 
+///
+/// `CommandGroup` is an enum of all possible `ProcessExpr` and `DefaultExpr` operations.
+/// Used to express group which was found in input `ParseStream`
+///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CommandGroup {
     /// [ProcessExpr::Map]
@@ -25,7 +28,7 @@ pub enum CommandGroup {
     Or,
     /// [DefaultExpr::OrElse]
     OrElse,
-    /// [ProcessExpr::MapErr]
+    /// [DefaultExpr::MapErr]
     MapErr,
     /// [ProcessExpr::Initial]
     Initial,
@@ -43,7 +46,6 @@ impl CommandGroup {
             CommandGroup::Filter => Some(ProcessExpr::Filter(expr)),
             CommandGroup::Dot => Some(ProcessExpr::Dot(expr)),
             CommandGroup::Then => Some(ProcessExpr::Then(expr)),
-            CommandGroup::MapErr => Some(ProcessExpr::MapErr(expr)),
             CommandGroup::Initial => Some(ProcessExpr::Initial(expr)),
             CommandGroup::Inspect => Some(ProcessExpr::Inspect(expr)),
             _ => None,
@@ -58,6 +60,7 @@ impl CommandGroup {
         match self {
             CommandGroup::Or => Some(DefaultExpr::Or(expr)),
             CommandGroup::OrElse => Some(DefaultExpr::OrElse(expr)),
+            CommandGroup::MapErr => Some(DefaultExpr::MapErr(expr)),
             _ => None,
         }
     }
@@ -78,7 +81,6 @@ mod tests {
             (CommandGroup::Inspect, Box::new(ProcessExpr::Inspect)),
             (CommandGroup::Then, Box::new(ProcessExpr::Then)),
             (CommandGroup::AndThen, Box::new(ProcessExpr::AndThen)),
-            (CommandGroup::MapErr, Box::new(ProcessExpr::MapErr)),
             (CommandGroup::Initial, Box::new(ProcessExpr::Initial)),
         ];
 
@@ -98,6 +100,7 @@ mod tests {
         let groups_vec: Vec<(CommandGroup, Box<dyn Fn(Expr) -> DefaultExpr>)> = vec![
             (CommandGroup::Or, Box::new(DefaultExpr::Or)),
             (CommandGroup::OrElse, Box::new(DefaultExpr::OrElse)),
+            (CommandGroup::MapErr, Box::new(DefaultExpr::MapErr)),
         ];
 
         for (command_group, process_expr) in groups_vec.into_iter() {

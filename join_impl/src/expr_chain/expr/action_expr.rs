@@ -1,13 +1,14 @@
 //!
-//! `ActionExpr` defines two types of action: `Instant` and `Deferred`.
-//! `ProcessActionExpr` is `ActionExpr` which actions are `ProcessExpr`.
-//! `DefaultActionExpr` is `ActionExpr` which actions are `DefaultExpr`.
+//! Definition of `ActionExpr`, `ProcessActionExpr`, `DefaultActionExpr`.
 //!
 
 use syn::Expr;
 
 use super::{DefaultExpr, ExtractExpr, ProcessExpr};
 
+///
+/// `ActionExpr` defines two types of action: `Instant` and `Deferred`
+///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ActionExpr<Expr> {
     ///
@@ -20,8 +21,14 @@ pub enum ActionExpr<Expr> {
     Deferred(Expr),
 }
 
+///
+/// `ProcessActionExpr` is `ActionExpr` which actions are `ProcessExpr`.
+///
 pub type ProcessActionExpr = ActionExpr<ProcessExpr>;
 
+///
+/// `DefaultActionExpr` is `ActionExpr` which actions are `DefaultExpr`.
+///
 pub type DefaultActionExpr = ActionExpr<DefaultExpr>;
 
 impl ExtractExpr for ProcessActionExpr {
