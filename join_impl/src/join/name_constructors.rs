@@ -44,7 +44,7 @@ pub fn construct_inspect_function_name(is_async: bool) -> Ident {
 }
 
 ///
-/// Constructs `tokio::spawn` wrapper function name - async or not. For internal usage.
+/// Constructs `tokio::spawn` wrapper function name. For internal usage.
 ///
 pub fn construct_spawn_tokio_function_name() -> Ident {
     format_ident!("__spawn_tokio")

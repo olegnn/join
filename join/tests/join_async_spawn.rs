@@ -297,10 +297,8 @@ mod join_async_spawn_tests {
 
             let values = Arc::new(Mutex::new(Vec::new()));
 
-            let (values0, values1, values2) = (values.clone(), values.clone(), values.clone());
-
             let _ = join_async_spawn! {
-                ok((values0, 1u16)) => |(values, value)| async move {
+                ok((values.clone(), 1u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     // !!! Don't use std::thread::sleep to wait inside future because it will block executor thread !!!
                     // It's used here only to show that futures are executed on multi thread executor.
@@ -311,7 +309,7 @@ mod join_async_spawn_tests {
                     values.pop();
                     Ok::<_, BoxedError>(())
                 },
-                ok((values1, 2u16)) => |(values, value)| async move {
+                ok((values.clone(), 2u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     // !!! Don't use std::thread::sleep to wait inside future because it will block executor thread !!!
                     // It's used here only to show that futures are executed on multi thread executor.
@@ -322,7 +320,7 @@ mod join_async_spawn_tests {
                     values.pop();
                     Ok::<_, BoxedError>(())
                 },
-                ok((values2, 3u16)) => |(values, value)| async move {
+                ok((values.clone(), 3u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     // !!! Don't use std::thread::sleep to wait inside future because it will block executor thread !!!
                     // It's used here only to show that futures are executed on multi thread executor.
@@ -386,7 +384,7 @@ mod join_async_spawn_tests {
     }
 
     #[test]
-    fn multi_step_single_branch() {
+    fn it_tests_multi_step_single_branch() {
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
             let values = join_async_spawn! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~>.await @> |v| v % 3 != 0 >.collect::<Vec<_>>() -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();

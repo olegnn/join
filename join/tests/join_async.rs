@@ -281,7 +281,7 @@ mod join_async_tests {
         });
     }
     #[test]
-    fn it_checks_mutli_threading() {
+    fn it_checks_parallel_branches_execution() {
         block_on(async {
             use futures::lock::Mutex;
             use std::sync::Arc;
@@ -289,10 +289,8 @@ mod join_async_tests {
 
             let values = Arc::new(Mutex::new(Vec::new()));
 
-            let (values0, values1, values2) = (values.clone(), values.clone(), values.clone());
-
             let _ = join_async! {
-                ok((values0, 1u16)) => |(values, value)| async move {
+                { ok((values.clone(), 1u16)) } => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(1)).await;
                     let mut values = values.lock().await;
@@ -301,7 +299,7 @@ mod join_async_tests {
                     values.pop();
                     Ok::<_, BoxedError>(())
                 },
-                ok((values1, 2u16)) => |(values, value)| async move {
+                ok((values.clone(), 2u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(2)).await;
                     let mut values = values.lock().await;
@@ -310,7 +308,7 @@ mod join_async_tests {
                     values.pop();
                     Ok::<_, BoxedError>(())
                 },
-                ok((values2, 3u16)) => |(values, value)| async move {
+                ok((values.clone(), 3u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(3)).await;
                     let mut values = values.lock().await;
@@ -377,7 +375,7 @@ mod join_async_tests {
     }
 
     #[test]
-    fn multi_step_single_branch() {
+    fn it_tests_multi_step_single_branch() {
         block_on(async {
             let values = join_async! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~>.await @> |v| v % 3 != 0 >.collect::<Vec<_>>() -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
             assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);

@@ -316,7 +316,7 @@ pub fn generate_join(
                 quote! { (#( #step_exprs ),*.await) }
             };
             quote! {
-                #(#def_exprs)*
+                #( #def_exprs )*
                 let #step_result_name = #await_results;
             }
         } else {
@@ -349,8 +349,8 @@ pub fn generate_join(
                 Vec::new()
             };
             quote! {
-                #( #thread_builders );*
-                #(#def_exprs)*
+                #( #thread_builders )*
+                #( #def_exprs )*
                 let #step_result_name = (#( #step_exprs ),*);
             }
         });
