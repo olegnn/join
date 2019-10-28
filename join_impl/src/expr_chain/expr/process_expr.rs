@@ -38,10 +38,6 @@ pub enum ProcessExpr {
     /// .Expr
     ///
     Dot(Expr),
-    ///
-    /// Expr
-    ///
-    Initial(Expr),
 }
 
 impl ToTokens for ProcessExpr {
@@ -69,9 +65,6 @@ impl ToTokens for ProcessExpr {
                 //quote! { __inspect(#expr) }
                 unimplemented!()
             }
-            ProcessExpr::Initial(expr) => {
-                quote! { #expr }
-            }
         };
         output.extend(tokens);
     }
@@ -97,7 +90,6 @@ impl ExtractExpr for ProcessExpr {
             Self::Filter(expr) => expr,
             Self::AndThen(expr) => expr,
             Self::Then(expr) => expr,
-            Self::Initial(expr) => expr,
             Self::Inspect(expr) => expr,
         }
     }
@@ -111,7 +103,6 @@ impl ReplaceExpr for ProcessExpr {
             Self::Filter(_) => Some(Self::Filter(expr)),
             Self::AndThen(_) => Some(Self::AndThen(expr)),
             Self::Then(_) => Some(Self::Then(expr)),
-            Self::Initial(_) => Some(Self::Initial(expr)),
             Self::Inspect(_) => Some(Self::Inspect(expr)),
         }
     }
@@ -143,7 +134,6 @@ mod tests {
             ProcessExpr::Filter(expr.clone()),
             ProcessExpr::AndThen(expr.clone()),
             ProcessExpr::Then(expr.clone()),
-            ProcessExpr::Initial(expr.clone()),
             ProcessExpr::Inspect(expr.clone()),
         ]
         .into_iter()
@@ -157,7 +147,6 @@ mod tests {
                     ProcessExpr::Filter(expr) => expr,
                     ProcessExpr::AndThen(expr) => expr,
                     ProcessExpr::Then(expr) => expr,
-                    ProcessExpr::Initial(expr) => expr,
                     ProcessExpr::Inspect(expr) => expr,
                 }
             );
@@ -174,7 +163,6 @@ mod tests {
             ProcessExpr::Filter(expr.clone()),
             ProcessExpr::AndThen(expr.clone()),
             ProcessExpr::Then(expr.clone()),
-            ProcessExpr::Initial(expr.clone()),
             ProcessExpr::Inspect(expr.clone()),
         ]
         .into_iter()
@@ -205,7 +193,6 @@ mod tests {
             ProcessExpr::Dot(expr.clone()),
             ProcessExpr::AndThen(expr.clone()),
             ProcessExpr::Then(expr.clone()),
-            ProcessExpr::Initial(expr.clone()),
         ]
         .into_iter()
         {
@@ -239,9 +226,6 @@ mod tests {
                     ProcessExpr::Inspect(_) => {
                         //quote! { __inspect(#expr) }
                         unimplemented!()
-                    }
-                    ProcessExpr::Initial(expr) => {
-                        quote! { #expr }
                     }
                 }
             ));

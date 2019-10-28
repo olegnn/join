@@ -4,7 +4,7 @@
 //! Handler can be either defined once or not defined.
 //!
 //!
-use super::super::expr_chain::ExprChainWithDefault;
+use super::super::expr_chain::ActionExprChain;
 use super::super::handler::Handler;
 use super::Join;
 use syn::parenthesized;
@@ -39,7 +39,7 @@ impl Parse for Join {
                 );
                 join.handler = Some(handler);
             } else {
-                let expr_chain = ExprChainWithDefault::new(input, Box::new(Handler::is_handler))?;
+                let expr_chain = ActionExprChain::new(input, Box::new(Handler::is_handler))?;
                 if let Some(expr_chain) = expr_chain {
                     join.branches.push(Box::new(expr_chain));
                 }

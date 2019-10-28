@@ -6,10 +6,12 @@ use syn::Expr;
 
 mod action_expr;
 mod default_expr;
+mod initial_expr;
 mod process_expr;
 
 pub use action_expr::{ActionExpr, DefaultActionExpr, ProcessActionExpr};
 pub use default_expr::DefaultExpr;
+pub use initial_expr::InitialExpr;
 pub use process_expr::ProcessExpr;
 
 ///

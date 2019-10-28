@@ -4,7 +4,7 @@
 //!
 use syn::Expr;
 
-use super::super::expr::{DefaultExpr, ProcessExpr};
+use super::super::expr::{DefaultExpr, InitialExpr, ProcessExpr};
 
 ///
 /// `CommandGroup` is an enum of all possible `ProcessExpr` and `DefaultExpr` operations.
@@ -30,11 +30,57 @@ pub enum CommandGroup {
     OrElse,
     /// [DefaultExpr::MapErr]
     MapErr,
-    /// [ProcessExpr::Initial]
+    /// [InitialExpr]
     Initial,
 }
 
 impl CommandGroup {
+    ///
+    /// Returns true if self command group is of `ProcessExpr` type.
+    ///
+    pub fn is_process_expr(&self) -> bool {
+        !self.is_default_expr() && !self.is_initial_expr()
+    }
+
+    ///
+    /// Returns true if self command group is of `InitialExpr` type.
+    ///
+    pub fn is_initial_expr(&self) -> bool {
+        match self {
+            CommandGroup::Initial => true,
+            _ => false,
+        }
+    }
+
+    ///
+    /// Attempts to map expr to `InitialExpr` with self type.
+    /// Returns None if self isn't of `InitialExpr` type
+    ///
+    pub fn map_to_initial_expr(&self, expr: Expr) -> Option<InitialExpr> {
+        match self {
+            CommandGroup::Initial => Some(InitialExpr(expr)),
+            _ => None,
+        }
+    }
+
+    ///
+    /// Returns true if self command group is of `DefaultExpr` type.
+    ///
+    pub fn is_default_expr(&self) -> bool {
+        match self {
+            CommandGroup::Map => false,
+            CommandGroup::AndThen => false,
+            CommandGroup::Filter => false,
+            CommandGroup::Dot => false,
+            CommandGroup::Then => false,
+            CommandGroup::Inspect => false,
+            CommandGroup::Or => true,
+            CommandGroup::OrElse => true,
+            CommandGroup::MapErr => true,
+            CommandGroup::Initial => false,
+        }
+    }
+
     ///
     /// Attempts to map expr to `ProcessExpr` with self type.
     /// Returns None if self isn't of `ProcessExpr` type
@@ -46,7 +92,6 @@ impl CommandGroup {
             CommandGroup::Filter => Some(ProcessExpr::Filter(expr)),
             CommandGroup::Dot => Some(ProcessExpr::Dot(expr)),
             CommandGroup::Then => Some(ProcessExpr::Then(expr)),
-            CommandGroup::Initial => Some(ProcessExpr::Initial(expr)),
             CommandGroup::Inspect => Some(ProcessExpr::Inspect(expr)),
             _ => None,
         }
@@ -81,7 +126,6 @@ mod tests {
             (CommandGroup::Inspect, Box::new(ProcessExpr::Inspect)),
             (CommandGroup::Then, Box::new(ProcessExpr::Then)),
             (CommandGroup::AndThen, Box::new(ProcessExpr::AndThen)),
-            (CommandGroup::Initial, Box::new(ProcessExpr::Initial)),
         ];
 
         for (command_group, process_expr) in groups_vec.into_iter() {
@@ -91,6 +135,18 @@ mod tests {
             );
             assert_eq!(command_group.map_to_default_expr(expr.clone()), None);
         }
+    }
+
+    #[test]
+    fn it_tests_command_group_impl_initial_expr() {
+        let expr: ::syn::Expr = ::syn::parse2(::quote::quote! { |v| v + 1 }).unwrap();
+
+        assert_eq!(
+            CommandGroup::Initial
+                .map_to_initial_expr(expr.clone())
+                .unwrap(),
+            InitialExpr(expr.clone()),
+        );
     }
 
     #[test]

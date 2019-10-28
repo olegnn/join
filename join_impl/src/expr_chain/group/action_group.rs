@@ -4,7 +4,7 @@
 
 use syn::Expr;
 
-use super::super::expr::{DefaultActionExpr, ProcessActionExpr};
+use super::super::expr::{ActionExpr, DefaultActionExpr, InitialExpr, ProcessActionExpr};
 use super::command_group::CommandGroup;
 
 ///
@@ -19,6 +19,38 @@ pub enum ActionGroup {
 
 impl ActionGroup {
     ///
+    /// Maps given expr to `ActionExpr`. In any casee will return one of `ActionExpr` variants.
+    ///
+    ///
+    pub fn map_to_action_expr(self, expr: Expr) -> ActionExpr {
+        let command_group = match self {
+            ActionGroup::Instant(command_group) => command_group,
+            ActionGroup::Deferred(command_group) => command_group,
+        };
+
+        if command_group.is_default_expr() {
+            ActionExpr::Default(
+                self
+                    .map_to_default_action_expr(expr)
+                    .expect("join: Unexpected expression type in map_to_action_expr (default). This is a bug, please report it.")
+            )
+        } else if command_group.is_process_expr() {
+            ActionExpr::Process(
+                self
+                    .map_to_process_action_expr(expr)
+                    .expect("join: Unexpected expression type in map_to_action_expr (process). This is a bug, please report it.")
+            )
+        } else if command_group.is_initial_expr() {
+            ActionExpr::Initial(
+                self.map_to_initial_expr(expr)
+                    .expect("join: Unexpected expression type in map_to_action_expr (initial). This is a bug, please report it.")
+            )
+        } else {
+            unreachable!()
+        }
+    }
+
+    ///
     /// Attempts to map expr to `ProcessActionExpr` with self type.
     /// Returns None if self isn't of `ProcessExpr` type
     ///
@@ -30,6 +62,17 @@ impl ActionGroup {
             ActionGroup::Deferred(group) => group
                 .map_to_process_expr(expr)
                 .map(ProcessActionExpr::Deferred),
+        }
+    }
+
+    ///
+    /// Attempts to map expr to `ProcessActionExpr` with self type.
+    /// Returns None if self isn't of `ProcessExpr` type
+    ///
+    pub fn map_to_initial_expr(self, expr: Expr) -> Option<InitialExpr> {
+        match self {
+            ActionGroup::Instant(group) => group.map_to_initial_expr(expr),
+            _ => unreachable!(),
         }
     }
 

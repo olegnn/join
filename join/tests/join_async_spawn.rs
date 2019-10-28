@@ -391,4 +391,23 @@ mod join_async_spawn_tests {
             assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
         });
     }
+
+    #[test]
+    fn it_tests_initial_block_capture() {
+        use std::sync::Arc;
+
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            let out = Arc::new(5);
+            let value = join_async_spawn! {
+                let pat_1 = { let out = out.clone(); ok::<_,()>(*out) },
+                let pat_2 = { ok::<_,()>(*out) },
+                map => |a, _| a
+            }
+            .await
+            .unwrap();
+
+            assert_eq!(value, 5);
+        });
+    }
 }

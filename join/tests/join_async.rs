@@ -549,4 +549,22 @@ mod join_async_tests {
             }.unwrap();   
         });
     }
+
+    #[test]
+    fn it_tests_initial_block_capture() {
+        use std::sync::Arc;
+
+        block_on(async {
+            let out = Arc::new(5);
+            let value = join_async! {
+                let pat_1 = { let out = out.clone(); ok::<_,()>(*out) },
+                let pat_2 = {  ok::<_,()>(*out) },
+                map => |a, _| a
+            }
+            .await
+            .unwrap();
+
+            assert_eq!(value, 5);
+        });
+    }
 }

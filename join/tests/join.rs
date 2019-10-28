@@ -281,4 +281,18 @@ mod join_tests {
         let value = join! { [1,2,3,4].into_iter() @> |&value| *value % 2 == 0 -> Some };
         assert_eq!(value.unwrap().collect::<Vec<_>>(), vec![&2, &4]);
     }
+
+    #[test]
+    fn it_tests_initial_block_capture() {
+        use std::sync::Arc;
+        let out = Arc::new(5);
+        let value = join! {
+            let pat_1 = { let out = out.clone(); Some(*out) },
+            let pat_2 = { Some(*out) },
+            map => |a, _| a
+        }
+        .unwrap();
+
+        assert_eq!(value, 5);
+    }
 }

@@ -14,10 +14,10 @@ use quote::ToTokens;
 use syn::Path;
 
 use super::expr_chain::expr::{
-    DefaultActionExpr, ExtractExpr, ProcessActionExpr, ProcessExpr, ReplaceExpr,
+    ActionExpr, DefaultActionExpr, ExtractExpr, ProcessActionExpr, ProcessExpr, ReplaceExpr,
 };
 use super::expr_chain::utils::is_block_expr;
-use super::expr_chain::{Chain, ProcessWithDefault};
+use super::expr_chain::Chain;
 use super::handler::Handler;
 use super::name_constructors::*;
 
@@ -26,7 +26,7 @@ use super::name_constructors::*;
 ///
 pub struct Join {
     pub futures_crate_path: Option<Path>,
-    pub branches: Vec<Box<dyn Chain<Member = ProcessWithDefault>>>,
+    pub branches: Vec<Box<dyn Chain<Member = ActionExpr>>>,
     pub handler: Option<Handler>,
 }
 
@@ -54,11 +54,10 @@ fn expand_process_expr(
 
 fn separate_block_expr<ExprType: ReplaceExpr + ExtractExpr + Clone>(
     inner_expr: &ExprType,
-    step_number: impl Into<usize>,
     chain_index: impl Into<usize>,
 ) -> (TokenStream, ExprType) {
     let expr = inner_expr.extract_expr();
-    if inner_expr.is_replaceable() && is_block_expr(expr) && step_number.into() > 0 {
+    if inner_expr.is_replaceable() && is_block_expr(expr) {
         let wrapper_name = construct_result_wrapper_name(chain_index.into());
         if let Some(replaced) =
             inner_expr.replace_expr(syn::parse2(quote! { #wrapper_name }).unwrap())
@@ -120,43 +119,27 @@ pub fn generate_join(
         //
         depths,
         //
-        // `ProcessWithDefault` groups each of which represents chain of `Instant` actions but every next group is `Deferred` from previous.
+        // `ActionExpr` groups each of which represents chain of `Instant` actions but every next group is `Deferred` from previous.
         // [[map, or_else, map, and_then], [map, and_then]] =>
         // it will be interpreted as #expr.map().or_else.and_then() and after first step ends
         // #expr.map().and_then()
         //
         chains,
-    ): (Vec<usize>, Vec<Vec<Vec<ProcessWithDefault>>>) = branches
+    ): (Vec<_>, Vec<_>) = branches
         .iter()
         .map(|expr_chain| {
             expr_chain.get_members().iter().fold(
                 (1usize, vec![Vec::new()]),
-                |(depth, mut chain_acc), member| match &member.0 {
-                    Some(ProcessActionExpr::Deferred(_)) => match member.1 {
-                        Some(DefaultActionExpr::Instant(_)) | None => {
-                            chain_acc.push(vec![member.clone()]);
-                            (depth + 1, chain_acc)
-                        }
-                        Some(DefaultActionExpr::Deferred(_)) => {
-                            chain_acc.push(vec![ProcessWithDefault(member.0.clone(), None)]);
-                            chain_acc.push(vec![ProcessWithDefault(None, member.1.clone())]);
-                            (depth + 2, chain_acc)
-                        }
-                    },
-                    _ => match &member.1 {
-                        Some(DefaultActionExpr::Instant(_)) | None => {
-                            chain_acc.last_mut().unwrap().push(member.clone());
-                            (depth, chain_acc)
-                        }
-                        Some(DefaultActionExpr::Deferred(_)) => {
-                            chain_acc
-                                .last_mut()
-                                .unwrap()
-                                .push(ProcessWithDefault(member.0.clone(), None));
-                            chain_acc.push(vec![ProcessWithDefault(None, member.1.clone())]);
-                            (depth + 1, chain_acc)
-                        }
-                    },
+                |(depth, mut chain_acc), member| match member {
+                    ActionExpr::Process(ProcessActionExpr::Deferred(_))
+                    | ActionExpr::Default(DefaultActionExpr::Deferred(_)) => {
+                        chain_acc.push(vec![member.clone()]);
+                        (depth + 1, chain_acc)
+                    }
+                    _ => {
+                        chain_acc.last_mut().unwrap().push(member.clone());
+                        (depth, chain_acc)
+                    }
                 },
             )
         })
@@ -226,53 +209,44 @@ pub fn generate_join(
                 .map(|(chain_index, chain_step_actions)| match chain_step_actions {
                     Some(chain) => chain
                         .iter()
-                        .fold(None, |acc, ProcessWithDefault(expr, default_expr)| {
-                            let or_clause = 
-                                default_expr
-                                    .as_ref()
-                                    .map(ExtractExpr::extract_inner_expr)
-                                    .map(|expr| expr.into_token_stream())
-                                    .unwrap_or_else(|| empty_stream.clone());
+                        .fold(None, |acc, action_expr| {
                             acc.map(
                                 |(previous_def_expr, previous_result)| 
-                                    match &expr {
-                                        Some(ProcessActionExpr::Instant(process_expr)) => {
-                                            let (def_expr, process_expr) = separate_block_expr(process_expr, step_number, chain_index);
+                                    match action_expr {
+                                        ActionExpr::Process(ProcessActionExpr::Instant(process_expr)) => {
+                                            let (def_expr, process_expr) = separate_block_expr(process_expr, chain_index);
                                             let process_expr = expand_process_expr(previous_result, &process_expr, is_async);
-                                            (quote!{ #previous_def_expr #def_expr }, quote! { #process_expr#or_clause })
+                                            (quote!{ #previous_def_expr #def_expr }, quote! { #process_expr })
                                         }
-                                        None => {
-                                            let default_expr = default_expr.as_ref().unwrap().clone();
-                                            let (def_expr, or_clause) = separate_block_expr(default_expr.extract_inner_expr(), step_number, chain_index);
-                                            (quote!{ #previous_def_expr #def_expr }, quote! { #previous_result#or_clause })
+                                        ActionExpr::Default(DefaultActionExpr::Instant(default_expr)) => {
+                                            let (def_expr, default_expr) = separate_block_expr(default_expr, chain_index);
+                                            (quote!{ #previous_def_expr #def_expr }, quote! { #previous_result#default_expr })
                                         }
-                                        _ => panic!("join: Unexpected expression type. This is a bug, please report it."),
+                                        _ => panic!("join: Unexpected expression found in chain_step_actions where Some(acc). This's a bug, please report it."),
                                     }
                             )
-                            .or_else(|| 
+                            .or_else(|| {
+                                let previous_result_name = get_chain_result_name(chain_index);
+                                let previous_result = wrap_previous_result(quote! { #previous_result_name });
                                 Some(
-                                    match expr {
-                                        Some(ProcessActionExpr::Deferred(process_expr)) => {
-                                            let previous_result_name = get_chain_result_name(chain_index);
-                                            let previous_result = wrap_previous_result(quote! { #previous_result_name });
-                                            let (def_expr, process_expr) = separate_block_expr(process_expr, step_number, chain_index);
+                                    match action_expr {
+                                        ActionExpr::Process(ProcessActionExpr::Deferred(process_expr))  => {
+                                            let (def_expr, process_expr) = separate_block_expr(process_expr, chain_index);
                                             let process_expr = expand_process_expr(previous_result, &process_expr, is_async);
-                                            (def_expr, quote! { #process_expr#or_clause })
+                                            (def_expr, quote! { #process_expr })
                                         }
-                                        Some(ProcessActionExpr::Instant(process_expr)) => {
-                                            let (def_expr, process_expr) = separate_block_expr(process_expr, step_number, chain_index);
-                                            (def_expr, quote! { #process_expr#or_clause })
+                                        ActionExpr::Default(DefaultActionExpr::Deferred(default_expr)) => {
+                                            let (def_expr, default_expr) = separate_block_expr(default_expr, chain_index);
+                                            (def_expr, quote! { #previous_result#default_expr })
                                         }
-                                        None => {
-                                            let previous_result_name = get_chain_result_name(chain_index);
-                                            let previous_result = wrap_previous_result(quote! { #previous_result_name });
-                                            let default_expr = default_expr.as_ref().unwrap().clone();
-                                            let (def_expr, or_clause) = separate_block_expr(default_expr.extract_inner_expr(), step_number, chain_index);
-                                            (def_expr, quote! { #previous_result#or_clause })
+                                        ActionExpr::Initial(initial_expr) => {
+                                            let (def_expr, initial_expr) = separate_block_expr(initial_expr, chain_index);
+                                            (def_expr, quote! { #initial_expr })
                                         }
+                                        _ => panic!("join: Unexpected expression found in chain_step_actions where acc = None. This's a bug, please report it."),
                                     }
                                 )
-                            )
+                            })
                         })
                         .map(|(def_expr, chain)|
                             (

@@ -4,13 +4,13 @@
 
 use syn::Expr;
 
-use super::{DefaultExpr, ExtractExpr, ProcessExpr};
+use super::{DefaultExpr, ExtractExpr, InitialExpr, ProcessExpr};
 
 ///
-/// `ActionExpr` defines two types of action: `Instant` and `Deferred`
+/// `InstantOrDeferredExpr` defines two types of action: `Instant` and `Deferred`
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum ActionExpr<Expr> {
+pub enum InstantOrDeferredExpr<Expr> {
     ///
     /// Action which will be applied to given value instantly.
     ///
@@ -22,14 +22,35 @@ pub enum ActionExpr<Expr> {
 }
 
 ///
-/// `ProcessActionExpr` is `ActionExpr` which actions are `ProcessExpr`.
+/// `ProcessActionExpr` is `InstantOrDeferredExpr` which actions are `ProcessExpr`.
 ///
-pub type ProcessActionExpr = ActionExpr<ProcessExpr>;
+pub type ProcessActionExpr = InstantOrDeferredExpr<ProcessExpr>;
 
 ///
-/// `DefaultActionExpr` is `ActionExpr` which actions are `DefaultExpr`.
+/// `DefaultActionExpr` is `InstantOrDeferredExpr` which actions are `DefaultExpr`.
 ///
-pub type DefaultActionExpr = ActionExpr<DefaultExpr>;
+pub type DefaultActionExpr = InstantOrDeferredExpr<DefaultExpr>;
+
+///
+/// `ActionExpr` is one of `Process`(`ProcessActionExpr`) or `Default`(`DefaultActionExpr`) expr,
+/// each of which can be one of its subtypes.
+///
+///
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ActionExpr {
+    ///
+    /// Action of `ProcessActionExpr` type
+    ///
+    Process(ProcessActionExpr),
+    ///
+    /// Action of `DefaultActionExpr` type
+    ///
+    Default(DefaultActionExpr),
+    ///
+    /// Action of `InitialExpr` type
+    ///
+    Initial(InitialExpr),
+}
 
 impl ExtractExpr for ProcessActionExpr {
     type InnerExpr = ProcessExpr;

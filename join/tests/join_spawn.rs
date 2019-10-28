@@ -359,4 +359,19 @@ mod join_spawn_tests {
         let values = join_spawn! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~@> |v| v % 3 != 0 >.collect::<Vec<_>>() ~-> Some }.unwrap();
         assert_eq!(values, vec![1, 2, 4, 5, 7, 8]);
     }
+
+    #[test]
+    fn it_tests_initial_block_capture() {
+        use std::sync::Arc;
+        let out = Arc::new(5);
+
+        let value = join_spawn! {
+            let pat_1 = { let out = out.clone(); Some(*out) },
+            let pat_2 = { Some(*out) },
+            map => |a, _| a
+        }
+        .unwrap();
+
+        assert_eq!(value, 5);
+    }
 }
