@@ -1,6 +1,6 @@
 [package]
 name = "join_export"
-version = "0.1.0-alpha.6"
+version = "0.1.0-alpha.7"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -18,7 +18,7 @@ std = []
 full = ["join_impl/full", "join_impl/static"]
 
 [dependencies]
-join_impl = { path = "../join_impl", version = "0.1.0-alpha.6" }
+join_impl = { path = "../join_impl", version = "0.1.0-alpha.7" }
 proc-macro-hack = "0.5.10"
 quote = "1.0.2"
 syn = { version = "1.0", features = ["full", "extra-traits"] }

@@ -18,6 +18,8 @@ Provides useful shortcut combinators, combines sync/async chains, supports singl
 [travis-badge]: https://travis-ci.org/olegnn/join.svg?branch=master
 [travis-url]: https://travis-ci.org/olegnn/join
 
+**Use [these docs](https://docs.rs/join) for development, they are more convenient.**
+
 - [Demos](#demos)
 - [Combinators](#combinators)
 - [Handler](#handler)

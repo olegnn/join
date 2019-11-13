@@ -1,6 +1,6 @@
 [package]
 name = "join_impl"
-version = "0.1.0-alpha.6"
+version = "0.1.0-alpha.7"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -25,4 +25,4 @@ syn = { version = "1.0", features = ["derive", "full", "extra-traits"] }
 lazy_static = "1.4.0"
 
 [dev-dependencies]
-join = { version = "0.1.0-alpha.8", path = "../join" }
+join = { "version" = "0.1.0-alpha.8", path = "../join" }

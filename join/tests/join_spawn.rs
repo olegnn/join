@@ -361,6 +361,58 @@ mod join_spawn_tests {
     }
 
     #[test]
+    fn it_tests_iter_combinators() {
+        let mut some_vec = Some(vec![0u8]);
+
+        let values: (Vec<_>, Vec<_>) = join_spawn! {
+            [2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64 -> Some
+        }.unwrap();
+
+        assert_eq!(values, (vec![], vec![0, 4, 7, 10, 13, 16]));
+
+        let values = vec![0, 1u8, 2, 3, 4, 5, 6];
+        let other_values = vec![4u8, 5, 6, 7, 8, 9, 10];
+
+        assert_eq!(
+            join_spawn! {
+                { let values = values.clone(); values.into_iter() } >^> { let other_values = other_values.clone(); other_values.into_iter() } ?&!> |(v, v1)| v % 2 == 0 && v1 % 2 == 0 -> Some,
+            },
+            Some((
+                vec![(0u8, 4u8), (2, 6), (4, 8), (6, 10)],
+                vec![(1u8, 5u8), (3, 7), (5, 9)]
+            ))
+        );
+
+        assert_eq!(
+            join_spawn! {
+                { let values = values.clone(); values.into_iter() } >^> { let other_values = other_values.clone(); other_values.into_iter() } <-> _, _, Vec<_>, Vec<_> -> Some
+            },
+            Some((values, other_values))
+        );
+
+        assert_eq!(
+            join_spawn! { vec![1u8, 2, 3, 4, 5].into_iter() ?> |v| v % 2 != 0 =>[] -> Some },
+            Some(vec![1u8, 3, 5])
+        );
+
+        assert_eq!(
+            join_spawn! { let mut v = vec![1, 2, 3, 4, 5] ~..into_iter() ~?|>@ |v| if v % 2 == 0 { Some(v) } else { None } },
+            Some(2)
+        );
+
+        assert_eq!(
+            join_spawn! { vec![vec![1, 2, 3], vec![2]].into_iter() ^^> =>[] Vec<_> -> Some }
+                .unwrap(),
+            vec![1, 2, 3, 2]
+        );
+
+        assert!(
+            join_spawn! { vec![Ok(5), Err(4)].into_iter() ?^@ 0, |acc, v| v.map(|v| acc + v) }
+                .is_err()
+        );
+    }
+
+    #[test]
     fn it_tests_initial_block_capture() {
         use std::sync::Arc;
         let out = Arc::new(5);

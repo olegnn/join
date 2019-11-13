@@ -266,7 +266,9 @@ mod join_tests {
 
     #[test]
     fn it_tests_multi_step_single_branch() {
-        let values = join! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~?> |v| v % 3 != 0 =>[] Vec<_> ~-> Some }.unwrap();
+        let values =
+            join! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~?> |v| v % 3 != 0 =>[] Vec<_> ~-> Some }
+                .unwrap();
         assert_eq!(values, vec![1, 2, 4, 5, 7, 8]);
     }
 
@@ -280,8 +282,8 @@ mod join_tests {
 
         assert_eq!(values, (vec![], vec![0, 4, 7, 10, 13, 16]));
 
-        let values = [0, 1u8, 2, 3, 4, 5, 6];
-        let other_values = [4u8, 5, 6, 7, 8, 9, 10];
+        let values = vec![0, 1u8, 2, 3, 4, 5, 6];
+        let other_values = vec![4u8, 5, 6, 7, 8, 9, 10];
 
         assert_eq!(
             join! {

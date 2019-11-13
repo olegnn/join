@@ -3,11 +3,11 @@
 #[cfg(test)]
 mod join_async_spawn_tests {
     use futures::future::{err, ok, ready};
+    use futures_timer::Delay;
     use join::join_async_spawn;
     use std::error::Error;
     use std::time::Duration;
     use tokio::runtime::Runtime;
-    use futures_timer::Delay;
 
     type BoxedError = Box<dyn Error + Send + Sync>;
 
@@ -383,6 +383,67 @@ mod join_async_spawn_tests {
         rt.block_on(async {
             let values = join_async_spawn! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~..await ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
             assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
+        });
+    }
+
+    #[test]
+    fn it_tests_iter_combinators() {
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            let mut some_vec = Some(vec![0u8]);
+
+            let values: (Vec<u8>, Vec<u8>) = join_async_spawn! {
+                [2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64 -> ok::<_,u8>
+            }.await.unwrap();
+
+            assert_eq!(values, (vec![], vec![0, 4, 7, 10, 13, 16]));
+
+            let values = vec![0, 1u8, 2, 3, 4, 5, 6];
+            let other_values = vec![4u8, 5, 6, 7, 8, 9, 10];
+
+             assert_eq!(
+                join_async_spawn! {
+                    { let values = values.clone(); values.into_iter() } >^> { let other_values = other_values.clone(); other_values.into_iter() } ?&!> |(v, v1)| v % 2 == 0 && v1 % 2 == 0 -> ok::<_,u8>,
+                }.await,
+                Ok((
+                    vec![(0u8, 4u8), (2, 6), (4, 8), (6, 10)],
+                    vec![(1u8, 5u8), (3, 7), (5, 9)]
+                ))
+            );
+
+            let values = vec![0, 1u8, 2, 3, 4, 5, 6];
+            let other_values = vec![4u8, 5, 6, 7, 8, 9, 10];
+
+            assert_eq!(
+                join_async_spawn! {
+                    { let values = values.clone(); values.into_iter() } >^> { let other_values = other_values.clone(); other_values.into_iter() } <-> u8, u8, Vec<_>, Vec<_> -> ok::<_,u8>
+                }.await,
+                {  
+                    let values = vec![0, 1u8, 2, 3, 4, 5, 6];
+                    let other_values = vec![4u8, 5, 6, 7, 8, 9, 10]; 
+                    Ok((values, other_values)) 
+                }
+            );
+
+
+            assert_eq!(
+                join_async_spawn! { vec![1u8, 2, 3, 4, 5].into_iter() ?> |v| v % 2 != 0 =>[] -> ok::<_,u8> }.await,
+                Ok(vec![1u8, 3, 5])
+            );
+
+            assert_eq!(
+                join_async_spawn! { let mut v = vec![1, 2, 3, 4, 5] ..into_iter() ?|>@ |v: u8| if v % 2 == 0 { Some(v) } else { None } -> |v: Option<u8>| ready(v.ok_or(Err::<u8,&'static str>("e"))) }.await,
+                Ok(2u8)
+            );
+
+            assert_eq!(
+                join_async_spawn! { vec![vec![1, 2, 3], vec![2]].into_iter() ^^> =>[] Vec<_> -> ok::<_,u8> }.await.unwrap(),
+                vec![1u8, 2, 3, 2]
+            );
+
+            assert!(
+                join_async_spawn! { vec![Ok(5u8), Err(4u8)].into_iter() ?^@ 0u8, |acc, v| v.map(|v| acc + v) -> ready }.await.is_err()
+            );
         });
     }
 

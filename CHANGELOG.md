@@ -1,3 +1,7 @@
+# [0.1.0-alpha.9]
+
+Bug hotfix + minor docs fixes. More tests.
+
 # [0.1.0-alpha.8]
 
 Reassigned filter combinator `?>`, reassigned inspect combinator (`??`). Dot combinator now has two possible forms: (`>.`) and (`..`). Added new combinators:

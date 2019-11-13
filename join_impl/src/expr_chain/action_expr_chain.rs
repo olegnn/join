@@ -6,7 +6,7 @@
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
 use syn::Expr::Let;
-use syn::{Pat, Token, PatIdent};
+use syn::{Pat, PatIdent, Token};
 
 use super::expr::{ActionExpr, InnerExpr};
 use super::*;
@@ -137,7 +137,7 @@ where
     type Member = ActionExpr;
 
     fn get_members(&self) -> &[Self::Member] {
-        &self.members //.iter().collect()
+        &self.members
     }
 
     fn get_pat(&self) -> Option<&PatIdent> {

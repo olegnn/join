@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
-use syn::{parse_quote, Path, PatIdent};
 use std::error::Error;
+use syn::{parse_quote, PatIdent, Path};
 
 use super::super::expr_chain::expr::{
     ActionExpr, ErrActionExpr, InnerExpr, ProcessActionExpr, ProcessExpr,
@@ -90,14 +90,7 @@ impl<'a> JoinGenerator<'a> {
                             }
                         },
                     );
-                    (
-                        (
-                            depth,
-                            expr_chain
-                                .get_pat()
-                        ),
-                        steps,
-                    )
+                    ((depth, expr_chain.get_pat()), steps)
                 })
                 .unzip();
 
@@ -125,10 +118,12 @@ impl<'a> JoinGenerator<'a> {
     ///
     fn get_branch_result_pat(&self, chain_index: impl Into<usize>) -> TokenStream {
         let chain_index = chain_index.into();
-        self.branch_pats[chain_index].map(ToTokens::into_token_stream).unwrap_or_else(|| { 
-            let result_name = construct_result_name(chain_index);
-            quote! { #result_name } 
-        })
+        self.branch_pats[chain_index]
+            .map(ToTokens::into_token_stream)
+            .unwrap_or_else(|| {
+                let result_name = construct_result_name(chain_index);
+                quote! { #result_name }
+            })
     }
 
     ///
@@ -136,7 +131,9 @@ impl<'a> JoinGenerator<'a> {
     ///
     fn get_branch_result_name(&self, chain_index: impl Into<usize>) -> TokenStream {
         let chain_index = chain_index.into();
-        self.branch_pats[chain_index].map(|pat| pat.ident.clone().into_token_stream()).unwrap_or_else(|| construct_result_name(chain_index).into_token_stream())
+        self.branch_pats[chain_index]
+            .map(|pat| pat.ident.clone().into_token_stream())
+            .unwrap_or_else(|| construct_result_name(chain_index).into_token_stream())
     }
 
     ///
@@ -174,11 +171,12 @@ impl<'a> JoinGenerator<'a> {
             .map(|(chain_index, chain_step_actions)| match chain_step_actions {
                 Some(chain) => chain
                     .iter()
-                    .fold(None, |acc: Option<(Option<TokenStream>, TokenStream)>, action_expr|
+                    .enumerate()
+                    .fold(None, |acc: Option<(Option<TokenStream>, TokenStream)>, (expr_index, action_expr)|
                         acc.map(|(previous_def_expr, previous_result)| 
                                 match action_expr {
                                     ActionExpr::Process(ProcessActionExpr::Instant(process_expr)) => {
-                                        let (def_expr, replaced_expr) = self.separate_block_expr(process_expr, chain_index);
+                                        let (def_expr, replaced_expr) = self.separate_block_expr(process_expr, chain_index, expr_index);
                                         let process_expr = self.expand_process_expr(
                                             previous_result, 
                                             replaced_expr.as_ref().unwrap_or(process_expr)
@@ -191,7 +189,7 @@ impl<'a> JoinGenerator<'a> {
                                         )
                                     }
                                     ActionExpr::Err(ErrActionExpr::Instant(err_expr)) => {
-                                        let (def_expr, replaced_expr) = self.separate_block_expr(err_expr, chain_index);
+                                        let (def_expr, replaced_expr) = self.separate_block_expr(err_expr, chain_index, expr_index);
                                         let err_expr = replaced_expr.as_ref().unwrap_or(err_expr);
                                         (
                                             previous_def_expr.map(
@@ -208,7 +206,7 @@ impl<'a> JoinGenerator<'a> {
                                 Some(
                                     match action_expr {
                                         ActionExpr::Process(ProcessActionExpr::Deferred(process_expr))  => {
-                                            let (def_expr, replaced_expr) = self.separate_block_expr(process_expr, chain_index);
+                                            let (def_expr, replaced_expr) = self.separate_block_expr(process_expr, chain_index, expr_index);
                                             let process_expr = self.expand_process_expr(
                                                 previous_result, 
                                                 replaced_expr.as_ref().unwrap_or(process_expr)
@@ -216,12 +214,12 @@ impl<'a> JoinGenerator<'a> {
                                             (def_expr, quote! { #process_expr })
                                         }
                                         ActionExpr::Err(ErrActionExpr::Deferred(err_expr)) => {
-                                            let (def_expr, replaced_expr) = self.separate_block_expr(err_expr, chain_index);
+                                            let (def_expr, replaced_expr) = self.separate_block_expr(err_expr, chain_index, expr_index);
                                             let err_expr = replaced_expr.as_ref().unwrap_or(err_expr);
                                             (def_expr, quote! { #previous_result#err_expr })
                                         }
                                         ActionExpr::Initial(initial_expr) => {
-                                            let (def_expr, replaced_initial) = self.separate_block_expr(initial_expr, chain_index);
+                                            let (def_expr, replaced_initial) = self.separate_block_expr(initial_expr, chain_index, expr_index);
                                             let initial_expr = replaced_initial.as_ref().unwrap_or(initial_expr);
                                             (def_expr, quote! { #initial_expr })
                                         }
@@ -558,8 +556,10 @@ impl<'a> JoinGenerator<'a> {
         &self,
         inner_expr: &ExprType,
         chain_index: impl Into<usize>,
+        expr_index: impl Into<usize>,
     ) -> (Option<TokenStream>, Option<ExprType>) {
         let chain_index = chain_index.into();
+        let expr_index = expr_index.into();
         if inner_expr.is_replaceable() {
             inner_expr.extract_inner().and_then(|exprs| {
                 let (def, mut replace_exprs) = exprs
@@ -567,7 +567,8 @@ impl<'a> JoinGenerator<'a> {
                     .enumerate()
                     .map(|(index, expr)| {
                         if is_block_expr(expr) {
-                            let wrapper_name = construct_result_wrapper_name(chain_index, index);
+                            let wrapper_name =
+                                construct_result_wrapper_name(chain_index, expr_index, index);
                             (
                                 Some((
                                     quote! { let #wrapper_name = #expr; },

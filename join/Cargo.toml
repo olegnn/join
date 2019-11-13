@@ -1,6 +1,6 @@
 [package]
 name = "join"
-version = "0.1.0-alpha.8"
+version = "0.1.0-alpha.9"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 license = "MIT"
 description = """
@@ -17,12 +17,12 @@ name = "join"
 
 [features]
 std = []
-#full = ["join_export/full"]
+full = ["join_export/full"]
 
 [dependencies]
 proc-macro-hack = "0.5.10"
 proc-macro-nested = "0.1.3"
-join_export = { path = "../join_export", version = "0.1.0-alpha.6" }
+join_export = { path = "../join_export", version = "0.1.0-alpha.7" }
 
 [dev-dependencies]
 futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
