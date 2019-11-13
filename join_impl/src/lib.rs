@@ -2,6 +2,7 @@
 //! Implementation of the `join!` macro.
 //!
 //!
+#![allow(clippy::large_enum_variant)]
 
 extern crate proc_macro;
 extern crate proc_macro2;

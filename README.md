@@ -1,6 +1,6 @@
 # `join!`
 
-`join!` - one macro to rule them all. Provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, supports single and multi thread (sync/async) step by step execution of branches.
+Provides useful shortcut combinators, combines sync/async chains, supports single and multi thread (sync/async) step by step execution of branches, transforms tuple of results in result of tuple.
 
 [![Docs][docs-badge]][docs-url]
 [![Crates.io][crates-badge]][crates-url]
@@ -15,6 +15,170 @@
 [mit-url]: LICENSE
 [travis-badge]: https://travis-ci.org/olegnn/join.svg?branch=master
 [travis-url]: https://travis-ci.org/olegnn/join
+
+- [Demos](#demos)
+- [Combinators](#combinators)
+- [Handler](#handler)
+- [Single thread examples](#single-thread-combinations)
+    - [Sync](#sync-branches)
+    - [Async](#futures)
+- [Multi thread examples](#multi-thread-combinations)
+    - [Sync](#sync-threads)
+    - [Async](#future-tasks)
+
+## Combinators
+
+- Map: **`|>`**
+```rust no_run
+join! { value |> expr } => value.map(expr)
+```
+
+- AndThen: **`=>`**
+```rust no_run
+join! { value => expr } => value.and_then(expr)
+```
+
+- Then: **`->`**
+```rust no_run
+join! { value -> expr } => expr(value)
+```
+
+- Filter: **`?>`**
+```rust no_run
+join! { value ?> expr } => value.filter(expr)
+```
+
+- Dot: **`..`** or **`>.`**
+```rust no_run
+join! { value .. expr } => value.expr
+join! { value >. expr } => value.expr
+```
+
+- Or: **`<|`**
+```rust no_run
+join! { value <| expr } => value.or(expr)
+```
+
+- OrElse: **`<=`**
+```rust no_run
+join! { value <= expr } => value.or_else(expr)  
+```
+
+- MapErr: **`!>`**
+```rust no_run
+join! { value !> expr } => value.map_err(expr)
+```
+
+- Collect: **`=>[]`** (type is optional)
+```rust no_run
+join! { value =>[] T } => value.collect::<T>()
+join! { value =>[] } => value.collect()
+```
+
+- Chain: **`>>>`**
+```rust no_run
+join! { value >>> expr } => value.chain(expr)
+```
+
+- FindMap: **`?|>@`**
+```rust no_run
+join! { value ?|>@ expr } => value.find_map(expr)
+```
+
+- FilterMap: **`?|>`**
+```rust no_run
+join! { value ?|> expr } => value.filter_map(expr)
+```
+
+- Enumerate: **`|n>`**
+```rust no_run
+join! { value |n> } => value.enumerate()
+```
+
+- Partition: **`?&!>`**
+```rust no_run
+join! { value ?&!> expr } => value.partition(expr)
+```
+
+- Flatten: **`^^>`**
+```rust no_run
+join! { value ^^> } => value.flatten()
+```
+
+- Fold: **`^@`**
+```rust no_run
+join! { value ^@ init_expr, fn_expr } => value.fold(init_expr, fn_expr)
+```
+
+- TryFold: **`?^@`**
+```rust no_run
+join! { value ?^@ init_expr, fn_expr } => value.try_fold(init_expr, fn_expr)
+```
+
+- Find: **`?@`**
+```rust no_run
+join! { value ?@ expr } => value.find(expr)
+```
+
+- Zip: **`>^>`**
+```rust no_run
+join! { value >^> expr } => value.zip(expr)
+```
+
+- Unzip: **`<->`** (types are optional)
+```rust no_run
+join! { value <-> A, B, FromA, FromB } => value.unzip::<A, B, FromA, FromB>()
+join! { value <-> } => value.unzip()
+```
+
+- Inspect: **`??`** 
+```rust no_run 
+join! { value ?? expr } => (|value| { (expr)(&value); value })(value) // for sync
+join_async! { value ?? expr } => value.inspect(expr) // for async 
+```
+
+where `value` is the previous value.
+
+**Every combinator prefixed by `~` will act as deferred action (all actions will wait until completion in every step and only after move to the next one).**
+
+## Handler
+
+might be one of
+
+- `map` => will act as `results.map(|(result0, result1, ..)| handler(result0, result1, ..))`
+```rust no_run
+assert_eq!(join! { Some(1), Some(2), Some(3), map => |a, b, c| a + b + c }, Some(6));
+```
+- `and_then` => will act as `results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))`
+```rust no_run
+assert_eq!(join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Some(a + b + c) }, Some(6))
+```
+- `then` => will act as `handler(result0, result1, ..)`
+```rust no_run
+assert_eq!(join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Ok(a.unwrap() + b.unwrap() + c.unwrap()) }, Some(6))
+```
+or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned.
+
+## Custom futures crate path
+
+You can specify custom path (`futures_crate_path`) at the beginning of macro call
+
+```rust
+use join::join_async;
+use futures::future::ok;
+
+#[tokio::main]
+async fn main() {
+    let value = join_async! {
+        futures_crate_path(::futures)
+        ok::<_,u8>(2u16)
+    }.await.unwrap();
+    
+    println!("{}", value);
+}
+```
+
+## Demos
 
 Using this macro you can write things like
 
@@ -38,19 +202,20 @@ fn main() {
                 // Multiply every element by itself
                 |> power2
                 // Filter even values
-                @> |value| is_even(*value)
-                >.collect::<Vec<_>>()
+                ?> is_even
+                // Collect values into `Vec<_>`
+                =>[] Vec<_>
                 // Use `Arc` to share data with branch 1
                 -> Arc::new
                 // Find max and clone its value
-                ~>.iter().max()
+                ~..iter().max()
                 |> Clone::clone,
         generate_random_vec(10000, 100000000000000f64)
             .into_iter()
             // Extract sqrt from every element
             |> get_sqrt
-            // Add index in order to compare with the values of branch 0
-            >.enumerate()
+            // Add index in order to compare with the values of branch 0 (call `enumerate`)
+            |n>
             ~|> {
                 // Get data from branch 0 by cloning arc
                 let branch_0 = branch_0.clone();
@@ -64,10 +229,10 @@ fn main() {
                         value as u64
                     }
             }
-            >.max(),
+            ..max(),
         generate_random_vec(100000, 100000u32)
             .into_iter()
-            ~>.max(),
+            ~..max(),
         map => |max0, max1, max2|
             // Find final max
             *[max0, max1, max2 as u64].into_iter().max().unwrap()
@@ -89,11 +254,11 @@ where
         .collect()
 }
 
-fn is_even<T>(value: T) -> bool
+fn is_even<T>(value: &T) -> bool
 where
-    T: std::ops::Rem<Output = T> + std::cmp::PartialEq + From<u8>,
+    T: std::ops::Rem<Output = T> + std::cmp::PartialEq + From<u8> + Copy
 {
-    value % 2u8.into() == 0u8.into()
+    *value % 2u8.into() == 0u8.into()
 }
 
 fn get_sqrt<T>(value: T) -> T
@@ -155,10 +320,11 @@ async fn main() {
                         client
                             .get(url).send()
                             => |value| value.text()
-                            => |body| ok((url, body))
+                            => |body| ok((url, body.matches("https://").collect::<Vec<_>>().len()))
                     }
             }
-            >.collect::<Vec<_>>()
+            // Collect values into `Vec<_>`
+            =>[] Vec<_>
             |> Ok
             => try_join_all
             !> |err| format_err!("Error retrieving pages to calculate links: {:#?}", err)
@@ -166,12 +332,11 @@ async fn main() {
                 ok(
                     results
                         .into_iter()
-                        .map(|(url, body)| (url, body.matches("https://").collect::<Vec<_>>().len()))
                         .max_by_key(|(_, link_count)| link_count.clone())
                         .unwrap()
                 )
             // It waits for input in stdin before log max links count
-            ~?> |result| {
+            ~?? |result| {
                 result
                     .as_ref()
                     .map(
@@ -211,7 +376,7 @@ async fn main() {
                     }
             }
             // It waits for input in stdin before log random value
-            ~?> |random| {
+            ~?? |random| {
                 random
                     .as_ref()
                     .map(|number| println!("Random: {}", number))
@@ -295,69 +460,13 @@ async fn read_number_from_stdin() -> Result<u16, Error> {
 }
 ```
 
-## Combinators
-
-- Map: `|>` expr - `value`.map(`expr`)
-
-- AndThen: `=>` expr - `value`.and_then(`expr`),
-
-- Then: `->` expr - `expr`(`value`)
-
-- Filter: `@>` expr - `value`.filter(`expr`)
-
-- Dot: `>.` expr - `value`.`expr`
-
-- Or: `<|` expr - `value`.or(`expr`)
-
-- OrElse: `<=` expr - `value`.or_else(`expr`)  
-
-- MapErr: `!>` expr - `value`.map_err(`expr`)
-
-- Inspect: `?>` expr - (|`value`| { `expr`(&`value`); `value` })(`value`) for sync chains and (|`value`| `value`.inspect(`expr`))(`value`) for futures
-
-where `value` is the previous value.
-
-Every combinator prefixed by `~` will act as deferred action (all actions will wait until completion in every step and only after move to the next one).
-
-## Handler
-
-might be one of
-
-- `map` => will act as results.map(|(result0, result1, ..)| handler(result0, result1, ..))
-
-- `and_then` => will act as results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))
-
-- `then` => will act as handler(result0, result1, ..)
-
-or not specified - then Result<(result0, result1, ..), Error> or Option<(result0, result1, ..)> will be returned.
-
-## Custom futures crate path
-
-You can specify custom path (`futures_crate_path`) at the beginning of macro call
-
-```rust
-use join::join_async;
-use futures::future::ok;
-
-#[tokio::main]
-async fn main() {
-    let value = join_async! {
-        futures_crate_path(::futures)
-        ok::<_,u8>(2u16)
-    }.await.unwrap();
-    
-    println!("{}", value);
-}
-```
-
 ## Single thread combinations
 
-### Simple results combination
+### Sync branches
 
 Converts input in series of chained results and joins them step by step.
 
 ```rust
-
 use std::error::Error;
 use join::join;
 
@@ -384,9 +493,9 @@ fn main() {
 }
 ```
 
-### Futures combination
+### Futures
 
-Each branch will represent chain of tasks. All branches will be joined using `::futures::join!` macro and `join_async!` will return `unpolled` future.
+Each branch will represent future chain. All branches will be joined using `::futures::join!` macro and `join_async!` will return `unpolled` future.
 
 ```rust
 #![recursion_limit="256"]
@@ -418,12 +527,12 @@ async fn main() {
 }
 ```
 
-## Multi-thread combinations
+## Multi thread combinations
 
 To execute several tasks in parallel you could use `join_spawn!` (`spawn!`) for sync tasks
-and `join_async_spawn!` (`async_spawn!`) for futures. Since `join_async` already provides parallel futures execution in one thread, `join_async_spawn!` spawns every branch into `tokio` executor so they will be evaluated in multi-threaded executor.
+and `join_async_spawn!` (`async_spawn!`) for futures. Since `join_async` already provides parallel futures execution in one thread, `join_async_spawn!` spawns every branch into `tokio` executor so they will be evaluated in multi threaded executor.
 
-### Multi-thread sync branches
+### Sync threads
 
 `join_spawn` spawns one `::std::thread` per each step of each branch (number of branches is the max thread count at the time).
 
@@ -456,7 +565,7 @@ fn main() {
 }
 ```
 
-### Multi-thread futures
+### Future tasks
 
 `join_async_spawn!` uses `::tokio::spawn` function to spawn tasks so it should be done inside `tokio` runtime
 (number of branches is the max count of `tokio` tasks at the time).

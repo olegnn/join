@@ -117,7 +117,7 @@ mod join_spawn_tests {
             Ok(2u16) |> add_one => add_one_ok, //4
             Ok(get_three()) => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
-            get_some_five() |> add_one >.ok_or(2) => to_err => add_one_ok <| Ok(5), // 5
+            get_some_five() |> add_one ..ok_or(2) => to_err => add_one_ok <| Ok(5), // 5
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -127,7 +127,7 @@ mod join_spawn_tests {
             2u16 -> Ok |> add_one => add_one_ok, //4
             get_three() -> Ok => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
-            get_some_five() |> add_one >.ok_or(2) => to_err => add_one_ok <| Ok(5), // 5
+            get_some_five() |> add_one ..ok_or(2) => to_err => add_one_ok <| Ok(5), // 5
             and_then => |a, b, c, d| Ok(a + b + c + d)
         };
 
@@ -146,7 +146,7 @@ mod join_spawn_tests {
         let none = join_spawn! {
             2 -> Some |> add_one,
             Some(get_three()) => to_none,
-            get_ok_four() => |_| -> Result<u16> { Ok(10) } >.ok(),
+            get_ok_four() => |_| -> Result<u16> { Ok(10) } ..ok(),
             get_none(),
             map => |a, b, c, d| a * b * c * d
         };
@@ -247,7 +247,7 @@ mod join_spawn_tests {
                 add_one(value)
             } ~|> add_one ~|> add_one, //7
             let branch_2 = get_ok_four() ~|> add_one, //5
-            let branch_3 = get_some_five() ~|> add_one >.ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
+            let branch_3 = get_some_five() ~|> add_one ..ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -335,7 +335,7 @@ mod join_spawn_tests {
                 }
             }  ~|> add_one ~|> add_one, //7
             let branch_2 = Ok::<_, BoxedError>(4u16) ~|> add_one, //5
-            let branch_3 = get_some_five() ~|> add_one >.ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
+            let branch_3 = get_some_five() ~|> add_one ..ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -356,7 +356,7 @@ mod join_spawn_tests {
 
     #[test]
     fn it_tests_multi_step_single_branch() {
-        let values = join_spawn! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~@> |v| v % 3 != 0 >.collect::<Vec<_>>() ~-> Some }.unwrap();
+        let values = join_spawn! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~?> |v| v % 3 != 0 =>[] Vec<_> ~-> Some }.unwrap();
         assert_eq!(values, vec![1, 2, 4, 5, 7, 8]);
     }
 

@@ -5,8 +5,9 @@ mod join_async_spawn_tests {
     use futures::future::{err, ok, ready};
     use join::join_async_spawn;
     use std::error::Error;
-    use std::thread;
+    use std::time::Duration;
     use tokio::runtime::Runtime;
+    use futures_timer::Delay;
 
     type BoxedError = Box<dyn Error + Send + Sync>;
 
@@ -287,22 +288,19 @@ mod join_async_spawn_tests {
     #[test]
     fn it_checks_mutli_threading() {
         let rt = tokio::runtime::Builder::new()
-            .core_threads(3)
+            .core_threads(4)
             .build()
             .unwrap();
         rt.block_on(async {
             use futures::lock::Mutex;
             use std::sync::Arc;
-            use std::time::Duration;
 
             let values = Arc::new(Mutex::new(Vec::new()));
 
             let _ = join_async_spawn! {
                 ok((values.clone(), 1u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
-                    // !!! Don't use std::thread::sleep to wait inside future because it will block executor thread !!!
-                    // It's used here only to show that futures are executed on multi thread executor.
-                    thread::sleep(Duration::from_secs(1));
+                    Delay::new(Duration::from_secs(1)).await;
                     let mut values = values.lock().await;
                     values.sort();
                     assert_eq!(values[..], [1, 2, 3]);
@@ -311,9 +309,7 @@ mod join_async_spawn_tests {
                 },
                 ok((values.clone(), 2u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
-                    // !!! Don't use std::thread::sleep to wait inside future because it will block executor thread !!!
-                    // It's used here only to show that futures are executed on multi thread executor.
-                    thread::sleep(Duration::from_secs(2));
+                    Delay::new(Duration::from_secs(2)).await;
                     let mut values = values.lock().await;
                     values.sort();
                     assert_eq!(values[..], [1, 2]);
@@ -322,9 +318,7 @@ mod join_async_spawn_tests {
                 },
                 ok((values.clone(), 3u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
-                    // !!! Don't use std::thread::sleep to wait inside future because it will block executor thread !!!
-                    // It's used here only to show that futures are executed on multi thread executor.
-                    thread::sleep(Duration::from_secs(3));
+                    Delay::new(Duration::from_secs(3)).await;
                     let mut values = values.lock().await;
                     values.sort();
                     assert_eq!(values[..], [1]);
@@ -387,7 +381,7 @@ mod join_async_spawn_tests {
     fn it_tests_multi_step_single_branch() {
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
-            let values = join_async_spawn! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~>.await @> |v| v % 3 != 0 >.collect::<Vec<_>>() -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
+            let values = join_async_spawn! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~..await ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
             assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
         });
     }

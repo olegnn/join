@@ -4,23 +4,67 @@
 //! Handler can be either defined once or not defined.
 //!
 //!
-use super::super::expr_chain::ActionExprChain;
+use super::super::expr_chain::group::GroupDeterminer;
+use super::super::expr_chain::{ActionExprChain, ActionExprChainGenerator};
 use super::super::handler::Handler;
-use super::Join;
+use super::JoinDefault;
 use syn::parenthesized;
 use syn::parse::{Parse, ParseStream};
+use syn::Token;
+
+#[cfg(feature = "full")]
+use std::sync::Arc;
 
 mod keywords {
     syn::custom_keyword!(futures_crate_path);
+    syn::custom_keyword!(n);
 }
 
-impl Parse for Join {
+pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::instant_and_deferred_determiners! {
+    Collect => Token![=], Token![>], syn::token::Bracket => 3,
+    Map => Token![|], Token![>] => 2,
+    Then => Token![->] => 2,
+    AndThen => Token![=>] => 2,
+    Or => Token![<], Token![|] => 2,
+    OrElse => Token![<=] => 2,
+    Dot => Token![>], Token![.] => 2,
+    Dot => Token![..] => 2,
+    MapErr => Token![!], Token![>] => 2,
+    Chain => Token![>], Token![>], Token![>] => 3,
+    Inspect => Token![?], Token![?] => 2,
+    Filter => Token![?], Token![>] => 2,
+    FindMap => Token![?], Token![|], Token![>], Token![@] => 4,
+    FilterMap => Token![?], Token![|], Token![>] => 3,
+    Enumerate => Token![|], keywords::n, Token![>] => 3,
+    Partition => Token![?], Token![&], Token![!], Token![>] => 4,
+    Flatten => Token![^], Token![^], Token![>] => 3,
+    Fold => Token![^], Token![@] => 2,
+    TryFold => Token![?], Token![^], Token![@] => 3,
+    Find => Token![?], Token![@] => 2,
+    Zip => Token![>], Token![^], Token![>] => 3,
+    Unzip => Token![<], Token![-], Token![>] => 3;
+    deferred_prefix => Token![~] => 1
+};
+
+#[cfg(feature = "static")]
+::lazy_static::lazy_static! {
+    pub static ref DEFAULT_GROUP_DETERMINERS_STATIC: Arc<&'static [GroupDeterminer]> = Arc::new(DEFAULT_GROUP_DETERMINERS);
+}
+
+impl Parse for JoinDefault {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let mut join = Join {
+        let mut join = JoinDefault {
             branches: Vec::new(),
             handler: None,
             futures_crate_path: None,
         };
+
+        #[cfg(not(feature = "static"))]
+        let action_expr_chain_generator = ActionExprChainGenerator::new(DEFAULT_GROUP_DETERMINERS);
+
+        #[cfg(feature = "static")]
+        let action_expr_chain_generator =
+            ActionExprChainGenerator::new(DEFAULT_GROUP_DETERMINERS_STATIC.clone());
 
         if input.peek(keywords::futures_crate_path) {
             input.parse::<keywords::futures_crate_path>()?;
@@ -39,9 +83,9 @@ impl Parse for Join {
                 );
                 join.handler = Some(handler);
             } else {
-                let expr_chain = ActionExprChain::new(input, Box::new(Handler::is_handler))?;
+                let expr_chain = ActionExprChain::new(input, &action_expr_chain_generator)?;
                 if let Some(expr_chain) = expr_chain {
-                    join.branches.push(Box::new(expr_chain));
+                    join.branches.push(expr_chain);
                 }
             };
         }

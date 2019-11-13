@@ -117,7 +117,7 @@ mod join_tests {
             Ok(2u16) |> add_one => add_one_ok, //4
             Ok(get_three()) => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
-            get_some_five() |> add_one >.ok_or(2) => to_err => add_one_ok <| Ok(5), // 5
+            get_some_five() |> add_one ..ok_or(2) => to_err => add_one_ok <| Ok(5), // 5
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -127,7 +127,7 @@ mod join_tests {
             2u16 -> Ok |> add_one => add_one_ok, //4
             get_three() -> Ok => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
-            get_some_five() |> add_one >.ok_or(2) => to_err => add_one_ok <| Ok(5), // 5
+            get_some_five() |> add_one ..ok_or(2) => to_err => add_one_ok <| Ok(5), // 5
             and_then => |a, b, c, d| Ok(a + b + c + d)
         };
 
@@ -146,7 +146,7 @@ mod join_tests {
         let none = join! {
             2 -> Some |> add_one,
             Some(get_three()) => to_none,
-            get_ok_four() => |_| -> Result<u16> { Ok(10) } >.ok(),
+            get_ok_four() => |_| -> Result<u16> { Ok(10) } ..ok(),
             get_none(),
             map => |a, b, c, d| a * b * c * d
         };
@@ -251,7 +251,7 @@ mod join_tests {
                 add_one(value)
             } ~|> add_one ~|> add_one, //7
             let branch_2 = get_ok_four() ~|> add_one, //5
-            let branch_3 = get_some_five() ~|> add_one >.ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
+            let branch_3 = get_some_five() ~|> add_one ..ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -266,8 +266,58 @@ mod join_tests {
 
     #[test]
     fn it_tests_multi_step_single_branch() {
-        let values = join! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~@> |v| v % 3 != 0 >.collect::<Vec<_>>() ~-> Some }.unwrap();
+        let values = join! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~?> |v| v % 3 != 0 =>[] Vec<_> ~-> Some }.unwrap();
         assert_eq!(values, vec![1, 2, 4, 5, 7, 8]);
+    }
+
+    #[test]
+    fn it_tests_iter_combinators() {
+        let mut some_vec = Some(vec![0u8]);
+
+        let values: (Vec<_>, Vec<_>) = join! {
+            [2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64 -> Some
+        }.unwrap();
+
+        assert_eq!(values, (vec![], vec![0, 4, 7, 10, 13, 16]));
+
+        let values = [0, 1u8, 2, 3, 4, 5, 6];
+        let other_values = [4u8, 5, 6, 7, 8, 9, 10];
+
+        assert_eq!(
+            join! {
+                values.iter() >^> other_values.iter() ?&!> |&(&v, &v1)| v % 2 == 0 && v1 % 2 == 0 -> Some,
+            },
+            Some((
+                vec![(&0u8, &4u8), (&2, &6), (&4, &8), (&6, &10)],
+                vec![(&1u8, &5u8), (&3, &7), (&5, &9)]
+            ))
+        );
+
+        assert_eq!(
+            join! {
+                values.iter() >^> other_values.iter() <-> &u8, &u8, Vec<_>, Vec<_> -> Some
+            },
+            Some((values.iter().collect(), other_values.iter().collect()))
+        );
+
+        assert_eq!(
+            join! { vec![1u8, 2, 3, 4, 5].into_iter() ?> |v| v % 2 != 0 =>[] -> Some },
+            Some(vec![1u8, 3, 5])
+        );
+
+        assert_eq!(
+            join! { let mut v = vec![1, 2, 3, 4, 5] ~..into_iter() ~?|>@ |v| if v % 2 == 0 { Some(v) } else { None } },
+            Some(2)
+        );
+
+        assert_eq!(
+            join! { vec![vec![1, 2, 3], vec![2]].into_iter() ^^> =>[] Vec<_> -> Some }.unwrap(),
+            vec![1, 2, 3, 2]
+        );
+
+        assert!(
+            join! { vec![Ok(5), Err(4)].into_iter() ?^@ 0, |acc, v| v.map(|v| acc + v) }.is_err()
+        );
     }
 
     #[test]
@@ -278,7 +328,7 @@ mod join_tests {
 
     #[test]
     fn it_tests_filter() {
-        let value = join! { [1,2,3,4].into_iter() @> |&value| *value % 2 == 0 -> Some };
+        let value = join! { [1,2,3,4].into_iter() ?> |&value| *value % 2 == 0 -> Some };
         assert_eq!(value.unwrap().collect::<Vec<_>>(), vec![&2, &4]);
     }
 

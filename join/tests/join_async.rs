@@ -113,6 +113,7 @@ mod join_async_tests {
             );
         });
     }
+
     #[test]
     fn it_produces_n_branches_with_any_length_using_combinators() {
         block_on(async {
@@ -377,7 +378,7 @@ mod join_async_tests {
     #[test]
     fn it_tests_multi_step_single_branch() {
         block_on(async {
-            let values = join_async! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~>.await @> |v| v % 3 != 0 >.collect::<Vec<_>>() -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
+            let values = join_async! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~..await ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
             assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
         });
     }
@@ -448,18 +449,17 @@ mod join_async_tests {
                         // so it will us allow to capture some variables from context
                         let ref client = client;
                         move |url| {
-                            let client = client.clone();
-                            async move { 
+                            join_async! {
                                 client
                                     .get(url)
                                     .send()
-                                    .and_then(|value| value.text())
-                                    .await
-                                    .and_then(|body| Ok((url, body))) 
+                                    => |value| value.text()
+                                    => |body| ok((url, body.matches("https://").collect::<Vec<_>>().len()))
                             }
                         }
                     }
-                    >.collect::<Vec<_>>()
+                    // Collect values into `Vec<_>`
+                    =>[] Vec<_>
                     |> Ok
                     => try_join_all
                     !> |err| format_err!("Error retrieving pages to calculate links: {:#?}", err)
@@ -467,12 +467,11 @@ mod join_async_tests {
                         ok(
                             results
                                 .into_iter()
-                                .map(|(url, body)| (url.to_owned(), body.matches("https://").collect::<Vec<_>>().len()))
                                 .max_by_key(|(_, link_count)| link_count.clone())
                                 .unwrap()
                         )
                     // It waits for input in stdin before log max links count
-                    ~?> |result| { 
+                    ~?? |result| { 
                         result
                             .as_ref()
                             .map(
@@ -512,7 +511,7 @@ mod join_async_tests {
                         }
                     }
                     // It waits for input in stdin before log random value
-                    ~?> |random| {
+                    ~?? |random| {
                         random
                             .as_ref()
                             .map(|number| println!("Random: {}", number))

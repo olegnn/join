@@ -2,7 +2,7 @@
 //! Name constructors for code generation by `join!` macro.
 //!
 
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Span};
 use quote::format_ident;
 
 ///
@@ -33,28 +33,27 @@ pub fn construct_thread_builder_name(index: impl Into<usize>) -> Ident {
 }
 
 ///
-/// Constructs inspect function name - async or not. For internal usage.
+/// Constructs inspect function name. For internal usage.
 ///
-pub fn construct_inspect_function_name(is_async: bool) -> Ident {
-    if is_async {
-        format_ident!("__inspect_async")
-    } else {
-        format_ident!("__inspect")
-    }
+pub fn construct_inspect_fn_name() -> Ident {
+    Ident::new("__inspect", Span::call_site())
 }
 
 ///
 /// Constructs `tokio::spawn` wrapper function name. For internal usage.
 ///
-pub fn construct_spawn_tokio_function_name() -> Ident {
-    format_ident!("__spawn_tokio")
+pub fn construct_spawn_tokio_fn_name() -> Ident {
+    Ident::new("__spawn_tokio", Span::call_site())
 }
 
 ///
 /// Constructs result wrapper in order to be used when first step expression is block. For internal usage.
 ///
-pub fn construct_result_wrapper_name(index: impl Into<usize>) -> Ident {
-    format_ident!("__result_wrapper_{}", index.into())
+pub fn construct_result_wrapper_name(
+    index: impl Into<usize>,
+    expr_index: impl Into<usize>,
+) -> Ident {
+    format_ident!("__result_wrapper_{}_{}", index.into(), expr_index.into())
 }
 
 ///
@@ -95,12 +94,12 @@ pub fn construct_result_wrapper_name(index: impl Into<usize>) -> Ident {
 ///
 /// fn main() {
 ///     let _ = join_spawn! {
-///         Ok(0) ?> print_branch_thread_name,
-///         Ok(1) ?> print_branch_thread_name,
+///         Ok(0) ?? print_branch_thread_name,
+///         Ok(1) ?? print_branch_thread_name,
 ///         join_spawn! {
-///             Ok(2) ?> print_branch_thread_name,
+///             Ok(2) ?? print_branch_thread_name,
 ///             join_spawn! {
-///                 Ok(3) ?> print_branch_thread_name,
+///                 Ok(3) ?? print_branch_thread_name,
 ///             }
 ///         }
 ///     }.unwrap();
