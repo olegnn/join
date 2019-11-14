@@ -43,8 +43,10 @@
 //! # use join::join;
 //! # fn main() {
 //! # let value = Some(1u8);
-//! # let expr = |v| Some(v);
+//! # let expr = |v| Some(v + 1);
+//! # let result =
 //! join! { value => expr }; // => value.and_then(expr)
+//! # assert_eq!(result, Some(2));
 //! # }
 //! ```
 //!
@@ -53,18 +55,22 @@
 //! # use join::join;
 //! # fn main() {
 //! # let value = Some(1u8);
-//! # let expr = |v| v;
+//! # let expr = |v: Option<u8>| Some(v.unwrap() + 1);
+//! # let result =
 //! join! { value -> expr }; // => expr(value)
+//! # assert_eq!(result, Some(2));
 //! # }
 //! ```
 //!
 //! - Filter: **`?>`**
 //! ```rust
 //! # use join::join;
-//! # fn expr(v: &u8) -> bool { true }
+//! # fn expr(v: &u8) -> bool { *v == 3 }
 //! # fn main() {
-//! # let value = vec![1u8].into_iter();
+//! # let value = vec![1u8, 2, 3].into_iter();
+//! # let result =
 //! join! { value ?> expr -> Some }; // => Some(value.filter(expr))
+//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![3]);
 //! # }
 //! ```
 //!
@@ -73,8 +79,12 @@
 //! # use join::join;
 //! # fn main() {
 //! # let value = Some(1u8);
+//! # let result =
 //! join! { value .. is_some() -> Some }; // => Some(value.is_some())
+//! # assert_eq!(result, Some(true));
+//! # let result =
 //! join! { value >. is_none() -> Some }; // => Some(value.is_none())
+//! # assert_eq!(result, Some(false));
 //! # }
 //! ```
 //!
@@ -84,7 +94,9 @@
 //! # fn main() {
 //! # let value = Some(1u8);
 //! # let expr = Some(2u8);
+//! # let result =
 //! join! { value <| expr }; // => value.or(expr)
+//! # assert_eq!(result, Some(1));
 //! # }
 //! ```
 //!
@@ -92,9 +104,11 @@
 //! ```rust
 //! # use join::join;
 //! # fn main() {
-//! # let value = Some(1u8);
+//! # let value = None;
 //! # let expr = || Some(6);
+//! # let result =
 //! join! { value <= expr }; // => value.or_else(expr)  
+//! # assert_eq!(result, Some(6));
 //! # }
 //! ```
 //!
@@ -102,9 +116,11 @@
 //! ```rust
 //! # use join::join;
 //! # fn main() {
-//! # let value = Ok::<_,u8>(1u8);
-//! # let expr = |v| v;
+//! # let value = Err::<u8,_>(1u8);
+//! # let expr = |err| err + 1;
+//! # let result =
 //! join! { value !> expr }; // => value.map_err(expr)
+//! # assert_eq!(result, Err(2));
 //! # }
 //! ```
 //!
@@ -112,10 +128,13 @@
 //! ```rust
 //! # use join::join;
 //! # fn main() {
-//! # let value = vec![1u8].into_iter();
+//! # let value = vec![1u8, 2, 3].into_iter();
+//! # let result =
 //! join! { value =>[] Vec<_> -> Some }; // => Some(value.collect::<Vec<_>>())
-//! # let value = vec![1u8].into_iter();
-//! let v: Option<Vec<_>> = join! { value =>[] -> Some }; // => value.collect()
+//! # assert_eq!(result, Some(vec![1u8, 2, 3]));
+//! # let value = vec![1u8, 3, 4].into_iter();
+//! let result: Option<Vec<_>> = join! { value =>[] -> Some }; // => value.collect()
+//! # assert_eq!(result, Some(vec![1u8, 3, 4]));
 //! # }
 //! ```
 //!
@@ -125,7 +144,9 @@
 //! # fn main() {
 //! # let value = vec![1u8].into_iter();
 //! # let expr = vec![1u8].into_iter();
+//! # let result =
 //! join! { value >>> expr -> Some }; // => Some(value.chain(expr))
+//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![1, 1]);
 //! # }
 //! ```
 //!
@@ -133,9 +154,11 @@
 //! ```rust
 //! # use join::join;
 //! # fn main() {
-//! # let mut value = vec![1u8].into_iter();
-//! # let expr = |v| Some(v);
+//! # let mut value = vec![1u8, 2, 3, 4].into_iter();
+//! # let expr = |v| if v == 4 { Some(v) } else { None };
+//! # let result =
 //! join! { value ?|>@ expr }; // => value.find_map(expr)
+//! # assert_eq!(result, Some(4));
 //! # }
 //! ```
 //!
@@ -143,9 +166,11 @@
 //! ```rust
 //! # use join::join;
 //! # fn main() {
-//! # let value = vec![1u8].into_iter();
+//! # let value = vec![1u8, 2, 3, 4, 5].into_iter();
 //! # let expr = |v| Some(v);
+//! # let result =
 //! join! { value ?|> expr -> Some }; // => Some(value.filter_map(expr))
+//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![1u8, 2, 3, 4, 5]);
 //! # }
 //! ```
 //!
@@ -154,7 +179,9 @@
 //! # use join::join;
 //! # fn main() {
 //! # let value = vec![1u8].into_iter();
+//! # let result =
 //! join! { value |n> -> Some }; // => Some(value.enumerate())
+//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![(0usize, 1u8)]);
 //! # }
 //! ```
 //!
@@ -163,9 +190,11 @@
 //! # use join::join;
 //! # fn filter<'a>(v: &'a u8) -> bool { v % 2 == 0 }
 //! # fn main() {
-//! # let mut value = vec![1u8].into_iter();
+//! # let mut value = vec![1u8, 2, 3, 4, 5].into_iter();
 //! # let expr = filter;
+//! # let result =
 //! join! { value ?&!> expr -> Some::<(Vec<u8>, Vec<u8>)> }; // => Some(value.partition(expr))
+//! # assert_eq!(result, Some((vec![2, 4], vec![1, 3, 5])));
 //! # }
 //! ```
 //!
@@ -174,7 +203,9 @@
 //! # use join::join;
 //! # fn main() {
 //! # let mut value = vec![vec![1u8]].into_iter();
+//! # let result =
 //! join! { value ^^> -> Some }; // => Some(value.flatten())
+//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![1u8]);
 //! # }
 //! ```
 //!
@@ -185,7 +216,9 @@
 //! # let mut value = vec![1u8, 2u8].into_iter();
 //! # let init_expr = 0;
 //! # let fn_expr = |a, b| a + b;
+//! # let result =
 //! join! { value ^@ init_expr, fn_expr -> Some }; // => Some(value.fold(init_expr, fn_expr))
+//! # assert_eq!(result, Some(3));
 //! # }
 //! ```
 //!
@@ -196,7 +229,9 @@
 //! # let mut value = vec![1u8, 2u8].into_iter();
 //! # let init_expr = 0;
 //! # let fn_expr = |a, b| Ok::<_,u8>(a + b);
-//! join! { value ?^@ init_expr, fn_expr -> Some }; // => Some(value.try_fold(init_expr, fn_expr))
+//! # let result =
+//! join! { value ?^@ init_expr, fn_expr }; // => Some(value.try_fold(init_expr, fn_expr))
+//! # assert_eq!(result, Ok(3));
 //! # }
 //! ```
 //!
@@ -207,7 +242,9 @@
 //! # fn main() {
 //! # let mut value = vec![1u8, 2u8].into_iter();
 //! # let expr = filter;
+//! # let result =
 //! join! { value ?@ expr }; // => value.find(expr)
+//! # assert_eq!(result, Some(1));
 //! # }
 //! ```
 //!
@@ -217,7 +254,9 @@
 //! # fn main() {
 //! # let value = vec![1u8, 2u8].into_iter();
 //! # let expr = vec![1u8, 2u8].into_iter();
-//! join! { value >^> expr }; // => value.zip(expr)
+//! # let result =
+//! join! { value >^> expr -> Some }; // => Some(value.zip(expr))
+//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![(1, 1), (2, 2)]);
 //! # }
 //! ```
 //!
@@ -226,20 +265,28 @@
 //! # use join::join;
 //! # fn main() {
 //! # let value = vec![(1u8, 2u8)].into_iter();
-//! join! { value <-> _, _, Vec<_>, Vec<_> -> Some }; // => Some(value.unzip::<_, _, Vec<_>, Vec<_>>())
+//! # let result =
+//! join! { value <-> _, _, Vec<_>, Vec<_>, then => |v| v }; // => Some(value.unzip::<_, _, Vec<_>, Vec<_>>())
+//! # assert_eq!(result, (vec![1], vec![2]));
 //! # let value = vec![(1u8, 2u8)].into_iter();
-//! let _: Option<(Vec<_>, Vec<_>)> = join! { value <-> -> Some }; // => Some(value.unzip())
+//! let result: Option<(Vec<_>, Vec<_>)> = join! { value <-> -> Some }; // => Some(value.unzip())
+//! # assert_eq!(result, Some((vec![1], vec![2])));
 //! # }
 //! ```
 //! - Inspect: **`??`**
 //! ```rust
-//! # use join::{join,join_async};
+//! # use join::{join, join_async};
+//! # use futures::executor::block_on;
 //! # fn expr<T: std::fmt::Debug>(v: &T) { println!("{:?}", v); }
 //! # fn main() {
 //! # let value = Ok::<_,u8>(1u8);
+//! # let result =
 //! join! { value ?? expr }; // => (|value| { (expr)(&value); value })(value) // for sync
+//! # assert_eq!(result, Ok::<_,u8>(1u8));
 //! # let value = ::futures::future::ok::<_,u8>(1u8);
-//! join_async! { value ?? expr }; // => value.inspect(expr)  for async
+//! # let result =
+//! join_async! { value ?? expr }; // => value.inspect(expr) for async
+//! # block_on(async { assert_eq!(result.await, Ok::<_,u8>(1u8)); });
 //! # }
 //! ```
 //!
@@ -600,10 +647,18 @@
 //!
 //! fn main() {
 //!     let sum = join! {
+//!         // action_1(),
 //!         action_1(),
-//!         action_2().map(|v| v as u16),
-//!         action_2().map(|v| v as u16 + 1).and_then(|v| Ok(v * 4)),
-//!         action_1().and_then(|_| Err("5".into())).or(Ok(2)),
+//!         
+//!         // action_2().map(|v| v as u16),
+//!         action_2() |> |v| v as u16,
+//!         
+//!         // action_2().map(|v| v as u16 + 1).and_then(|v| Ok(v * 4)),
+//!         action_2() |> |v| v as u16 + 1 => |v| Ok(v * 4),
+//!         
+//!         // action_1().and_then(|_| Err("5".into())).or(Ok(2)),
+//!         action_1() => |_| Err("5".into()) <| Ok(2),
+//!         
 //!         map => |a, b, c, d| a + b + c + d
 //!     }.expect("Failed to calculate sum");
 //!
@@ -634,10 +689,18 @@
 //! #[tokio::main]
 //! async fn main() {
 //!     let sum = join_async! {
+//!         // action_1(),
 //!         action_1(),
-//!         action_2().and_then(|v| ok(v as u16)),
-//!         action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16)),
-//!         action_1().and_then(|_| err("5".into())).or_else(|_| ok(2u16)),
+//!
+//!         // action_2().and_then(|v| ok(v as u16)),
+//!         action_2() => |v| ok(v as u16),
+//!
+//!         // action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16)),
+//!         action_2() |> |v| v.map(|v| v as u16 + 1) => |v| ok(v * 4u16),
+//!
+//!         // action_1().and_then(|_| err("5".into())).or_else(|_| ok(2u16)),
+//!         action_1() => |_| err("5".into()) <= |_| ok(2u16),
+//!
 //!         and_then => |a, b, c, d| ok(a + b + c + d)
 //!     }.await.expect("Failed to calculate sum");
 //!
@@ -672,10 +735,19 @@
 //! fn main() {
 //!     // Branches will be executed in parallel
 //!     let sum = join_spawn! {
+//!         
+//!         // thread::spawn(action_1()),
 //!         action_1(),
-//!         action_2().map(|v| v as usize),
-//!         action_2().map(|v| v as usize + 1).and_then(|v| Ok(v * 4)),
-//!         action_1().and_then(|_| Err("5".into())).or(Ok(2)),
+//!         
+//!         // thread::spawn(action_2().map(|v| v as usize)),
+//!         action_2() |> |v| v as usize,
+//!         
+//!         // thread::spawn(action_2().map(|v| v as usize + 1).and_then(|v| Ok(v * 4))),
+//!         action_2() |> |v| v as usize + 1 => |v| Ok(v * 4),
+//!         
+//!         // thread::spawn(action_1().and_then(|_| Err("5".into())).or(Ok(2))),
+//!         action_1() => |_| Err("5".into()) <| Ok(2),
+//!         
 //!         map => |a, b, c, d| a + b + c + d
 //!     }.expect("Failed to calculate sum");
 //!
@@ -708,10 +780,18 @@
 //! #[tokio::main]
 //! async fn main() {
 //!     let sum = join_async_spawn! {
+//!         // tokio::spawn(action_1()),
 //!         action_1(),
-//!         action_2().and_then(|v| ok(v as u16)),
-//!         action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16)),
-//!         action_1().and_then(|_| err("5".into())).or_else(|_| ok(2u16)),
+//!
+//!         // tokio::spawn(action_2().and_then(|v| ok(v as u16))),
+//!         action_2() => |v| ok(v as u16),
+//!
+//!         // tokio::spawn(action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16))),
+//!         action_2() |> |v| v.map(|v| v as u16 + 1) => |v| ok(v * 4u16),
+//!
+//!         // tokio::spawn(action_1().and_then(|_| err("5".into())).or_else(|_| ok(2u16))),
+//!         action_1() => |_| err("5".into()) <= |_| ok(2u16),
+//!
 //!         and_then => |a, b, c, d| ok(a + b + c + d)
 //!     }.await.expect("Failed to calculate sum");
 //!
@@ -719,35 +799,7 @@
 //! }
 //! ```
 //!
-//! Using combinators we can rewrite first sync example like
-//!
-//! ```rust
-//!
-//! use std::error::Error;
-//! use join::join;
-//!
-//! type Result<T> = std::result::Result<T, Box<dyn Error>>;
-//!
-//! fn action_1() -> Result<u16> {
-//!     Ok(1)
-//! }
-//!
-//! fn action_2() -> Result<u8> {
-//!     Ok(2)
-//! }
-//!
-//! fn main() {
-//!     let sum = join! {
-//!         action_1(),
-//!         action_2() |> |v| v as u16,
-//!         action_2() |> |v| v as u16 + 1 => |v| Ok(v * 4),
-//!         action_1() => |_| Err("5".into()) <| Ok(2),
-//!         map => |a, b, c, d| a + b + c + d
-//!     }.expect("Failed to calculate sum");
-//!
-//!     println!("Calculated: {}", sum);
-//! }
-//! ```
+//! ## Detailed step example
 //!
 //! By separating chain in actions, you will make actions wait for completion of all of them in current step before go to the next step.
 //!

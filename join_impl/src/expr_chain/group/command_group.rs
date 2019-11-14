@@ -2,15 +2,16 @@
 //! Definition of `CommandGroup`.
 //!
 //!
+use syn::parse::Parse;
 use syn::parse::ParseStream;
 use syn::Token;
 
 use super::super::super::expr_chain::ActionExprChainGenerator;
 use super::super::expr::{ErrExpr, InitialExpr, ProcessExpr};
-use super::ActionGroup;
+use super::super::{TransformParsed, Unit, UnitResult};
 
 ///
-/// `CommandGroup` is an enum of all possible `ProcessExpr` and `ErrExpr` operations.
+/// `CommandGroup` is an enum of all possible `ProcessExpr`, `ErrExpr` and `InitialExpr` operations.
 /// Used to express group which was found in input `ParseStream`
 ///
 #[cfg(not(feature = "full"))]
@@ -63,7 +64,7 @@ pub enum CommandGroup {
 }
 
 ///
-/// Contains all possible command groups
+/// Contains all possible command groups.
 ///
 #[cfg(feature = "full")]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -210,76 +211,58 @@ impl ::std::fmt::Display for CommandGroup {
     }
 }
 
-use super::super::Unit;
-use syn::parse::Parse;
-
-struct Empty {}
+struct Empty();
 
 impl Parse for Empty {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         if input.is_empty() {
-            Ok(Empty {})
+            Ok(Empty())
         } else {
             Err(input.error("Unexpected tokens"))
         }
     }
 }
 
+fn to_none<T, R>(_: T) -> Option<R> {
+    None
+}
+
+fn to_some<T>(v: T) -> Option<T> {
+    Some(v)
+}
+
 fn parse_empty_unit(
     action_expr_chain_gen: &ActionExprChainGenerator,
     input: ParseStream<'_>,
-) -> syn::Result<Option<ActionGroup>> {
-    let Unit {
-        next_group_type, ..
-    } = action_expr_chain_gen.parse_unit::<Empty>(input, true)?;
-    Ok(next_group_type)
+) -> UnitResult<Empty> {
+    action_expr_chain_gen.parse_unit::<Empty>(input, true)
 }
 
 fn parse_single_unit<ParseUnit: Parse, ResultExpr>(
     to_expr: fn(ParseUnit) -> ResultExpr,
     action_expr_chain_gen: &ActionExprChainGenerator,
     input: ParseStream<'_>,
-) -> syn::Result<(ResultExpr, Option<ActionGroup>)> {
-    let Unit {
-        expr,
-        next_group_type,
-    } = action_expr_chain_gen.parse_unit(input, false)?;
-    Ok((to_expr(expr), next_group_type))
+) -> UnitResult<ResultExpr> {
+    action_expr_chain_gen
+        .parse_unit(input, false)
+        .transform_parsed(to_expr)
 }
 
 fn parse_single_or_empty_unit<ParseUnit: Parse, ResultExpr>(
     to_expr: fn(Option<ParseUnit>) -> ResultExpr,
     action_expr_chain_gen: &ActionExprChainGenerator,
     input: ParseStream<'_>,
-) -> syn::Result<(ResultExpr, Option<ActionGroup>)> {
-    let Unit {
-        expr,
-        next_group_type,
-    } = action_expr_chain_gen
+) -> UnitResult<ResultExpr> {
+    action_expr_chain_gen
         .parse_unit::<Empty>(&input.fork(), true)
         .and_then(|_| action_expr_chain_gen.parse_unit::<Empty>(&input, true))
-        .map(
-            |Unit {
-                 next_group_type, ..
-             }| Unit {
-                expr: None,
-                next_group_type,
-            },
-        )
+        .transform_parsed(to_none)
         .or_else(|_| {
             action_expr_chain_gen
                 .parse_unit::<ParseUnit>(input, false)
-                .map(
-                    |Unit {
-                         expr,
-                         next_group_type,
-                     }| Unit {
-                        expr: Some(expr),
-                        next_group_type,
-                    },
-                )
-        })?;
-    Ok((to_expr(expr), next_group_type))
+                .transform_parsed(to_some)
+        })
+        .transform_parsed(to_expr)
 }
 
 fn parse_n_or_empty_unit<ParseUnit: Parse, ResultExpr>(
@@ -287,21 +270,11 @@ fn parse_n_or_empty_unit<ParseUnit: Parse, ResultExpr>(
     action_expr_chain_gen: &ActionExprChainGenerator,
     input: ParseStream<'_>,
     unit_count: usize,
-) -> syn::Result<(ResultExpr, Option<ActionGroup>)> {
-    let Unit {
-        expr,
-        next_group_type,
-    } = action_expr_chain_gen
+) -> UnitResult<ResultExpr> {
+    action_expr_chain_gen
         .parse_unit::<Empty>(&input.fork(), true)
         .and_then(|_| action_expr_chain_gen.parse_unit::<Empty>(&input, true))
-        .map(
-            |Unit {
-                 next_group_type, ..
-             }| Unit {
-                expr: None,
-                next_group_type,
-            },
-        )
+        .transform_parsed(to_none)
         .or_else(|_| {
             (0..unit_count)
                 .map(|index| {
@@ -323,48 +296,46 @@ fn parse_n_or_empty_unit<ParseUnit: Parse, ResultExpr>(
                 })
                 .try_fold(
                     Unit {
-                        expr: Some(Vec::with_capacity(unit_count)),
+                        parsed: Some(Vec::with_capacity(unit_count)),
                         next_group_type: None,
                     },
                     |mut acc, unit| {
                         unit.map(|unit| {
-                            acc.expr.as_mut().unwrap().push(unit.expr);
+                            acc.parsed.as_mut().unwrap().push(unit.parsed);
                             acc.next_group_type = unit.next_group_type;
                             acc
                         })
                     },
                 )
-        })?;
-    Ok((to_expr(expr), next_group_type))
+        })
+        .transform_parsed(to_expr)
 }
 
 fn parse_double_unit<ParseUnit: Parse, ParseUnit2: Parse, ResultExpr>(
     to_expr: fn((ParseUnit, ParseUnit2)) -> ResultExpr,
     action_expr_chain_gen: &ActionExprChainGenerator,
     input: ParseStream<'_>,
-) -> syn::Result<(ResultExpr, Option<ActionGroup>)> {
-    let Unit {
-        expr,
-        next_group_type: none_group_type,
-    } = action_expr_chain_gen.parse_unit(input, false)?;
-    if none_group_type.is_some() {
-        Err(input.error("Expected 2 expressions, found group identifier!"))
-    } else {
-        input.parse::<syn::Token![,]>()?;
-        let Unit {
-            expr: expr2,
-            next_group_type,
-        } = action_expr_chain_gen.parse_unit(input, false)?;
-        Ok((to_expr((expr, expr2)), next_group_type))
-    }
+) -> UnitResult<ResultExpr> {
+    action_expr_chain_gen.parse_unit(input, false).and_then(
+        |Unit {
+             parsed,
+             next_group_type,
+         }| {
+            if next_group_type.is_some() {
+                Err(input.error("Expected 2 expressions, found group identifier!"))
+            } else {
+                input.parse::<syn::Token![,]>()?;
+                action_expr_chain_gen
+                    .parse_unit(input, false)
+                    .transform_parsed(|parsed2| to_expr((parsed, parsed2)))
+            }
+        },
+    )
 }
 
 macro_rules! from_empty_unit {
     ($create_expr: path, $action_expr_chain_gen: expr, $input: expr) => {
-        Some(
-            parse_empty_unit($action_expr_chain_gen, $input)
-                .map(|next_group_type| ($create_expr, next_group_type)),
-        )
+        Some(parse_empty_unit($action_expr_chain_gen, $input).transform_parsed(|_| $create_expr))
     };
 }
 
@@ -444,7 +415,7 @@ impl CommandGroup {
         self,
         action_expr_chain_gen: &ActionExprChainGenerator,
         input: ParseStream,
-    ) -> Option<syn::Result<(ProcessExpr, Option<ActionGroup>)>> {
+    ) -> Option<UnitResult<ProcessExpr>> {
         match self {
             CommandGroup::Map => from_single_unit!(ProcessExpr::Map, action_expr_chain_gen, input),
             CommandGroup::AndThen => {
@@ -503,7 +474,7 @@ impl CommandGroup {
         self,
         action_expr_chain_gen: &ActionExprChainGenerator,
         input: ParseStream,
-    ) -> Option<syn::Result<(ProcessExpr, Option<ActionGroup>)>> {
+    ) -> Option<UnitResult<ProcessExpr>> {
         match self {
             CommandGroup::Map => from_single_unit!(ProcessExpr::Map, action_expr_chain_gen, input),
             CommandGroup::AndThen => {
@@ -664,7 +635,7 @@ impl CommandGroup {
         self,
         action_expr_chain_gen: &ActionExprChainGenerator,
         input: ParseStream,
-    ) -> Option<syn::Result<(ErrExpr, Option<ActionGroup>)>> {
+    ) -> Option<UnitResult<ErrExpr>> {
         match self {
             CommandGroup::Or => from_single_unit!(ErrExpr::Or, action_expr_chain_gen, input),
             CommandGroup::OrElse => {
@@ -681,7 +652,7 @@ impl CommandGroup {
         self,
         action_expr_chain_gen: &ActionExprChainGenerator,
         input: ParseStream,
-    ) -> Option<syn::Result<(InitialExpr, Option<ActionGroup>)>> {
+    ) -> Option<UnitResult<InitialExpr>> {
         match self {
             CommandGroup::Initial => from_single_unit!(InitialExpr, action_expr_chain_gen, input),
             _ => None,

@@ -10,7 +10,7 @@ pub mod utils;
 
 pub use action_expr_chain::{ActionExprChain, ActionExprChainGenerator};
 pub use chain::Chain;
-use chain::{Unit, UnitResult};
+pub use chain::{TransformParsed, Unit, UnitResult};
 pub use expr::ActionExpr;
 use group::{ActionGroup, CommandGroup, GroupDeterminer};
 use utils::{is_block_expr, parse_until};

@@ -63,8 +63,13 @@ impl<'a> ActionExprChainGenerator<'a> {
 
             if member_index == 0 {
                 // Because first expr is `Initial`
-                let exprs = action_expr.extract_inner().unwrap();
-                if let Let(let_expr) = exprs.first().unwrap() {
+                let exprs = action_expr
+                    .extract_inner()
+                    .expect("join: Failed to extract initial expr");
+                if let Let(let_expr) = exprs
+                    .first()
+                    .expect("join: Failed to extract first expr of initial expr")
+                {
                     if let Pat::Ident(pat) = &let_expr.pat {
                         chain.pat = Some(pat.clone());
                     } else {
@@ -72,13 +77,13 @@ impl<'a> ActionExprChainGenerator<'a> {
                     }
                     action_expr = action_expr
                         .replace_inner(&mut vec![*let_expr.expr.clone()])
-                        .unwrap();
+                        .expect("join: Failed to replace initial expr");
                 }
                 if action_expr
                     .extract_inner()
-                    .unwrap()
+                    .expect("join: Failed to extract initial expr")
                     .first()
-                    .unwrap()
+                    .expect("join: Failed to extract first expr of initial expr")
                     .into_token_stream()
                     .is_empty()
                 {
@@ -98,9 +103,9 @@ impl<'a> ActionExprChainGenerator<'a> {
                     if chain
                         .members
                         .last()
-                        .unwrap()
+                        .expect("join: Failed to extract last `ActionExpr` member")
                         .extract_inner()
-                        .unwrap()
+                        .unwrap_or(vec![])
                         .last()
                         .map(|&expr| is_block_expr(expr))
                         .unwrap_or(false)

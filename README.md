@@ -484,10 +484,18 @@ fn action_2() -> Result<u8> {
 
 fn main() {
     let sum = join! {
+        // action_1(),
         action_1(),
-        action_2().map(|v| v as u16),
-        action_2().map(|v| v as u16 + 1).and_then(|v| Ok(v * 4)),
-        action_1().and_then(|_| Err("5".into())).or(Ok(2)),
+        
+        // action_2().map(|v| v as u16),
+        action_2() |> |v| v as u16,
+        
+        // action_2().map(|v| v as u16 + 1).and_then(|v| Ok(v * 4)),
+        action_2() |> |v| v as u16 + 1 => |v| Ok(v * 4),
+        
+        // action_1().and_then(|_| Err("5".into())).or(Ok(2)),
+        action_1() => |_| Err("5".into()) <| Ok(2),
+        
         map => |a, b, c, d| a + b + c + d
     }.expect("Failed to calculate sum");
 
@@ -518,10 +526,18 @@ async fn action_2() -> Result<u8> {
 #[tokio::main]
 async fn main() {
     let sum = join_async! {
+        // action_1(),
         action_1(),
-        action_2().and_then(|v| ok(v as u16)),
-        action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16)),
-        action_1().and_then(|_| err("5".into())).or_else(|_| ok(2u16)),
+
+        // action_2().and_then(|v| ok(v as u16)),
+        action_2() => |v| ok(v as u16),
+
+        // action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16)),
+        action_2() |> |v| v.map(|v| v as u16 + 1) => |v| ok(v * 4u16),
+
+        // action_1().and_then(|_| err("5".into())).or_else(|_| ok(2u16)),
+        action_1() => |_| err("5".into()) <= |_| ok(2u16),
+
         and_then => |a, b, c, d| ok(a + b + c + d)
     }.await.expect("Failed to calculate sum");
 
@@ -556,10 +572,19 @@ fn action_2() -> Result<u16> {
 fn main() {
     // Branches will be executed in parallel
     let sum = join_spawn! {
+        
+        // thread::spawn(action_1()),
         action_1(),
-        action_2().map(|v| v as usize),
-        action_2().map(|v| v as usize + 1).and_then(|v| Ok(v * 4)),
-        action_1().and_then(|_| Err("5".into())).or(Ok(2)),
+        
+        // thread::spawn(action_2().map(|v| v as usize)),
+        action_2() |> |v| v as usize,
+        
+        // thread::spawn(action_2().map(|v| v as usize + 1).and_then(|v| Ok(v * 4))),
+        action_2() |> |v| v as usize + 1 => |v| Ok(v * 4),
+        
+        // thread::spawn(action_1().and_then(|_| Err("5".into())).or(Ok(2))),
+        action_1() => |_| Err("5".into()) <| Ok(2),
+        
         map => |a, b, c, d| a + b + c + d
     }.expect("Failed to calculate sum");
 
@@ -592,10 +617,18 @@ async fn action_2() -> Result<u8> {
 #[tokio::main]
 async fn main() {
     let sum = join_async_spawn! {
+        // tokio::spawn(action_1()),
         action_1(),
-        action_2().and_then(|v| ok(v as u16)),
-        action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16)),
-        action_1().and_then(|_| err("5".into())).or_else(|_| ok(2u16)),
+
+        // tokio::spawn(action_2().and_then(|v| ok(v as u16))),
+        action_2() => |v| ok(v as u16),
+
+        // tokio::spawn(action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16))),
+        action_2() |> |v| v.map(|v| v as u16 + 1) => |v| ok(v * 4u16),
+
+        // tokio::spawn(action_1().and_then(|_| err("5".into())).or_else(|_| ok(2u16))),
+        action_1() => |_| err("5".into()) <= |_| ok(2u16),
+
         and_then => |a, b, c, d| ok(a + b + c + d)
     }.await.expect("Failed to calculate sum");
 
@@ -603,35 +636,7 @@ async fn main() {
 }
 ```
 
-Using combinators we can rewrite first sync example like
-
-```rust
-
-use std::error::Error;
-use join::join;
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
-
-fn action_1() -> Result<u16> {
-    Ok(1)
-}
-
-fn action_2() -> Result<u8> {
-    Ok(2)
-}
-
-fn main() {
-    let sum = join! {
-        action_1(),
-        action_2() |> |v| v as u16,
-        action_2() |> |v| v as u16 + 1 => |v| Ok(v * 4),
-        action_1() => |_| Err("5".into()) <| Ok(2),
-        map => |a, b, c, d| a + b + c + d
-    }.expect("Failed to calculate sum");
-
-    println!("Calculated: {}", sum);
-}
-```
+## Detailed step example
 
 By separating chain in actions, you will make actions wait for completion of all of them in current step before go to the next step.
 

@@ -20,6 +20,9 @@ mod keywords {
     syn::custom_keyword!(n);
 }
 
+///
+/// Default `GroupDeterminer`'s definition.
+///
 pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::instant_and_deferred_determiners! {
     Collect => Token![=], Token![>], syn::token::Bracket => 3,
     Map => Token![|], Token![>] => 2,
@@ -48,6 +51,9 @@ pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::instant_and_de
 
 #[cfg(feature = "static")]
 ::lazy_static::lazy_static! {
+    ///
+    /// Static `GroupDeterminer`s definition which will be used if `static` feature is enabled.
+    ///
     pub static ref DEFAULT_GROUP_DETERMINERS_STATIC: Arc<&'static [GroupDeterminer]> = Arc::new(DEFAULT_GROUP_DETERMINERS);
 }
 

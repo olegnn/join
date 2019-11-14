@@ -1,3 +1,7 @@
+# [0.1.0-alpha.10]
+
+Bugfix + updated docs. Assert docs tests.
+
 # [0.1.0-alpha.9]
 
 Bug hotfix + minor docs fixes. More tests.

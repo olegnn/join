@@ -8,8 +8,31 @@ use super::super::group::ActionGroup;
 /// `Unit` defines one unit of expression parsing.
 ///
 pub struct Unit<T> {
-    pub expr: T,
+    pub parsed: T,
     pub next_group_type: Option<ActionGroup>,
 }
 
 pub type UnitResult<T> = syn::Result<Unit<T>>;
+
+pub trait TransformParsed<T> {
+    fn transform_parsed<R, F>(self, transform: F) -> UnitResult<R>
+    where
+        F: FnOnce(T) -> R;
+}
+
+impl<T> TransformParsed<T> for UnitResult<T> {
+    fn transform_parsed<R, F>(self, transform: F) -> UnitResult<R>
+    where
+        F: FnOnce(T) -> R,
+    {
+        self.map(
+            |Unit {
+                 parsed,
+                 next_group_type,
+             }| Unit {
+                parsed: transform(parsed),
+                next_group_type,
+            },
+        )
+    }
+}

@@ -47,15 +47,15 @@ pub fn construct_spawn_tokio_fn_name() -> Ident {
 }
 
 ///
-/// Constructs result wrapper in order to be used when first step expression is block. For internal usage.
+/// Constructs result wrapper in order to be used when expression is block. For internal usage.
 ///
-pub fn construct_result_wrapper_name(
+pub fn construct_expr_wrapper_name(
     index: impl Into<usize>,
     expr_index: impl Into<usize>,
     internal_index: impl Into<usize>,
 ) -> Ident {
     format_ident!(
-        "__result_wrapper_{}_{}_{}",
+        "__expr_wrapper_{}_{}_{}",
         index.into(),
         expr_index.into(),
         internal_index.into()

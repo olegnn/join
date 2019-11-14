@@ -5,10 +5,10 @@ use syn::PatIdent;
 
 mod unit;
 
-pub use unit::{Unit, UnitResult};
+pub use unit::{TransformParsed, Unit, UnitResult};
 
 ///
-/// `Chain` trait describes any chain with members of type `Member` and optional `Pat`.
+/// `Chain` trait describes any chain with members of type `Member` and optional `PatIdent`.
 ///
 pub trait Chain {
     type Member: Sized;
@@ -18,7 +18,7 @@ pub trait Chain {
     fn get_members(&self) -> &[Self::Member];
 
     ///
-    /// Returns optional `Pat` associated with chain.
+    /// Returns optional `PatIdent` associated with chain.
     ///
     fn get_pat(&self) -> Option<&PatIdent>;
 }

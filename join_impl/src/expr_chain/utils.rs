@@ -77,11 +77,14 @@ pub fn parse_until<'a, T: Parse>(
         .and_then(|group| group.erase_input(input).ok());
 
     Ok(Unit {
-        expr: parse2(tokens)?,
+        parsed: parse2(tokens)?,
         next_group_type: next_group.and_then(GroupDeterminer::get_group_type),
     })
 }
 
+///
+/// Skips next item it `ParseStream`. Returns true in case of success.
+///
 pub fn skip(input: ParseStream<'_>) -> bool {
     input
         .step(|cursor| {

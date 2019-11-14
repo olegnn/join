@@ -4,6 +4,7 @@
 
 use super::super::expr::{ActionExpr, ErrActionExpr, ProcessActionExpr};
 use super::super::ActionExprChainGenerator;
+use super::super::Unit;
 use super::command_group::CommandGroup;
 use syn::parse::ParseStream;
 
@@ -32,7 +33,7 @@ impl ActionGroup {
         };
 
         Ok(if command_group.is_process_expr() {
-            let (parsed, next_group_type) = command_group.parse_process_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (process). This is a bug, please report it.")?;
+            let Unit { parsed, next_group_type } = command_group.parse_process_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (process). This is a bug, please report it.")?;
             let deferred_instant = match self {
                 ActionGroup::Instant(_) => ProcessActionExpr::Instant,
                 ActionGroup::Deferred(_) => ProcessActionExpr::Deferred,
@@ -42,14 +43,14 @@ impl ActionGroup {
                 next_group_type,
             )
         } else if command_group.is_err_expr() {
-            let (parsed, next_group_type) = command_group.parse_err_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (err). This is a bug, please report it.")?;
+            let Unit { parsed, next_group_type } = command_group.parse_err_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (err). This is a bug, please report it.")?;
             let deferred_instant = match self {
                 ActionGroup::Instant(_) => ErrActionExpr::Instant,
                 ActionGroup::Deferred(_) => ErrActionExpr::Deferred,
             };
             (ActionExpr::Err(deferred_instant(parsed)), next_group_type)
         } else if command_group.is_initial_expr() {
-            let (parsed, next_group_type) = command_group.parse_initial_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (initial). This is a bug, please report it.")?;
+            let Unit { parsed, next_group_type } = command_group.parse_initial_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (initial). This is a bug, please report it.")?;
             (ActionExpr::Initial(parsed), next_group_type)
         } else {
             unreachable!()
