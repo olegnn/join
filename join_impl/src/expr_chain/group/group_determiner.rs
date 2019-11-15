@@ -32,9 +32,9 @@ pub struct GroupDeterminer {
 }
 
 ///
-/// Creates instant and deferred `GroupDeterminer`'s for given `ActionGroup`.
-/// Deferred are prefixed by `~`.
-/// For example: `->` is instant, `~->` is deferred.
+/// Creates instant and deferred `GroupDeterminer`'s for given `ActionGroup`s with provided tokens.
+/// Deferred are prefixed by `deferred_prefix`.
+/// For example, if `deferred_prefix` is `~`, then `->` is instant, `~->` is deferred.
 ///
 #[macro_export]
 macro_rules! instant_and_deferred_determiners {
@@ -103,7 +103,7 @@ macro_rules! define_tokens_checker {
 }
 
 ///
-/// Creates `GroupDeterminer` with given (`ActionGroup` => tokens; length; Fn that checks `TokenStream` of parsed tokens`)
+/// Creates `GroupDeterminer` with given (`ActionGroup` => tokens; length; Check parsed tokens? bool)
 /// Example:
 /// ```
 /// use join_impl::expr_chain::group::{ActionGroup, CommandGroup};
@@ -111,7 +111,7 @@ macro_rules! define_tokens_checker {
 /// use syn::Token;
 ///
 /// fn main() {
-///     let then_determiner = group_determiner!(ActionGroup::Instant(CommandGroup::Then) => Token![->]; 2); // last param fn is optional
+///     let then_determiner = group_determiner!(ActionGroup::Instant(CommandGroup::Then) => Token![->]; 2); // last param is optional, true by default
 /// }
 /// ```
 ///

@@ -13,7 +13,7 @@ pub use unit::{TransformParsed, Unit, UnitResult};
 pub trait Chain {
     type Member: Sized;
     ///
-    /// Returns slice of self members.
+    /// Returns self members.
     ///
     fn get_members(&self) -> &[Self::Member];
 

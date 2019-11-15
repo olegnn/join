@@ -8,6 +8,11 @@ use syn::parse::ParseStream;
 use syn::Token;
 use syn::{self, Expr};
 
+///
+/// map => expr,
+/// then => expr,
+/// and_then => expr
+/// 
 pub enum Handler {
     Map(Expr),
     Then(Expr),

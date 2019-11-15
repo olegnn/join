@@ -38,7 +38,7 @@ pub trait Join {
     fn get_futures_crate_path(&self) -> Option<&Path>;
 
     ///
-    /// Returns vec of branches, each of branches is an object implemented `Chain` trait.
+    /// Returns branches, each of branches is an object implemented `Chain` trait.
     ///
     fn get_branches(&self) -> &[Self::Chain];
 

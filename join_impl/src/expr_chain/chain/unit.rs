@@ -8,7 +8,13 @@ use super::super::group::ActionGroup;
 /// `Unit` defines one unit of expression parsing.
 ///
 pub struct Unit<T> {
+    ///
+    /// Parsed value (for example `Expr` { Ok(1) }).
+    /// 
     pub parsed: T,
+    ///
+    /// Next `ActionGroup`, if provided.
+    /// 
     pub next_group_type: Option<ActionGroup>,
 }
 

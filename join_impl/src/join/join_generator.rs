@@ -45,7 +45,7 @@ pub struct JoinGenerator<'a> {
     ///
     futures_crate_path: Option<&'a Path>,
     ///
-    /// Final handler.
+    /// Final handler. (Only applicable for `try..` macros).
     ///
     handler: Option<&'a Handler>,
     ///
@@ -58,7 +58,8 @@ impl<'a> JoinGenerator<'a> {
     ///
     /// Creates new `JoinGenerator` with given branches - `ActionExprChain`s, optional handler, 
     /// optional `futures_crate_path` and `Config`.
-    /// 
+    /// Will return Err if macro isn't `try` but handler provided, if `futures_crate_path` provided for non `async`
+    /// macro, if branches count is equal to 0.
     /// 
     pub fn new(
         branches: &'a [ActionExprChain],

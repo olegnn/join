@@ -28,12 +28,12 @@ where
     Self: Sized,
 {
     ///
-    /// Extracts `Expr` from given valuem if applicable.
+    /// Extracts `Expr`(s) from given value if applicable.
     ///
     fn extract_inner(&self) -> Option<Vec<&Expr>>;
 
     ///
-    /// Replaces current expr by given `Expr` if it's possible, returning Some(new `Self`) with given `Expr`,
+    /// Replaces current expr by given `Expr` if it's possible, returning Some(`Self`) with given `Expr`(s),
     /// otherwise returns None.
     ///
     fn replace_inner(&self, expr: &mut Vec<Expr>) -> Option<Self>;

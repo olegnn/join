@@ -20,7 +20,7 @@ pub struct ExprChain<Member: Sized> {
 }
 
 ///
-/// ExprChain of `ActionExpr`.
+/// `ExprChain` of `ActionExpr`.
 ///
 pub type ActionExprChain = ExprChain<ActionExpr>;
 
@@ -34,7 +34,7 @@ pub struct ActionExprChainGenerator<'a> {
 
 impl<'a> ActionExprChainGenerator<'a> {
     ///
-    /// Creates new ActionExprChainGenerator with gived `GroupDeterminer`'s
+    /// Creates new `ActionExprChainGenerator` with gived `GroupDeterminer`'s.
     ///
     #[cfg(not(feature = "static"))]
     pub fn new(group_determiners: &'a [GroupDeterminer]) -> Self {
