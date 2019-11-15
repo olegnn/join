@@ -11,7 +11,7 @@ use super::chain::{Unit, UnitResult};
 use super::GroupDeterminer;
 
 ///
-/// Returns true if given is a valid `Expr`.
+/// Returns true if given stream is valid `Expr`.
 ///
 pub fn is_valid_expr(input: TokenStream) -> bool {
     is_valid_stream::<Expr>(input)

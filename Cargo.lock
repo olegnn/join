@@ -477,7 +477,7 @@ dependencies = [
 name = "join_export"
 version = "0.1.0-alpha.9"
 dependencies = [
- "join_impl 0.1.0-alpha.11",
+ "join_impl 0.1.0-alpha.12",
  "proc-macro-hack 0.5.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -485,7 +485,7 @@ dependencies = [
 
 [[package]]
 name = "join_impl"
-version = "0.1.0-alpha.11"
+version = "0.1.0-alpha.12"
 dependencies = [
  "join 0.1.0-alpha.11",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",

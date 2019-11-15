@@ -55,6 +55,11 @@ pub struct JoinGenerator<'a> {
 }
 
 impl<'a> JoinGenerator<'a> {
+    ///
+    /// Creates new `JoinGenerator` with given branches - `ActionExprChain`s, optional handler, 
+    /// optional `futures_crate_path` and `Config`.
+    /// 
+    /// 
     pub fn new(
         branches: &'a [ActionExprChain],
         handler: Option<&'a Handler>,

@@ -14,6 +14,10 @@ pub struct Unit<T> {
 
 pub type UnitResult<T> = syn::Result<Unit<T>>;
 
+///
+/// Trait which provides functionality to apply given `transform` function to `parsed` field in order to change
+/// from `UnitResult<T>` to `UnitResult<R>` where `transform`: `F: FnOnce(T) -> R`.
+/// 
 pub trait TransformParsed<T> {
     fn transform_parsed<R, F>(self, transform: F) -> UnitResult<R>
     where

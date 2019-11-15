@@ -1,3 +1,7 @@
+//!
+//! Configuration of the `join!` macro.
+//!
+
 ///
 /// Defines configuration of the `join!` macro.
 ///

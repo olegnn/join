@@ -71,7 +71,7 @@ macro_rules! instant_and_deferred_determiners {
 }
 
 ///
-/// Creates function which checks if `ParseStream` next values are provided tokens. (Max = 3).
+/// Creates function which checks if `ParseStream` next values are provided tokens.
 ///
 #[macro_export]
 macro_rules! define_tokens_checker {

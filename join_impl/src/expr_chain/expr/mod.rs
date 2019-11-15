@@ -21,7 +21,7 @@ pub enum AnyExpr {
 }
 
 ///
-/// Provides functionality to get or replace inner `Expr`.
+/// Provides functionality to get or replace inner `Expr`(s).
 ///
 pub trait InnerExpr
 where

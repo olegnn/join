@@ -1,5 +1,5 @@
 //!
-//! Defines `Join` struct and `generate_join` function to generate output of the `join!` macro based on input and given config.
+//! Defines `Join` trait and `JoinGenerator` type to generate output of the `join!` macro based on input and given config.
 //!
 
 pub mod config;
@@ -13,19 +13,19 @@ use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::Path;
 
-use super::expr_chain::ActionExprChain;
+use super::expr_chain::{ActionExprChain, Chain};
 use super::handler::Handler;
 use join_generator::JoinGenerator;
 use syn::parse_quote;
 
 ///
-/// Result of parsing `join!` macro input.
+/// Result of parsing `join!` macro input in trait form.
 ///
 pub trait Join {
     ///
     /// Object with implementation of `Chain` trait used to generate macro output.
     ///
-    type Chain;
+    type Chain: Chain;
 
     ///
     /// `join!` macro handler.
@@ -72,10 +72,6 @@ impl Join for JoinDefault {
     fn get_handler(&self) -> Option<&Self::Handler> {
         self.handler.as_ref()
     }
-}
-
-thread_local! {
-    static DEFAULT_PATH: Path = syn::parse_quote! { ::futures };
 }
 
 ///

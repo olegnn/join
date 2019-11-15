@@ -9,7 +9,7 @@ use syn::Expr;
 use super::InnerExpr;
 
 ///
-/// `InitialExpr` used to define types of expression in initial position.
+/// `InitialExpr` used to define initial expression.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct InitialExpr(pub Expr);
