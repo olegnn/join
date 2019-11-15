@@ -2,6 +2,9 @@
 //!
 //! Provides useful shortcut combinators, combines sync/async chains, supports single and multi thread (sync/async) step by step execution of branches, transforms tuple of results in result of tuple.
 //!
+//! - `join` macros will just return final values. Use it if you are working with iterators/streams etc.
+//! - `try_join` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options.
+//!
 //! [![Docs][docs-badge]][docs-url]
 //! [![Crates.io][crates-badge]][crates-url]
 //! [![MIT licensed][mit-badge]][mit-url]
@@ -25,39 +28,40 @@
 //! - [Multi thread examples](#multi-thread-combinations)
 //!     - [Sync](#sync-threads)
 //!     - [Async](#future-tasks)
+//! - [Detailed steps example](#detailed-steps-example)
 //!
 //! ## Combinators
 //!
 //! - Map: **`|>`**
 //! ```rust
-//! # use join::join;
+//! # use join::try_join;
 //! # fn main() {
 //! # let value = Some(1u8);
 //! # let expr = |v| v;
-//! join! { value |> expr }; // => value.map(expr)
+//! try_join! { value |> expr }; // => value.map(expr)
 //! # }
 //! ```
 //!
 //! - AndThen: **`=>`**
 //! ```rust
-//! # use join::join;
+//! # use join::try_join;
 //! # fn main() {
 //! # let value = Some(1u8);
 //! # let expr = |v| Some(v + 1);
 //! # let result =
-//! join! { value => expr }; // => value.and_then(expr)
+//! try_join! { value => expr }; // => value.and_then(expr)
 //! # assert_eq!(result, Some(2));
 //! # }
 //! ```
 //!
 //! - Then: **`->`**
 //! ```rust
-//! # use join::join;
+//! # use join::try_join;
 //! # fn main() {
 //! # let value = Some(1u8);
 //! # let expr = |v: Option<u8>| Some(v.unwrap() + 1);
 //! # let result =
-//! join! { value -> expr }; // => expr(value)
+//! try_join! { value -> expr }; // => expr(value)
 //! # assert_eq!(result, Some(2));
 //! # }
 //! ```
@@ -69,8 +73,8 @@
 //! # fn main() {
 //! # let value = vec![1u8, 2, 3].into_iter();
 //! # let result =
-//! join! { value ?> expr -> Some }; // => Some(value.filter(expr))
-//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![3]);
+//! join! { value ?> expr }; // => value.filter(expr)
+//! # assert_eq!(result.collect::<Vec<_>>(), vec![3]);
 //! # }
 //! ```
 //!
@@ -80,46 +84,46 @@
 //! # fn main() {
 //! # let value = Some(1u8);
 //! # let result =
-//! join! { value .. is_some() -> Some }; // => Some(value.is_some())
-//! # assert_eq!(result, Some(true));
+//! join! { value .. is_some() }; // => value.is_some()
+//! # assert_eq!(result, true);
 //! # let result =
-//! join! { value >. is_none() -> Some }; // => Some(value.is_none())
-//! # assert_eq!(result, Some(false));
+//! join! { value >. is_none() }; // => value.is_none()
+//! # assert_eq!(result, false);
 //! # }
 //! ```
 //!
 //! - Or: **`<|`**
 //! ```rust
-//! # use join::join;
+//! # use join::try_join;
 //! # fn main() {
 //! # let value = Some(1u8);
 //! # let expr = Some(2u8);
 //! # let result =
-//! join! { value <| expr }; // => value.or(expr)
+//! try_join! { value <| expr }; // => value.or(expr)
 //! # assert_eq!(result, Some(1));
 //! # }
 //! ```
 //!
 //! - OrElse: **`<=`**
 //! ```rust
-//! # use join::join;
+//! # use join::try_join;
 //! # fn main() {
 //! # let value = None;
 //! # let expr = || Some(6);
 //! # let result =
-//! join! { value <= expr }; // => value.or_else(expr)  
+//! try_join! { value <= expr }; // => value.or_else(expr)  
 //! # assert_eq!(result, Some(6));
 //! # }
 //! ```
 //!
 //! - MapErr: **`!>`**
 //! ```rust
-//! # use join::join;
+//! # use join::try_join;
 //! # fn main() {
 //! # let value = Err::<u8,_>(1u8);
 //! # let expr = |err| err + 1;
 //! # let result =
-//! join! { value !> expr }; // => value.map_err(expr)
+//! try_join! { value !> expr }; // => value.map_err(expr)
 //! # assert_eq!(result, Err(2));
 //! # }
 //! ```
@@ -130,11 +134,11 @@
 //! # fn main() {
 //! # let value = vec![1u8, 2, 3].into_iter();
 //! # let result =
-//! join! { value =>[] Vec<_> -> Some }; // => Some(value.collect::<Vec<_>>())
-//! # assert_eq!(result, Some(vec![1u8, 2, 3]));
+//! join! { value =>[] Vec<_> }; // => value.collect::<Vec<_>>()
+//! # assert_eq!(result, vec![1u8, 2, 3]);
 //! # let value = vec![1u8, 3, 4].into_iter();
-//! let result: Option<Vec<_>> = join! { value =>[] -> Some }; // => value.collect()
-//! # assert_eq!(result, Some(vec![1u8, 3, 4]));
+//! let result: Vec<_> = join! { value =>[] }; // => value.collect()
+//! # assert_eq!(result, vec![1u8, 3, 4]);
 //! # }
 //! ```
 //!
@@ -145,8 +149,8 @@
 //! # let value = vec![1u8].into_iter();
 //! # let expr = vec![1u8].into_iter();
 //! # let result =
-//! join! { value >>> expr -> Some }; // => Some(value.chain(expr))
-//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![1, 1]);
+//! join! { value >>> expr }; // => value.chain(expr)
+//! # assert_eq!(result.collect::<Vec<_>>(), vec![1, 1]);
 //! # }
 //! ```
 //!
@@ -169,8 +173,8 @@
 //! # let value = vec![1u8, 2, 3, 4, 5].into_iter();
 //! # let expr = |v| Some(v);
 //! # let result =
-//! join! { value ?|> expr -> Some }; // => Some(value.filter_map(expr))
-//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![1u8, 2, 3, 4, 5]);
+//! join! { value ?|> expr }; // => value.filter_map(expr)
+//! # assert_eq!(result.collect::<Vec<_>>(), vec![1u8, 2, 3, 4, 5]);
 //! # }
 //! ```
 //!
@@ -180,8 +184,8 @@
 //! # fn main() {
 //! # let value = vec![1u8].into_iter();
 //! # let result =
-//! join! { value |n> -> Some }; // => Some(value.enumerate())
-//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![(0usize, 1u8)]);
+//! join! { value |n> }; // => value.enumerate()
+//! # assert_eq!(result.collect::<Vec<_>>(), vec![(0usize, 1u8)]);
 //! # }
 //! ```
 //!
@@ -193,8 +197,8 @@
 //! # let mut value = vec![1u8, 2, 3, 4, 5].into_iter();
 //! # let expr = filter;
 //! # let result =
-//! join! { value ?&!> expr -> Some::<(Vec<u8>, Vec<u8>)> }; // => Some(value.partition(expr))
-//! # assert_eq!(result, Some((vec![2, 4], vec![1, 3, 5])));
+//! join! { value ?&!> expr }; // => value.partition(expr)
+//! # assert_eq!(result, (vec![2, 4], vec![1, 3, 5]));
 //! # }
 //! ```
 //!
@@ -204,8 +208,8 @@
 //! # fn main() {
 //! # let mut value = vec![vec![1u8]].into_iter();
 //! # let result =
-//! join! { value ^^> -> Some }; // => Some(value.flatten())
-//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![1u8]);
+//! join! { value ^^> }; // => value.flatten()
+//! # assert_eq!(result.collect::<Vec<_>>(), vec![1u8]);
 //! # }
 //! ```
 //!
@@ -217,8 +221,8 @@
 //! # let init_expr = 0;
 //! # let fn_expr = |a, b| a + b;
 //! # let result =
-//! join! { value ^@ init_expr, fn_expr -> Some }; // => Some(value.fold(init_expr, fn_expr))
-//! # assert_eq!(result, Some(3));
+//! join! { value ^@ init_expr, fn_expr }; // => value.fold(init_expr, fn_expr)
+//! # assert_eq!(result, 3);
 //! # }
 //! ```
 //!
@@ -230,20 +234,20 @@
 //! # let init_expr = 0;
 //! # let fn_expr = |a, b| Ok::<_,u8>(a + b);
 //! # let result =
-//! join! { value ?^@ init_expr, fn_expr }; // => Some(value.try_fold(init_expr, fn_expr))
+//! join! { value ?^@ init_expr, fn_expr }; // => value.try_fold(init_expr, fn_expr)
 //! # assert_eq!(result, Ok(3));
 //! # }
 //! ```
 //!
 //! - Find: **`?@`**
 //! ```rust
-//! # use join::join;
-//! fn filter(v: &u8) -> bool { true }
+//! # use join::try_join;
+//! # fn filter(v: &u8) -> bool { true }
 //! # fn main() {
 //! # let mut value = vec![1u8, 2u8].into_iter();
 //! # let expr = filter;
 //! # let result =
-//! join! { value ?@ expr }; // => value.find(expr)
+//! try_join! { value ?@ expr }; // => value.find(expr)
 //! # assert_eq!(result, Some(1));
 //! # }
 //! ```
@@ -255,8 +259,8 @@
 //! # let value = vec![1u8, 2u8].into_iter();
 //! # let expr = vec![1u8, 2u8].into_iter();
 //! # let result =
-//! join! { value >^> expr -> Some }; // => Some(value.zip(expr))
-//! # assert_eq!(result.unwrap().collect::<Vec<_>>(), vec![(1, 1), (2, 2)]);
+//! join! { value >^> expr }; // => value.zip(expr)
+//! # assert_eq!(result.collect::<Vec<_>>(), vec![(1, 1), (2, 2)]);
 //! # }
 //! ```
 //!
@@ -266,26 +270,26 @@
 //! # fn main() {
 //! # let value = vec![(1u8, 2u8)].into_iter();
 //! # let result =
-//! join! { value <-> _, _, Vec<_>, Vec<_>, then => |v| v }; // => Some(value.unzip::<_, _, Vec<_>, Vec<_>>())
+//! join! { value <-> _, _, Vec<_>, Vec<_> }; // => value.unzip::<_, _, Vec<_>, Vec<_>>()
 //! # assert_eq!(result, (vec![1], vec![2]));
 //! # let value = vec![(1u8, 2u8)].into_iter();
-//! let result: Option<(Vec<_>, Vec<_>)> = join! { value <-> -> Some }; // => Some(value.unzip())
-//! # assert_eq!(result, Some((vec![1], vec![2])));
+//! let result: (Vec<_>, Vec<_>) = join! { value <-> }; // => value.unzip()
+//! # assert_eq!(result, (vec![1], vec![2]));
 //! # }
 //! ```
 //! - Inspect: **`??`**
 //! ```rust
-//! # use join::{join, join_async};
+//! # use join::{try_join, try_join_async};
 //! # use futures::executor::block_on;
 //! # fn expr<T: std::fmt::Debug>(v: &T) { println!("{:?}", v); }
 //! # fn main() {
 //! # let value = Ok::<_,u8>(1u8);
 //! # let result =
-//! join! { value ?? expr }; // => (|value| { (expr)(&value); value })(value) // for sync
+//! try_join! { value ?? expr }; // => (|value| { (expr)(&value); value })(value) // for sync
 //! # assert_eq!(result, Ok::<_,u8>(1u8));
 //! # let value = ::futures::future::ok::<_,u8>(1u8);
 //! # let result =
-//! join_async! { value ?? expr }; // => value.inspect(expr) for async
+//! try_join_async! { value ?? expr }; // => value.inspect(expr) for async
 //! # block_on(async { assert_eq!(result.await, Ok::<_,u8>(1u8)); });
 //! # }
 //! ```
@@ -296,30 +300,32 @@
 //!
 //! ## Handler
 //!
+//! **Only valid in `try` form.**
+//!
 //! might be one of
 //!
 //! - `map` => will act as `results.map(|(result0, result1, ..)| handler(result0, result1, ..))`
 //! ```rust
-//! # use join::join;
+//! # use join::try_join;
 //! # fn main() {
 //! # let value = Some(1u8);
-//! assert_eq!(join! { Some(1), Some(2), Some(3), map => |a, b, c| a + b + c }, Some(6));
+//! assert_eq!(try_join! { Some(1), Some(2), Some(3), map => |a, b, c| a + b + c }, Some(6));
 //! # }
 //! ```
 //! - `and_then` => will act as `results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))`
 //! ```rust
-//! # use join::join;
+//! # use join::try_join;
 //! # fn main() {
 //! # let value = Some(1u8);
-//! assert_eq!(join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Some(a + b + c) }, Some(6));
+//! assert_eq!(try_join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Some(a + b + c) }, Some(6));
 //! # }
 //! ```
 //! - `then` => will act as `handler(result0, result1, ..)`
 //! ```rust
-//! # use join::join;
+//! # use join::try_join;
 //! # fn main() {
 //! # let value = Some(1u8);
-//! assert_eq!(join! { Some(1), Some(2), Some(3), then => |a: Option<u8>, b: Option<u8>, c: Option<u8>| Some(a.unwrap() + b.unwrap() + c.unwrap()) }, Some(6));
+//! assert_eq!(try_join! { Some(1), Some(2), Some(3), then => |a: Option<u8>, b: Option<u8>, c: Option<u8>| Some(a.unwrap() + b.unwrap() + c.unwrap()) }, Some(6));
 //! # }
 //! ```
 //! or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned.
@@ -329,12 +335,12 @@
 //! You can specify custom path (`futures_crate_path`) at the beginning of macro call
 //!
 //! ```rust
-//! use join::join_async;
+//! use join::try_join_async;
 //! use futures::future::ok;
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let value = join_async! {
+//!     let value = try_join_async! {
 //!         futures_crate_path(::futures)
 //!         ok::<_,u8>(2u16)
 //!     }.await.unwrap();
@@ -352,7 +358,7 @@
 //!
 //! use rand::prelude::*;
 //! use std::sync::Arc;
-//! use join::join_spawn;
+//! use join::try_join_spawn;
 //!
 //! // Problem: generate vecs filled by random numbers in parallel, make some operations on them in parallel,
 //! // find max of each vec in parallel and find final max of 3 vecs
@@ -360,7 +366,7 @@
 //! // Solution:
 //! fn main() {
 //!     // Branches will be executed in parallel, each in its own thread
-//!     let max = join_spawn! {
+//!     let max = try_join_spawn! {
 //!         let branch_0 =
 //!             generate_random_vec(1000, 10000000u64)
 //!                 .into_iter()
@@ -448,7 +454,7 @@
 //! ```rust no_run
 //! #![recursion_limit="1024"]
 //!
-//! use join::join_async;
+//! use join::try_join_async;
 //! use futures::stream::{iter, Stream};
 //! use reqwest::Client;
 //! use futures::future::{try_join_all, ok, ready};
@@ -471,7 +477,7 @@
 //!
 //!     let client = Client::new();
 //!     
-//!     let game = join_async! {
+//!     let game = try_join_async! {
 //!         // Make requests to several sites
 //!         // and calculate count of links starting from `https://`
 //!         get_urls_to_calculate_link_count()
@@ -480,8 +486,8 @@
 //!                 // so it will us allow to capture some variables from context
 //!                 let ref client = client;
 //!                 move |url|
-//!                     // `join_async!` wraps its content into `Box::pin(async move { })`
-//!                     join_async! {
+//!                     // `try_join_async!` wraps its content into `Box::pin(async move { })`
+//!                     try_join_async! {
 //!                         client
 //!                             .get(url).send()
 //!                             => |value| value.text()
@@ -525,7 +531,7 @@
 //!                         move |err|
 //!                             format_err!("Failed to parse random number: {:#?}, value: {}", err, value);
 //!                 move |url|
-//!                     join_async! {
+//!                     try_join_async! {
 //!                         client
 //!                             .get(url)
 //!                             .send()
@@ -605,7 +611,7 @@
 //!
 //!         let next = reader.next();
 //!     
-//!         result = join_async! {
+//!         result = try_join_async! {
 //!             next
 //!                 |> |value| value.ok_or(format_err!("Unexpected end of input"))
 //!                 => |result| ready(result.map_err(|err| format_err!("Failed to apply codec: {:?}", err)))
@@ -633,7 +639,7 @@
 //!
 //! ```rust
 //! use std::error::Error;
-//! use join::join;
+//! use join::try_join;
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error>>;
 //!
@@ -646,7 +652,7 @@
 //! }
 //!
 //! fn main() {
-//!     let sum = join! {
+//!     let sum = try_join! {
 //!         // action_1(),
 //!         action_1(),
 //!         
@@ -674,7 +680,7 @@
 //! #![recursion_limit="256"]
 //!
 //! use std::error::Error;
-//! use join::join_async;
+//! use join::try_join_async;
 //! use futures::future::{ok, err};
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -688,7 +694,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let sum = join_async! {
+//!     let sum = try_join_async! {
 //!         // action_1(),
 //!         action_1(),
 //!
@@ -720,7 +726,7 @@
 //! ```rust
 //!
 //! use std::error::Error;
-//! use join::join_spawn;
+//! use join::try_join_spawn;
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 //!
@@ -734,18 +740,18 @@
 //!
 //! fn main() {
 //!     // Branches will be executed in parallel
-//!     let sum = join_spawn! {
+//!     let sum = try_join_spawn! {
 //!         
-//!         // thread::spawn(action_1()),
+//!         // thread::spawn(move || action_1()),
 //!         action_1(),
 //!         
-//!         // thread::spawn(action_2().map(|v| v as usize)),
+//!         // thread::spawn(move || action_2().map(|v| v as usize)),
 //!         action_2() |> |v| v as usize,
 //!         
-//!         // thread::spawn(action_2().map(|v| v as usize + 1).and_then(|v| Ok(v * 4))),
+//!         // thread::spawn(move || action_2().map(|v| v as usize + 1).and_then(|v| Ok(v * 4))),
 //!         action_2() |> |v| v as usize + 1 => |v| Ok(v * 4),
 //!         
-//!         // thread::spawn(action_1().and_then(|_| Err("5".into())).or(Ok(2))),
+//!         // thread::spawn(move || action_1().and_then(|_| Err("5".into())).or(Ok(2))),
 //!         action_1() => |_| Err("5".into()) <| Ok(2),
 //!         
 //!         map => |a, b, c, d| a + b + c + d
@@ -764,7 +770,7 @@
 //! #![recursion_limit="256"]
 //!
 //! use std::error::Error;
-//! use join::join_async_spawn;
+//! use join::try_join_async_spawn;
 //! use futures::future::{ok, err};
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
@@ -779,7 +785,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let sum = join_async_spawn! {
+//!     let sum = try_join_async_spawn! {
 //!         // tokio::spawn(action_1()),
 //!         action_1(),
 //!
@@ -799,7 +805,7 @@
 //! }
 //! ```
 //!
-//! ## Detailed step example
+//! ## Detailed steps example
 //!
 //! By separating chain in actions, you will make actions wait for completion of all of them in current step before go to the next step.
 //!
@@ -807,7 +813,7 @@
 //! #![recursion_limit="256"]
 //!
 //! use std::error::Error;
-//! use join::join;
+//! use join::try_join;
 //!
 //! type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 //!
@@ -820,7 +826,7 @@
 //! }
 //!
 //! fn main() {
-//!     let sum = join! {
+//!     let sum = try_join! {
 //!         action_1(),
 //!         let result_1 = action_2() ~|> |v| v as u16 + 1,
 //!         action_2() ~|> {
@@ -863,10 +869,10 @@ use proc_macro_hack::proc_macro_hack;
 /// ```rust
 /// extern crate join;
 ///
-/// use join::join;
+/// use join::try_join;
 ///
 /// fn main() {
-///     let product = join! {
+///     let product = try_join! {
 ///         Ok::<_,u8>(2) |> |v| v + 2,
 ///         Ok::<_,u8>(3),
 ///         Ok::<_,u8>(4),
@@ -878,7 +884,7 @@ use proc_macro_hack::proc_macro_hack;
 /// ```
 ///
 #[proc_macro_hack(support_nested)]
-pub use join_export::join;
+pub use join_export::try_join;
 
 ///
 /// Use to combine futures.
@@ -889,12 +895,12 @@ pub use join_export::join;
 /// extern crate join;
 /// extern crate futures;
 ///
-/// use join::join_async;
+/// use join::try_join_async;
 /// use futures::future::ok;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let product = join_async! {
+///     let product = try_join_async! {
 ///         ok::<_,u8>(2u16) => |v| ok::<_,u8>(v + 2u16),
 ///         ok::<_,u8>(3u16),
 ///         ok::<_,u8>(4u16),
@@ -906,7 +912,7 @@ pub use join_export::join;
 /// ```
 ///
 #[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use join_export::join_async;
+pub use join_export::try_join_async;
 
 ///
 /// Use to spawn `::std::thread` per each step of each branch.
@@ -914,10 +920,10 @@ pub use join_export::join_async;
 /// ```rust
 /// extern crate join;
 ///
-/// use join::join_spawn;
+/// use join::try_join_spawn;
 ///
 /// fn main() {
-///     let product = join_spawn! {
+///     let product = try_join_spawn! {
 ///         Ok::<_,u8>(2) |> |v| v + 2 ?? |_| {
 ///             println!("Hello from parallel world!");
 ///             ::std::thread::sleep(::std::time::Duration::from_secs(1));
@@ -936,13 +942,13 @@ pub use join_export::join_async;
 /// }
 ///```
 #[proc_macro_hack(support_nested)]
-pub use join_export::join_spawn;
+pub use join_export::try_join_spawn;
 
 ///
-/// Alias for `join_spawn!`.
+/// Alias for `try_join_spawn!`.
 ///
 #[proc_macro_hack(support_nested)]
-pub use join_export::spawn;
+pub use join_export::try_spawn;
 
 ///
 /// Use to spawn `::tokio::spawn` per each step of each branch.
@@ -954,14 +960,14 @@ pub use join_export::spawn;
 /// extern crate tokio;
 /// extern crate futures_timer;
 ///
-/// use join::join_async_spawn;
+/// use join::try_join_async_spawn;
 /// use futures::future::ok;
 /// use futures_timer::Delay;
 /// use std::time::Duration;
 ///
 /// #[tokio::main]
 /// async fn main() {
-///     let product = join_async_spawn! {
+///     let product = try_join_async_spawn! {
 ///         ok::<_,u8>(2u16) |> |v| Ok::<_,u8>(v.unwrap() + 2u16) => |v| async move {
 ///             println!("Hello from parallel world!");
 ///             Delay::new(Duration::from_secs(1)).await;
@@ -979,6 +985,95 @@ pub use join_export::spawn;
 ///     }.await.unwrap();
 ///
 ///     assert_eq!(product, 48);
+/// }
+///```
+#[proc_macro_hack(support_nested, internal_macro_calls = 20)]
+pub use join_export::try_join_async_spawn;
+
+///
+/// Alias for `try_join_async_spawn!`.
+///
+#[proc_macro_hack(support_nested, internal_macro_calls = 20)]
+pub use join_export::try_async_spawn;
+
+///
+/// Use to combine sync values. It produces tuple of values or single value in case of 1 branch.
+///
+/// ```rust
+/// extern crate join;
+///
+/// use join::join;
+///
+/// fn main() {
+///     let filtered: Vec<_> = join! { vec![1,2,3].into_iter() ?> |v| v % 2 == 0 =>[] };
+///     assert_eq!(filtered, vec![2]);
+/// }
+/// ```
+///
+#[proc_macro_hack(support_nested)]
+pub use join_export::join;
+
+///
+/// Use to combine futures. It produces tuple of values or single value in case of 1 branch.
+///
+/// ```rust
+/// #![recursion_limit="256"]
+///
+/// extern crate join;
+/// extern crate futures;
+///
+/// use join::join_async;
+/// use futures::future::{ready};
+/// use futures::stream::iter;
+///
+/// #[tokio::main]
+/// async fn main() {
+///     let filtered: Vec<_> = join_async! { iter(vec![1u8,2,3]) ?> |v| ready(v % 2 == 0) =>[] }.await;
+///     assert_eq!(filtered, vec![2]);
+/// }
+/// ```
+///
+#[proc_macro_hack(support_nested, internal_macro_calls = 20)]
+pub use join_export::join_async;
+
+///
+/// Use to spawn `::std::thread` per each step of each branch.
+///
+/// ```rust
+/// extern crate join;
+///
+/// use join::join_spawn;
+///
+/// fn main() {
+///     let filtered: Vec<_> = join_spawn! { vec![1,2,3].into_iter() ?> |v| v % 2 == 0 =>[] };
+///     assert_eq!(filtered, vec![2]);
+/// }
+///```
+#[proc_macro_hack(support_nested)]
+pub use join_export::join_spawn;
+
+///
+/// Alias for `join_spawn!`.
+///
+#[proc_macro_hack(support_nested)]
+pub use join_export::spawn;
+
+///
+/// Use to spawn `::tokio::spawn` per each step of each branch.
+/// ```rust
+/// #![recursion_limit="256"]
+///
+/// extern crate join;
+/// extern crate futures;
+///
+/// use join::join_async_spawn;
+/// use futures::future::ready;
+/// use futures::stream::{iter, StreamExt};
+///
+/// #[tokio::main]
+/// async fn main() {
+///     let filtered: Vec<_> = join_async_spawn! { iter(vec![1u8,2,3]) ?> |v| ready(v % 2 == 0) =>[] }.await;
+///     assert_eq!(filtered, vec![2]);
 /// }
 ///```
 #[proc_macro_hack(support_nested, internal_macro_calls = 20)]

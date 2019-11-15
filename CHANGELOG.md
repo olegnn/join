@@ -1,3 +1,10 @@
+
+# [0.1.0-alpha.11]
+
+Added `try_join!`, `try_join_async!`, `try_join_spawn!`, `try_join_async_spawn!`, `try_async_spawn!` which act as previously unprefixed macros. 
+
+`join!`, `join_async!`, `join_spawn!`, `join_async_spawn!`, `async_spawn!` now don't have `handler` and **don't** transpose final tuple values.
+
 # [0.1.0-alpha.10]
 
 Bugfix + updated docs. Assert docs tests.

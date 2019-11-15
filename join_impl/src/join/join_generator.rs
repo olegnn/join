@@ -64,11 +64,17 @@ impl<'a> JoinGenerator<'a> {
     where
         Self: Sized,
     {
-        let Config { is_async, spawn } = config;
+        let Config {
+            is_async,
+            spawn,
+            is_try,
+        } = config;
 
         let branch_count = branches.len();
 
-        if !config.is_async && futures_crate_path.is_some() {
+        if !is_try && handler.is_some() {
+            Err("handler should be only provided for `try` `join!`".into())
+        } else if !config.is_async && futures_crate_path.is_some() {
             Err("futures_crate_path should be only provided for `async` `join!`".into())
         } else if branch_count == 0 {
             Err("join should have at least one branch".into())
@@ -161,7 +167,9 @@ impl<'a> JoinGenerator<'a> {
         step_number: impl Into<usize>,
     ) -> (Vec<Option<TokenStream>>, Vec<TokenStream>) {
         let step_number = step_number.into();
-        let Config { is_async, spawn } = self.config;
+        let Config {
+            is_async, spawn, ..
+        } = self.config;
 
         self.chains.iter().map(|chain| chain.get(step_number)).enumerate().map(|(chain_index, chain_step_actions)| match chain_step_actions {
                 Some(chain) => 
@@ -253,7 +261,9 @@ impl<'a> JoinGenerator<'a> {
     /// Generates thread builders if `join_spawn!` or `spawn!` macro call was used.
     ///
     pub fn generate_thread_builders(&self) -> Option<TokenStream> {
-        let Config { is_async, spawn } = self.config;
+        let Config {
+            is_async, spawn, ..
+        } = self.config;
 
         if is_async || !spawn {
             None
@@ -287,7 +297,9 @@ impl<'a> JoinGenerator<'a> {
     ///
     pub fn generate_step_results_extractor(&self, step_number: impl Into<usize>) -> TokenStream {
         let step_number = step_number.into();
-        let Config { is_async, spawn } = self.config;
+        let Config {
+            is_async, spawn, ..
+        } = self.config;
 
         let current_step_result_name = construct_step_result_name(step_number);
         let results: Vec<_> = (0..self.branch_count)
@@ -429,7 +441,9 @@ impl<'a> JoinGenerator<'a> {
             handler, config, ..
         } = self;
 
-        let &Config { is_async, .. } = config;
+        let &Config {
+            is_async, is_try, ..
+        } = config;
 
         let await_handler = if is_async {
             Some(quote! { .await })
@@ -496,15 +510,19 @@ impl<'a> JoinGenerator<'a> {
                 }
             }
             None => {
-                let unwrap_results = self.generate_results_unwrapper();
-                let extracted_results = self.extract_results_tuple(false);
-                //
-                // Transforms tuple of results in result of tuple
-                //
-                quote! {
-                    #extracted_results
-                    let __results = #unwrap_results;
-                    __results
+                if is_try {
+                    //
+                    // Transforms tuple of results in result of tuple
+                    //
+                    let extracted_results = self.extract_results_tuple(false);
+                    let unwrap_results = self.generate_results_unwrapper();
+                    quote! {
+                        #extracted_results
+                        let __results = #unwrap_results;
+                        __results
+                    }
+                } else {
+                    quote! { __results }
                 }
             }
         }
@@ -626,7 +644,9 @@ impl<'a> JoinGenerator<'a> {
 
 impl<'a> ToTokens for JoinGenerator<'a> {
     fn to_tokens(&self, output: &mut TokenStream) {
-        let Config { is_async, spawn } = self.config;
+        let Config {
+            is_async, spawn, ..
+        } = self.config;
 
         //
         // Contains all generated code to be executed step by step and returns final step results.

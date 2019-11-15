@@ -1,5 +1,5 @@
 //!
-//! Exports of the `join!`, `join_async!`, `join_spawn!`, `join_async_spawn!`, `async_spawn!` macros.
+//! Exports of the `join!`, `join_async!`, `join_spawn!`, `join_async_spawn!`, `async_spawn!`, `try_join!`, `try_join_async!`, `try_join_spawn!`, `try_join_async_spawn!`, `try_async_spawn!` macros.
 //!
 
 extern crate join_impl;
@@ -24,6 +24,7 @@ pub fn join(input: TokenStream) -> TokenStream {
         Config {
             is_async: false,
             spawn: false,
+            is_try: false,
         },
     )
 }
@@ -37,6 +38,7 @@ pub fn join_async(input: TokenStream) -> TokenStream {
         Config {
             is_async: true,
             spawn: false,
+            is_try: false,
         },
     )
 }
@@ -50,6 +52,7 @@ pub fn join_spawn(input: TokenStream) -> TokenStream {
         Config {
             is_async: false,
             spawn: true,
+            is_try: false,
         },
     )
 }
@@ -63,6 +66,7 @@ pub fn spawn(input: TokenStream) -> TokenStream {
         Config {
             is_async: false,
             spawn: true,
+            is_try: false,
         },
     )
 }
@@ -76,6 +80,7 @@ pub fn join_async_spawn(input: TokenStream) -> TokenStream {
         Config {
             is_async: true,
             spawn: true,
+            is_try: false,
         },
     )
 }
@@ -89,6 +94,91 @@ pub fn async_spawn(input: TokenStream) -> TokenStream {
         Config {
             is_async: true,
             spawn: true,
+            is_try: false,
+        },
+    )
+}
+
+#[proc_macro_hack]
+pub fn try_join(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: false,
+            spawn: false,
+            is_try: true,
+        },
+    )
+}
+
+#[proc_macro_hack]
+pub fn try_join_async(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: true,
+            spawn: false,
+            is_try: true,
+        },
+    )
+}
+
+#[proc_macro_hack]
+pub fn try_join_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: false,
+            spawn: true,
+            is_try: true,
+        },
+    )
+}
+
+#[proc_macro_hack]
+pub fn try_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: false,
+            spawn: true,
+            is_try: true,
+        },
+    )
+}
+
+#[proc_macro_hack]
+pub fn try_join_async_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: true,
+            spawn: true,
+            is_try: true,
+        },
+    )
+}
+
+#[proc_macro_hack]
+pub fn try_async_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: true,
+            spawn: true,
+            is_try: true,
         },
     )
 }

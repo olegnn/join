@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod join_spawn_tests {
-    use join::join_spawn;
+    use join::{join_spawn, try_join_spawn};
 
     type Result<T> = std::result::Result<T, u8>;
 
@@ -46,7 +46,7 @@ mod join_spawn_tests {
 
     #[test]
     fn it_produces_n_branches_with_length_1() {
-        let product = join_spawn! {
+        let product = try_join_spawn! {
             Ok(2u16),
             Ok(get_three()),
             get_ok_four(),
@@ -56,7 +56,7 @@ mod join_spawn_tests {
 
         assert_eq!(product, Ok(120));
 
-        let err = join_spawn! {
+        let err = try_join_spawn! {
             Ok(2),
             Ok(get_three()),
             get_ok_four(),
@@ -66,7 +66,7 @@ mod join_spawn_tests {
 
         assert_eq!(err, get_err());
 
-        let product = join_spawn! {
+        let product = try_join_spawn! {
             Some(2),
             Some(get_three()),
             get_some_five(),
@@ -76,7 +76,7 @@ mod join_spawn_tests {
 
         assert_eq!(product, Some(120));
 
-        let none = join_spawn! {
+        let none = try_join_spawn! {
             Some(2),
             Some(get_three()),
             get_some_five(),
@@ -90,7 +90,7 @@ mod join_spawn_tests {
 
     #[test]
     fn it_produces_n_branches_with_any_length() {
-        let product = join_spawn! {
+        let product = try_join_spawn! {
             Ok(2u16).map(add_one).and_then(add_one_ok), //4
             Ok(get_three()).and_then(add_one_ok).map(add_one).map(add_one).map(add_one), //7
             get_ok_four().map(add_one), //5
@@ -100,7 +100,7 @@ mod join_spawn_tests {
 
         assert_eq!(product, Ok(700));
 
-        let err = join_spawn! {
+        let err = try_join_spawn! {
             Ok(2).map(add_one),
             Ok(get_three()).and_then(to_err),
             get_ok_four().and_then(|_| -> Result<u16> { Err(10) }),
@@ -113,7 +113,7 @@ mod join_spawn_tests {
 
     #[test]
     fn it_produces_n_branches_with_any_length_using_combinators() {
-        let product = join_spawn! {
+        let product = try_join_spawn! {
             Ok(2u16) |> add_one => add_one_ok, //4
             Ok(get_three()) => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
@@ -123,7 +123,7 @@ mod join_spawn_tests {
 
         assert_eq!(product, Ok(700));
 
-        let sum = join_spawn! {
+        let sum = try_join_spawn! {
             2u16 -> Ok |> add_one => add_one_ok, //4
             get_three() -> Ok => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
@@ -133,7 +133,7 @@ mod join_spawn_tests {
 
         assert_eq!(sum, Ok(21));
 
-        let err = join_spawn! {
+        let err = try_join_spawn! {
             Ok(2) |> add_one,
             Ok(get_three()) => to_err,
             get_ok_four() => |_| -> Result<u16> { Err(10) },
@@ -143,7 +143,7 @@ mod join_spawn_tests {
 
         assert_eq!(err, to_err(get_three()));
 
-        let none = join_spawn! {
+        let none = try_join_spawn! {
             2 -> Some |> add_one,
             Some(get_three()) => to_none,
             get_ok_four() => |_| -> Result<u16> { Ok(10) } ..ok(),
@@ -156,7 +156,7 @@ mod join_spawn_tests {
 
     #[test]
     fn it_tests_handler_behaviour() {
-        let ok = join_spawn! {
+        let ok = try_join_spawn! {
             Ok(2),
             Ok(3),
             get_ok_four(),
@@ -165,7 +165,7 @@ mod join_spawn_tests {
 
         assert_eq!(ok, Ok(None));
 
-        let err = join_spawn! {
+        let err = try_join_spawn! {
             Ok(2),
             Ok(3),
             get_ok_four(),
@@ -174,7 +174,7 @@ mod join_spawn_tests {
 
         assert_eq!(err, Err(2));
 
-        let some = join_spawn! {
+        let some = try_join_spawn! {
             Some(2),
             Some(3),
             get_some_five(),
@@ -183,7 +183,7 @@ mod join_spawn_tests {
 
         assert_eq!(some, Some(2));
 
-        let none = join_spawn! {
+        let none = try_join_spawn! {
             Some(2),
             Some(3),
             get_some_five(),
@@ -192,7 +192,7 @@ mod join_spawn_tests {
 
         assert_eq!(none, None);
 
-        let some = join_spawn! {
+        let some = try_join_spawn! {
             Some(2u16),
             Some(3u16),
             get_some_five(),
@@ -201,7 +201,7 @@ mod join_spawn_tests {
 
         assert_eq!(some, Some(10));
 
-        let none: Option<u16> = join_spawn! {
+        let none: Option<u16> = try_join_spawn! {
             Some(2u16),
             None,
             get_some_five(),
@@ -210,7 +210,7 @@ mod join_spawn_tests {
 
         assert_eq!(none, None);
 
-        let ok = join_spawn! {
+        let ok = try_join_spawn! {
             Ok(2),
             Ok(3),
             get_ok_four(),
@@ -219,7 +219,7 @@ mod join_spawn_tests {
 
         assert_eq!(ok, Ok(9));
 
-        let err = join_spawn! {
+        let err = try_join_spawn! {
             Ok(2),
             Ok(3),
             get_ok_four(),
@@ -231,7 +231,7 @@ mod join_spawn_tests {
 
     #[test]
     fn it_tests_steps() {
-        let product = join_spawn! {
+        let product = try_join_spawn! {
             let branch_0 = Ok(2u16) ~|> move |value| {
                 assert_eq!(branch_0, Ok(value));
                 assert_eq!(branch_1, Ok(3));
@@ -264,7 +264,7 @@ mod join_spawn_tests {
 
         let (values0, values1, values2) = (values.clone(), values.clone(), values.clone());
 
-        let _ = join_spawn! {
+        let _ = try_join_spawn! {
             Ok::<_,u8>((values0, 1)) |> |(values, value)| {
                 values.lock().unwrap().push(value);
                 thread::sleep(Duration::from_secs(1));
@@ -307,7 +307,7 @@ mod join_spawn_tests {
             Ok(add_one(v))
         }
 
-        let product = join_spawn! {
+        let product = try_join_spawn! {
             let branch_0 = Ok::<_, BoxedError>(2u16) ~|> {
                 let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
                 let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
@@ -344,19 +344,19 @@ mod join_spawn_tests {
 
     #[test]
     fn it_produces_tuple() {
-        let values = join_spawn! { Ok::<_,u8>(2), Ok::<_,u8>(3) };
+        let values = try_join_spawn! { Ok::<_,u8>(2), Ok::<_,u8>(3) };
         assert_eq!(values.unwrap(), (2, 3));
     }
 
     #[test]
     fn it_produces_single_value() {
-        let value = join_spawn! { Some(1) };
+        let value = try_join_spawn! { Some(1) };
         assert_eq!(value.unwrap(), 1);
     }
 
     #[test]
     fn it_tests_multi_step_single_branch() {
-        let values = join_spawn! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~?> |v| v % 3 != 0 =>[] Vec<_> ~-> Some }.unwrap();
+        let values = try_join_spawn! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~?> |v| v % 3 != 0 =>[] Vec<_> ~-> Some }.unwrap();
         assert_eq!(values, vec![1, 2, 4, 5, 7, 8]);
     }
 
@@ -365,8 +365,8 @@ mod join_spawn_tests {
         let mut some_vec = Some(vec![0u8]);
 
         let values: (Vec<_>, Vec<_>) = join_spawn! {
-            [2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64 -> Some
-        }.unwrap();
+            [2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64
+        };
 
         assert_eq!(values, (vec![], vec![0, 4, 7, 10, 13, 16]));
 
@@ -375,39 +375,38 @@ mod join_spawn_tests {
 
         assert_eq!(
             join_spawn! {
-                { let values = values.clone(); values.into_iter() } >^> { let other_values = other_values.clone(); other_values.into_iter() } ?&!> |(v, v1)| v % 2 == 0 && v1 % 2 == 0 -> Some,
+                { let values = values.clone(); values.into_iter() } >^> { let other_values = other_values.clone(); other_values.into_iter() } ?&!> |(v, v1)| v % 2 == 0 && v1 % 2 == 0,
             },
-            Some((
+            (
                 vec![(0u8, 4u8), (2, 6), (4, 8), (6, 10)],
                 vec![(1u8, 5u8), (3, 7), (5, 9)]
-            ))
+            )
         );
 
         assert_eq!(
             join_spawn! {
-                { let values = values.clone(); values.into_iter() } >^> { let other_values = other_values.clone(); other_values.into_iter() } <-> _, _, Vec<_>, Vec<_> -> Some
+                { let values = values.clone(); values.into_iter() } >^> { let other_values = other_values.clone(); other_values.into_iter() } <-> _, _, Vec<_>, Vec<_>
             },
-            Some((values, other_values))
+            (values, other_values)
         );
 
         assert_eq!(
-            join_spawn! { vec![1u8, 2, 3, 4, 5].into_iter() ?> |v| v % 2 != 0 =>[] -> Some },
-            Some(vec![1u8, 3, 5])
+            join_spawn! { vec![1u8, 2, 3, 4, 5].into_iter() ?> |v| v % 2 != 0 =>[] Vec<_> },
+            vec![1u8, 3, 5]
         );
 
         assert_eq!(
-            join_spawn! { let mut v = vec![1, 2, 3, 4, 5] ~..into_iter() ~?|>@ |v| if v % 2 == 0 { Some(v) } else { None } },
+            try_join_spawn! { let mut v = vec![1, 2, 3, 4, 5] ~..into_iter() ~?|>@ |v| if v % 2 == 0 { Some(v) } else { None } },
             Some(2)
         );
 
         assert_eq!(
-            join_spawn! { vec![vec![1, 2, 3], vec![2]].into_iter() ^^> =>[] Vec<_> -> Some }
-                .unwrap(),
+            join_spawn! { vec![vec![1, 2, 3], vec![2]].into_iter() ^^> =>[] Vec<_> },
             vec![1, 2, 3, 2]
         );
 
         assert!(
-            join_spawn! { vec![Ok(5), Err(4)].into_iter() ?^@ 0, |acc, v| v.map(|v| acc + v) }
+            try_join_spawn! { vec![Ok(5), Err(4)].into_iter() ?^@ 0, |acc, v| v.map(|v| acc + v) }
                 .is_err()
         );
     }
@@ -417,7 +416,7 @@ mod join_spawn_tests {
         use std::sync::Arc;
         let out = Arc::new(5);
 
-        let value = join_spawn! {
+        let value = try_join_spawn! {
             let pat_1 = { let out = out.clone(); Some(*out) },
             let pat_2 = { Some(*out) },
             map => |a, _| a

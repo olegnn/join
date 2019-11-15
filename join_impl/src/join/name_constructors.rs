@@ -88,7 +88,7 @@ pub fn construct_expr_wrapper_name(
 ///
 /// use std::thread;
 ///
-/// use join::join_spawn;
+/// use join::try_join_spawn;
 ///
 /// fn get_current_thread_name() -> String {
 ///     thread::current().name().unwrap().to_owned()
@@ -99,12 +99,12 @@ pub fn construct_expr_wrapper_name(
 /// }
 ///
 /// fn main() {
-///     let _ = join_spawn! {
+///     let _ = try_join_spawn! {
 ///         Ok(0) ?? print_branch_thread_name,
 ///         Ok(1) ?? print_branch_thread_name,
-///         join_spawn! {
+///         try_join_spawn! {
 ///             Ok(2) ?? print_branch_thread_name,
-///             join_spawn! {
+///             try_join_spawn! {
 ///                 Ok(3) ?? print_branch_thread_name,
 ///             }
 ///         }

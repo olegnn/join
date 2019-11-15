@@ -105,7 +105,7 @@ impl<'a> ActionExprChainGenerator<'a> {
                         .last()
                         .expect("join: Failed to extract last `ActionExpr` member")
                         .extract_inner()
-                        .unwrap_or(vec![])
+                        .unwrap_or_else(Vec::new)
                         .last()
                         .map(|&expr| is_block_expr(expr))
                         .unwrap_or(false)
