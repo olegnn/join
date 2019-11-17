@@ -331,8 +331,8 @@ mod join_tests {
 
     #[test]
     fn it_tests_filter() {
-        let value = try_join! { [1,2,3,4].into_iter() ?> |&value| *value % 2 == 0 -> Some };
-        assert_eq!(value.unwrap().collect::<Vec<_>>(), vec![&2, &4]);
+        let value = try_join! { vec![1,2,3,4].into_iter() ?> |&value| value % 2 == 0 -> Some };
+        assert_eq!(value.unwrap().collect::<Vec<_>>(), vec![2, 4]);
     }
 
     #[test]

@@ -282,7 +282,7 @@ mod join_async_tests {
         });
     }
     #[test]
-    fn it_checks_parallel_branches_execution() {
+    fn it_checks_concurrent_branches_execution() {
         block_on(async {
             use futures::lock::Mutex;
             use std::sync::Arc;
@@ -540,7 +540,7 @@ mod join_async_tests {
                             )
                             .unwrap_or(()); 
                     },
-                // In parallel it makes request to the site which generates random number
+                // Concurrently it makes request to the site which generates random number
                 get_url_to_get_random_number()
                     -> ok
                     => {
@@ -577,7 +577,7 @@ mod join_async_tests {
                             .map(|number| println!("Random: {}", number))
                             .unwrap_or(()); 
                     },
-                // In parallel it reads value from stdin
+                // Concurrently it reads value from stdin
                 println!("Please, enter number") -> |_| read_number_from_stdin(),
                 // Finally, when we will have all results, we can decide, who is winner
                 map => |(_url, link_count), random_number, number_from_stdin| {
@@ -591,8 +591,8 @@ mod join_async_tests {
                 }    
             };
 
-            // Use sync join because we don't need parallel execution and sync map
-            // is more convenient
+            // Use sync join because we don't need concurrent execution
+            // and sync `map` is more convenient
             let _ = try_join! {
                 task 
                     .await

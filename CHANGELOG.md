@@ -1,3 +1,6 @@
+# [0.1.0-alpha.12]
+
+Documentation fixes + small refactoring.
 
 # [0.1.0-alpha.11]
 

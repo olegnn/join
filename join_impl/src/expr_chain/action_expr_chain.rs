@@ -24,6 +24,9 @@ pub struct ExprChain<Member: Sized> {
 ///
 pub type ActionExprChain = ExprChain<ActionExpr>;
 
+///
+/// Generator of `ActionExprChain`.
+///
 pub struct ActionExprChainGenerator<'a> {
     #[cfg(not(feature = "static"))]
     group_determiners: &'a [GroupDeterminer],
@@ -49,11 +52,7 @@ impl<'a> ActionExprChainGenerator<'a> {
     ///
     /// Parses input, fills chain with given expressions.
     ///
-    pub fn generate_from_stream(
-        &self,
-        chain: &mut ActionExprChain,
-        input: ParseStream,
-    ) -> syn::Result<()> {
+    pub fn parse_stream(&self, chain: &mut ActionExprChain, input: ParseStream) -> syn::Result<()> {
         let mut group_type = ActionGroup::Instant(CommandGroup::Initial);
         let mut member_index = 0;
 
@@ -169,7 +168,7 @@ where
         Ok(if input.is_empty() {
             None
         } else {
-            expr_chain_generator.generate_from_stream(&mut expr_chain, input)?;
+            expr_chain_generator.parse_stream(&mut expr_chain, input)?;
             Some(expr_chain)
         })
     }
@@ -189,7 +188,7 @@ mod tests {
             let gen = ActionExprChainGenerator::new(DEFAULT_GROUP_DETERMINERS);
             ActionExprChain::new(input, &gen)
                 .transpose()
-                .ok_or(input.error("empty"))?
+                .ok_or(input.error("Empty!"))?
         }
     }
 

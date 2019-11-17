@@ -356,7 +356,7 @@ async fn main() {
                     )
                     .unwrap_or(());
             },
-        // In parallel it makes request to the site which generates random number
+        // Concurrently it makes request to the site which generates random number
         get_url_to_get_random_number()
             -> ok
             => {
@@ -390,7 +390,7 @@ async fn main() {
                     .map(|number| println!("Random: {}", number))
                     .unwrap_or(());
             },
-        // In parallel it reads value from stdin
+        // Concurrently it reads value from stdin
         read_number_from_stdin(),
         // Finally, when we will have all results, we can decide, who is winner
         map => |(_url, link_count), random_number, number_from_stdin| {
@@ -554,7 +554,7 @@ async fn main() {
 ## Multi thread combinations
 
 To execute several tasks in parallel you could use `join_spawn!` (`spawn!`) for sync tasks
-and `join_async_spawn!` (`async_spawn!`) for futures. Since `join_async` already provides parallel futures execution in one thread, `join_async_spawn!` spawns every branch into `tokio` executor so they will be evaluated in multi threaded executor.
+and `join_async_spawn!` (`async_spawn!`) for futures. Since `join_async` already provides concurrent futures execution in one thread, `join_async_spawn!` spawns every branch into `tokio` executor, so they will be evaluated in multi threaded executor.
 
 ### Sync threads
 
@@ -578,7 +578,6 @@ fn action_2() -> Result<u16> {
 fn main() {
     // Branches will be executed in parallel
     let sum = try_join_spawn! {
-        
         // thread::spawn(move || action_1()),
         action_1(),
         
@@ -623,16 +622,16 @@ async fn action_2() -> Result<u8> {
 #[tokio::main]
 async fn main() {
     let sum = try_join_async_spawn! {
-        // tokio::spawn(action_1()),
+        // tokio::spawn(Box::pin(action_1()))
         action_1(),
 
-        // tokio::spawn(action_2().and_then(|v| ok(v as u16))),
+        // tokio::spawn(Box::pin(action_2().and_then(|v| ok(v as u16))))
         action_2() => |v| ok(v as u16),
 
-        // tokio::spawn(action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16))),
+        // tokio::spawn(Box::pin(action_2().map(|v| v.map(|v| v as u16 + 1)).and_then(|v| ok(v * 4u16))))
         action_2() |> |v| v.map(|v| v as u16 + 1) => |v| ok(v * 4u16),
 
-        // tokio::spawn(action_1().and_then(|_| err("5".into())).or_else(|_| ok(2u16))),
+        // tokio::spawn(Box::pin(action_1().and_then(|_| err("5".into())).or_else(|_| ok(2u16))))
         action_1() => |_| err("5".into()) <= |_| ok(2u16),
 
         and_then => |a, b, c, d| ok(a + b + c + d)

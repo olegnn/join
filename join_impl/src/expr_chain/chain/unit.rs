@@ -10,28 +10,34 @@ use super::super::group::ActionGroup;
 pub struct Unit<T> {
     ///
     /// Parsed value (for example `Expr` { Ok(1) }).
-    /// 
+    ///
     pub parsed: T,
     ///
     /// Next `ActionGroup`, if provided.
-    /// 
+    ///
     pub next_group_type: Option<ActionGroup>,
 }
 
 pub type UnitResult<T> = syn::Result<Unit<T>>;
 
 ///
-/// Trait which provides functionality to apply given `transform` function to `parsed` field in order to change
-/// from `UnitResult<T>` to `UnitResult<R>` where `transform`: `F: FnOnce(T) -> R`.
-/// 
-pub trait TransformParsed<T> {
-    fn transform_parsed<R, F>(self, transform: F) -> UnitResult<R>
+/// Trait which provides functionality to apply given `transform` function to change
+/// result from `Self` (`<T>`) to `To` (`<R>`) where `transform`: `F: FnOnce(T) -> R`.
+///
+pub trait TransformParsed<T, R> {
+    type To;
+    ///
+    /// Transforms `Self` to `To` using `transform` function.
+    ///
+    fn transform_parsed<F>(self, transform: F) -> Self::To
     where
         F: FnOnce(T) -> R;
 }
 
-impl<T> TransformParsed<T> for UnitResult<T> {
-    fn transform_parsed<R, F>(self, transform: F) -> UnitResult<R>
+impl<T, R> TransformParsed<T, R> for UnitResult<T> {
+    type To = UnitResult<R>;
+
+    fn transform_parsed<F>(self, transform: F) -> Self::To
     where
         F: FnOnce(T) -> R,
     {

@@ -380,6 +380,9 @@ macro_rules! from_double_unit {
     };
 }
 
+///
+/// Defines group type predicates and parser functions.
+///
 impl CommandGroup {
     ///
     /// Returns true if self command group is of `ProcessExpr` type.
@@ -410,6 +413,9 @@ impl CommandGroup {
         }
     }
 
+    ///
+    /// Attempts to parse given `ParseStream` as `ProcessExpr`.
+    ///
     #[cfg(not(feature = "full"))]
     pub fn parse_process_expr(
         self,
@@ -469,6 +475,9 @@ impl CommandGroup {
         }
     }
 
+    ///
+    /// Attempts to parse given `ParseStream` as `ProcessExpr`.
+    ///
     #[cfg(feature = "full")]
     pub fn parse_process_expr(
         self,
@@ -631,6 +640,9 @@ impl CommandGroup {
         }
     }
 
+    ///
+    /// Attempts to parse given `ParseStream` as `ErrExpr`.
+    ///
     pub fn parse_err_expr(
         self,
         action_expr_chain_gen: &ActionExprChainGenerator,
@@ -648,6 +660,9 @@ impl CommandGroup {
         }
     }
 
+    ///
+    /// Attempts to parse given `ParseStream` as `InitialExpr`.
+    ///
     pub fn parse_initial_expr(
         self,
         action_expr_chain_gen: &ActionExprChainGenerator,

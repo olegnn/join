@@ -10,7 +10,7 @@ use syn::parse::ParseStream;
 
 ///
 /// `ActionGroup` represents two possible types of action: `Instant` and `Deferred`.
-/// `Instant` and `Deferred` type could be any of type `CommandGroup`.
+/// `Instant` and `Deferred` types could be any of type `CommandGroup`.
 ///
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ActionGroup {
@@ -20,7 +20,7 @@ pub enum ActionGroup {
 
 impl ActionGroup {
     ///
-    /// Maps given expr to `ActionExpr`. In any casee will return one of `ActionExpr` variants.
+    /// Parses `ParseStream` as `ActionExpr` using gived `ActionExprChainGenerator`.
     ///
     pub fn parse_stream(
         self,
