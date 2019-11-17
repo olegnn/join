@@ -20,7 +20,7 @@ pub enum ActionGroup {
 
 impl ActionGroup {
     ///
-    /// Parses `ParseStream` as `ActionExpr` using gived `ActionExprChainGenerator`.
+    /// Parses `ParseStream` as `ActionExpr` using given `ActionExprChainGenerator`.
     ///
     pub fn parse_stream(
         self,
