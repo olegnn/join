@@ -419,28 +419,29 @@ impl CommandGroup {
         }
     }
 
+    ///
+    /// Returns true if command group can be a wrapper.
+    /// 
     pub fn can_be_wrapper(self) -> bool {
         match self {
             CommandGroup::Map => true,
             CommandGroup::AndThen => true,
             CommandGroup::Filter => true,
-            CommandGroup::Flatten => true,
-            CommandGroup::Dot => true,
-            CommandGroup::Then => true,
             CommandGroup::Inspect => true,
-            CommandGroup::Chain => true,
             CommandGroup::FilterMap => true,
             CommandGroup::Find => true,
             CommandGroup::FindMap => true,
             CommandGroup::Partition => true,
-            CommandGroup::Zip => true,
-            CommandGroup::Or => true,
             CommandGroup::OrElse => true,
             CommandGroup::MapErr => true,
             _ => false,
         }
     }
 
+    ///
+    /// Attempts to parse given `TokenStream` as `ProcessExpr`.
+    /// 
+    // TODO: implement for full list of process expr.
     pub fn to_process_expr(self, tokens: TokenStream) -> syn::Result<Option<ProcessExpr>> {
         Ok(Some(match self {
             CommandGroup::Map => ProcessExpr::Map(parse2(tokens)?),
@@ -752,6 +753,9 @@ impl CommandGroup {
         }
     }
 
+    ///
+    /// Attempts to parse any `ActionGroup` type.
+    ///
     pub fn parse_empty_expr(
         self,
         action_expr_chain_gen: &ActionExprChainGenerator,
@@ -760,3 +764,36 @@ impl CommandGroup {
         Some(parse_empty_unit(action_expr_chain_gen, input))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_tests_can_be_wrapper() {
+        assert!(CommandGroup::Map.can_be_wrapper());
+        assert!(CommandGroup::AndThen.can_be_wrapper());
+        assert!(CommandGroup::Filter.can_be_wrapper());
+        assert!(CommandGroup::Inspect.can_be_wrapper());
+        assert!(CommandGroup::FilterMap.can_be_wrapper());
+        assert!(CommandGroup::Find.can_be_wrapper());
+        assert!(CommandGroup::FindMap.can_be_wrapper());
+        assert!(CommandGroup::Partition.can_be_wrapper());
+        assert!(CommandGroup::OrElse.can_be_wrapper());
+        assert!(CommandGroup::MapErr.can_be_wrapper());
+
+        assert!(!CommandGroup::Flatten.can_be_wrapper());
+        assert!(!CommandGroup::Dot.can_be_wrapper());
+        assert!(!CommandGroup::Then.can_be_wrapper());
+        assert!(!CommandGroup::Chain.can_be_wrapper());
+        assert!(!CommandGroup::Collect.can_be_wrapper());
+        assert!(!CommandGroup::Enumerate.can_be_wrapper());
+        assert!(!CommandGroup::Fold.can_be_wrapper());
+        assert!(!CommandGroup::TryFold.can_be_wrapper());
+        assert!(!CommandGroup::Unzip.can_be_wrapper());
+        assert!(!CommandGroup::Zip.can_be_wrapper());
+        assert!(!CommandGroup::UNWRAP.can_be_wrapper());
+    }
+}
+
+
