@@ -1,72 +1,84 @@
 //!
-//! Definition of `ActionExpr`, `ProcessActionExpr`, `ErrActionExpr`.
+//! Definition of `ActionExpr`, `ProcessActionExpr``.
 //!
 
 use syn::Expr;
 
-use super::{ErrExpr, InitialExpr, InnerExpr, ProcessExpr};
+use super::*;
 
 ///
-/// `InstantOrDeferredExpr` defines two types of action: `Instant` and `Deferred`
-///
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum InstantOrDeferredExpr<Expr> {
-    ///
-    /// Action which will be applied to given value instantly.
-    ///
-    Instant(Expr),
-    ///
-    /// Action which will be applied after all chains have finished their actions on current step.
-    ///
-    Deferred(Expr),
-}
-
-impl<Inner: InnerExpr> InnerExpr for InstantOrDeferredExpr<Inner> {
-    fn replace_inner(&self, exprs: &mut Vec<Expr>) -> Option<InstantOrDeferredExpr<Inner>> {
-        match self {
-            Self::Instant(inner) => inner.replace_inner(exprs).map(Self::Instant),
-            Self::Deferred(inner) => inner.replace_inner(exprs).map(Self::Deferred),
-        }
-    }
-
-    fn extract_inner(&self) -> Option<Vec<&Expr>> {
-        match self {
-            Self::Instant(inner) => inner,
-            Self::Deferred(inner) => inner,
-        }
-        .extract_inner()
-    }
-}
-
-///
-/// `ProcessActionExpr` is `InstantOrDeferredExpr` which actions are `ProcessExpr`.
-///
-pub type ProcessActionExpr = InstantOrDeferredExpr<ProcessExpr>;
-
-///
-/// `ErrActionExpr` is `InstantOrDeferredExpr` which actions are `ErrExpr`.
-///
-pub type ErrActionExpr = InstantOrDeferredExpr<ErrExpr>;
-
-///
-/// `ActionExpr` is one of `Process`(`ProcessActionExpr`) or `Err`(`ErrActionExpr`) expr,
-/// each of which can be one of its subtypes.
-///
+/// `ActionExpr` is `Action` one of type `Process`, `Initial` or `Err`.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ActionExpr {
+    Process(Action<ProcessExpr>),
+    Initial(Action<InitialExpr>),
+    Err(Action<ErrExpr>),
+}
+
+impl ActionExpr {
     ///
-    /// Action of `ProcessActionExpr` type
+    /// Returns `MoveType` of inner expr.
     ///
-    Process(ProcessActionExpr),
+    pub fn get_move_type(&self) -> &MoveType {
+        match self {
+            Self::Process(expr) => &expr.move_type,
+            Self::Err(expr) => &expr.move_type,
+            Self::Initial(expr) => &expr.move_type,
+        }
+    }
+
     ///
-    /// Action of `ErrActionExpr` type
+    /// Returns `ApplyType` of inner expr.
     ///
-    Err(ErrActionExpr),
+    pub fn get_apply_type(&self) -> &ApplyType {
+        match self {
+            Self::Process(expr) => &expr.apply_type,
+            Self::Err(expr) => &expr.apply_type,
+            Self::Initial(expr) => &expr.apply_type,
+        }
+    }
+}
+
+///
+/// Defines `expr` with configuration (`ApplyType`, `MoveType`).
+///
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Action<Expr: InnerExpr> {
+    pub expr: Expr,
+    pub apply_type: ApplyType,
+    pub move_type: MoveType,
+}
+
+impl<Inner: InnerExpr> Action<Inner> {
     ///
-    /// Action of `InitialExpr` type
+    /// Create new `Action` with given expr and config.
     ///
-    Initial(InitialExpr),
+    pub fn new(expr: Inner, apply_type: ApplyType, move_type: MoveType) -> Self {
+        Self {
+            expr,
+            apply_type,
+            move_type,
+        }
+    }
+}
+
+impl<Inner: InnerExpr> InnerExpr for Action<Inner> {
+    fn replace_inner(&self, exprs: Vec<Expr>) -> Option<Action<Inner>> {
+        self.expr.replace_inner(exprs).map(|expr| Self {
+            expr,
+            apply_type: self.apply_type.clone(),
+            move_type: self.move_type.clone(),
+        })
+    }
+
+    fn extract_inner(&self) -> Option<Vec<&Expr>> {
+        self.expr.extract_inner()
+    }
+
+    fn is_replaceable(&self) -> bool {
+        self.expr.is_replaceable()
+    }
 }
 
 impl InnerExpr for ActionExpr {
@@ -78,11 +90,19 @@ impl InnerExpr for ActionExpr {
         }
     }
 
-    fn replace_inner(&self, exprs: &mut Vec<Expr>) -> Option<ActionExpr> {
+    fn replace_inner(&self, exprs: Vec<Expr>) -> Option<ActionExpr> {
         match self {
             Self::Process(inner) => inner.replace_inner(exprs).map(Self::Process),
             Self::Err(inner) => inner.replace_inner(exprs).map(Self::Err),
             Self::Initial(inner) => inner.replace_inner(exprs).map(Self::Initial),
+        }
+    }
+
+    fn is_replaceable(&self) -> bool {
+        match self {
+            Self::Process(expr) => expr.is_replaceable(),
+            Self::Err(expr) => expr.is_replaceable(),
+            Self::Initial(expr) => expr.is_replaceable(),
         }
     }
 }
@@ -93,33 +113,37 @@ mod tests {
     use syn::{parse_quote, Expr};
 
     #[test]
-    fn it_tests_extract_inner_trait_impl_for_process_action_expr() {
+    fn it_tests_inner_expr_trait_impl_for_action() {
         let expr: Expr = parse_quote! { |v| v + 1 };
+        let replace_expr: Expr = parse_quote! { |v| v + 2 };
 
-        for process_action_expr in vec![
-            ProcessActionExpr::Instant(ProcessExpr::Then(expr.clone())),
-            ProcessActionExpr::Deferred(ProcessExpr::Then(expr.clone())),
+        for action_expr in vec![
+            ActionExpr::Process(Action::new(
+                ProcessExpr::Then(expr.clone()),
+                ApplyType::Instant,
+                MoveType::None,
+            )),
+            ActionExpr::Err(Action::new(
+                ErrExpr::Or(expr.clone()),
+                ApplyType::Instant,
+                MoveType::None,
+            )),
+            ActionExpr::Initial(Action::new(
+                InitialExpr(expr.clone()),
+                ApplyType::Instant,
+                MoveType::None,
+            )),
         ]
         .into_iter()
         {
+            assert_eq!(action_expr.extract_inner().clone(), Some(vec![&expr]));
             assert_eq!(
-                process_action_expr.extract_inner().clone(),
-                Some(vec![&expr])
-            );
-        }
-    }
-
-    #[test]
-    fn it_tests_extract_inner_trait_impl_for_err_action_expr() {
-        let expr: Expr = parse_quote! { |v| v + 1 };
-
-        for err_action_expr in vec![
-            ErrActionExpr::Instant(ErrExpr::Or(expr.clone())),
-            ErrActionExpr::Deferred(ErrExpr::OrElse(expr.clone())),
-        ]
-        .into_iter()
-        {
-            assert_eq!(err_action_expr.extract_inner().clone(), Some(vec![&expr]));
+                action_expr
+                    .replace_inner(vec![replace_expr.clone()])
+                    .unwrap()
+                    .extract_inner(),
+                Some(vec![&replace_expr])
+            )
         }
     }
 }

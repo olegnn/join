@@ -8,17 +8,13 @@ mod action_expr;
 mod err_expr;
 mod initial_expr;
 mod process_expr;
+mod types;
 
-pub use action_expr::{ActionExpr, ErrActionExpr, ProcessActionExpr};
+pub use action_expr::{Action, ActionExpr};
 pub use err_expr::ErrExpr;
 pub use initial_expr::InitialExpr;
 pub use process_expr::ProcessExpr;
-
-pub enum AnyExpr {
-    Process(ProcessExpr),
-    Initial(InitialExpr),
-    Err(ErrExpr),
-}
+pub use types::*;
 
 ///
 /// Provides functionality to get or replace inner `Expr`(s).
@@ -36,7 +32,7 @@ where
     /// Replaces current expr by given `Expr` if it's possible, returning Some(`Self`) with given `Expr`(s),
     /// otherwise returns None.
     ///
-    fn replace_inner(&self, expr: &mut Vec<Expr>) -> Option<Self>;
+    fn replace_inner(&self, expr: Vec<Expr>) -> Option<Self>;
 
     ///
     /// Can expr be replaced or not.

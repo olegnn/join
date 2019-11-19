@@ -2,8 +2,10 @@
 //! Definition of `CommandGroup`.
 //!
 //!
+use proc_macro2::TokenStream;
 use syn::parse::Parse;
 use syn::parse::ParseStream;
+use syn::parse2;
 use syn::Token;
 
 use super::super::super::expr_chain::ActionExprChainGenerator;
@@ -61,6 +63,8 @@ pub enum CommandGroup {
     FilterMap,
     /// [ProcessExpr::FindMap]
     FindMap,
+    /// UNWRAP (Special `CommandGroup` used to define next group nested position [which will be #value.and_then(#previous_expr).#next_expr] )
+    UNWRAP,
 }
 
 ///
@@ -199,6 +203,8 @@ pub enum CommandGroup {
     TryFold,
     /// [ProcessExpr::TryForEach]
     TryForEach,
+    /// UNWRAP (Special `CommandGroup` used to define next group nested position [which will be #value.and_then(#previous_expr).#next_expr] )
+    UNWRAP,
     /// [ProcessExpr::Unzip]
     Unzip,
     /// [ProcessExpr::Zip]
@@ -211,7 +217,7 @@ impl ::std::fmt::Display for CommandGroup {
     }
 }
 
-struct Empty();
+pub struct Empty();
 
 impl Parse for Empty {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -413,6 +419,75 @@ impl CommandGroup {
         }
     }
 
+    pub fn can_be_wrapper(self) -> bool {
+        match self {
+            CommandGroup::Map => true,
+            CommandGroup::AndThen => true,
+            CommandGroup::Filter => true,
+            CommandGroup::Flatten => true,
+            CommandGroup::Dot => true,
+            CommandGroup::Then => true,
+            CommandGroup::Inspect => true,
+            CommandGroup::Chain => true,
+            CommandGroup::FilterMap => true,
+            CommandGroup::Find => true,
+            CommandGroup::FindMap => true,
+            CommandGroup::Partition => true,
+            CommandGroup::Zip => true,
+            CommandGroup::Or => true,
+            CommandGroup::OrElse => true,
+            CommandGroup::MapErr => true,
+            _ => false,
+        }
+    }
+
+    pub fn to_process_expr(self, tokens: TokenStream) -> syn::Result<Option<ProcessExpr>> {
+        Ok(Some(match self {
+            CommandGroup::Map => ProcessExpr::Map(parse2(tokens)?),
+            CommandGroup::AndThen => ProcessExpr::AndThen(parse2(tokens)?),
+            CommandGroup::Filter => ProcessExpr::Filter(parse2(tokens)?),
+            CommandGroup::Flatten => ProcessExpr::Flatten,
+            CommandGroup::Dot => ProcessExpr::Dot(parse2(tokens)?),
+            CommandGroup::Then => ProcessExpr::Then(parse2(tokens)?),
+            CommandGroup::Inspect => ProcessExpr::Inspect(parse2(tokens)?),
+            CommandGroup::Chain => ProcessExpr::Chain(parse2(tokens)?),
+            CommandGroup::FilterMap => ProcessExpr::FilterMap(parse2(tokens)?),
+            CommandGroup::Find => ProcessExpr::Find(parse2(tokens)?),
+            CommandGroup::FindMap => ProcessExpr::FindMap(parse2(tokens)?),
+            CommandGroup::Partition => ProcessExpr::Partition(parse2(tokens)?),
+            CommandGroup::Zip => ProcessExpr::Zip(parse2(tokens)?),
+            _ => {
+                return Ok(None);
+            }
+        }))
+    }
+
+    ///
+    /// Attempts to parse given `TokenStream` as `ErrExpr`.
+    ///
+    pub fn to_err_expr(self, tokens: TokenStream) -> syn::Result<Option<ErrExpr>> {
+        Ok(Some(match self {
+            CommandGroup::Or => ErrExpr::Or(parse2(tokens)?),
+            CommandGroup::OrElse => ErrExpr::OrElse(parse2(tokens)?),
+            CommandGroup::MapErr => ErrExpr::MapErr(parse2(tokens)?),
+            _ => {
+                return Ok(None);
+            }
+        }))
+    }
+
+    ///
+    /// Attempts to parse given `TokenStream` as `InitialExpr`.
+    ///
+    pub fn to_initial_expr(self, tokens: TokenStream) -> syn::Result<Option<InitialExpr>> {
+        Ok(Some(match self {
+            CommandGroup::Initial => InitialExpr(parse2(tokens)?),
+            _ => {
+                return Ok(None);
+            }
+        }))
+    }
+
     ///
     /// Attempts to parse given `ParseStream` as `ProcessExpr`.
     ///
@@ -471,6 +546,9 @@ impl CommandGroup {
                 from_four_or_empty_unit!(ProcessExpr::Unzip, action_expr_chain_gen, input)
             }
             CommandGroup::Zip => from_single_unit!(ProcessExpr::Zip, action_expr_chain_gen, input),
+            CommandGroup::UNWRAP => {
+                from_empty_unit!(ProcessExpr::UNWRAP, action_expr_chain_gen, input)
+            }
             _ => None,
         }
     }
@@ -672,5 +750,13 @@ impl CommandGroup {
             CommandGroup::Initial => from_single_unit!(InitialExpr, action_expr_chain_gen, input),
             _ => None,
         }
+    }
+
+    pub fn parse_empty_expr(
+        self,
+        action_expr_chain_gen: &ActionExprChainGenerator,
+        input: ParseStream,
+    ) -> Option<UnitResult<Empty>> {
+        Some(parse_empty_unit(action_expr_chain_gen, input))
     }
 }

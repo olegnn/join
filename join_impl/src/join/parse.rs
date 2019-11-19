@@ -23,7 +23,8 @@ mod keywords {
 ///
 /// Default `GroupDeterminer`'s definition.
 ///
-pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::instant_and_deferred_determiners! {
+pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::define_instant_and_deferred_determiners! {
+    UNWRAP => Token![<], Token![<], Token![<] => 3,
     Collect => Token![=], Token![>], syn::token::Bracket => 3,
     Map => Token![|], Token![>] => 2,
     Then => Token![->] => 2,
@@ -33,7 +34,7 @@ pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::instant_and_de
     Dot => Token![>], Token![.] => 2,
     Dot => Token![..] => 2,
     MapErr => Token![!], Token![>] => 2,
-    Chain => Token![>], Token![>], Token![>] => 3,
+    Chain => Token![>], Token![@], Token![>] => 3,
     Inspect => Token![?], Token![?] => 2,
     Filter => Token![?], Token![>] => 2,
     FindMap => Token![?], Token![|], Token![>], Token![@] => 4,
@@ -45,8 +46,15 @@ pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::instant_and_de
     TryFold => Token![?], Token![^], Token![@] => 3,
     Find => Token![?], Token![@] => 2,
     Zip => Token![>], Token![^], Token![>] => 3,
-    Unzip => Token![<], Token![-], Token![>] => 3;
-    deferred_prefix => Token![~] => 1
+    Unzip => Token![<], Token![-], Token![>] => 3
+};
+
+pub const DEFERRED_DETERMINER: &GroupDeterminer = &crate::define_determiner_with_no_group! {
+    Token![~] => 1
+};
+
+pub const WRAP_DETERMINER: &GroupDeterminer = &crate::define_determiner_with_no_group! {
+    Token![>], Token![>], Token![>] => 3
 };
 
 #[cfg(feature = "static")]
@@ -66,11 +74,18 @@ impl Parse for JoinDefault {
         };
 
         #[cfg(not(feature = "static"))]
-        let action_expr_chain_generator = ActionExprChainGenerator::new(DEFAULT_GROUP_DETERMINERS);
+        let action_expr_chain_generator = ActionExprChainGenerator::new(
+            DEFAULT_GROUP_DETERMINERS,
+            DEFERRED_DETERMINER,
+            WRAP_DETERMINER,
+        );
 
         #[cfg(feature = "static")]
-        let action_expr_chain_generator =
-            ActionExprChainGenerator::new(DEFAULT_GROUP_DETERMINERS_STATIC.clone());
+        let action_expr_chain_generator = ActionExprChainGenerator::new(
+            DEFAULT_GROUP_DETERMINERS_STATIC.clone(),
+            DEFERRED_DETERMINER,
+            WRAP_DETERMINER,
+        );
 
         if input.peek(keywords::futures_crate_path) {
             input.parse::<keywords::futures_crate_path>()?;

@@ -87,6 +87,10 @@ pub enum ProcessExpr {
     ///	.zip(Expr)
     ///
     Zip(Expr),
+    ///
+    /// Special process expr used to define next group nested position [which will be #value.and_then(#previous_expr).#next_expr]
+    ///
+    UNWRAP,
 }
 
 #[cfg(not(feature = "full"))]
@@ -111,7 +115,7 @@ impl InnerExpr for ProcessExpr {
         }
     }
 
-    fn replace_inner(&self, exprs: &mut Vec<Expr>) -> Option<Self> {
+    fn replace_inner(&self, mut exprs: Vec<Expr>) -> Option<Self> {
         exprs.pop().and_then(|expr| match self {
             Self::Fold(_) => {
                 if exprs.len() != 1 {
@@ -411,6 +415,10 @@ pub enum ProcessExpr {
     ///	.zip(Expr)
     ///
     Zip(Expr),
+    ///
+    /// Special process expr used to define next group nested position [which will be #value.and_then(#previous_expr).#next_expr]
+    ///
+    UNWRAP,
 }
 
 impl ToTokens for ProcessExpr {
@@ -472,6 +480,9 @@ impl ToTokens for ProcessExpr {
                 .unwrap_or_else(|| quote! { .unzip() }),
             ProcessExpr::Zip(expr) => {
                 quote! { .zip(#expr) }
+            }
+            ProcessExpr::UNWRAP => {
+                quote! {}
             }
         };
         output.extend(tokens);
@@ -733,7 +744,7 @@ impl InnerExpr for ProcessExpr {
         }
     }
 
-    fn replace_inner(&self, exprs: &mut Vec<Expr>) -> Option<Self> {
+    fn replace_inner(&self, mut exprs: Vec<Expr>) -> Option<Self> {
         exprs.pop().and_then(|expr| match self {
             Self::Fold(_) => {
                 if exprs.len() != 1 {
@@ -831,7 +842,7 @@ mod tests {
     }
 
     #[test]
-    fn it_tests_extract_inner_trait_impl_for_process_expr() {
+    fn it_tests_inner_expr_trait_impl_for_process_expr() {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         for process_expr in vec![
@@ -890,7 +901,7 @@ mod tests {
         {
             assert_eq!(
                 process_expr
-                    .replace_inner(&mut vec![replace_inner.clone()])
+                    .replace_inner(vec![replace_inner.clone()])
                     .unwrap()
                     .extract_inner()
                     .clone(),
@@ -899,13 +910,13 @@ mod tests {
         }
 
         assert_eq!(
-            ProcessExpr::Dot(expr.clone()).replace_inner(&mut vec![replace_inner.clone()]),
+            ProcessExpr::Dot(expr.clone()).replace_inner(vec![replace_inner.clone()]),
             None
         );
 
         assert_eq!(
             ProcessExpr::Fold((expr.clone(), expr.clone()))
-                .replace_inner(&mut vec![replace_inner.clone(), replace_inner.clone()])
+                .replace_inner(vec![replace_inner.clone(), replace_inner.clone()])
                 .unwrap()
                 .extract_inner()
                 .clone(),
@@ -914,7 +925,7 @@ mod tests {
 
         assert_eq!(
             ProcessExpr::TryFold((expr.clone(), expr.clone()))
-                .replace_inner(&mut vec![replace_inner.clone(), replace_inner.clone()])
+                .replace_inner(vec![replace_inner.clone(), replace_inner.clone()])
                 .unwrap()
                 .extract_inner()
                 .clone(),
@@ -1007,6 +1018,9 @@ mod tests {
                         .unwrap_or_else(|| quote! { .unzip() }),
                     ProcessExpr::Zip(expr) => {
                         quote! { .zip(#expr) }
+                    }
+                    ProcessExpr::UNWRAP => {
+                        quote! {}
                     }
                 }
             ));

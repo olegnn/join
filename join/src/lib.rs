@@ -21,6 +21,7 @@
 //!
 //! - [Demos](#demos)
 //! - [Combinators](#combinators)
+//! - [Nested combinators](#nested-combinators)
 //! - [Handler](#handler)
 //! - [Single thread examples](#single-thread-combinations)
 //!     - [Sync](#sync-branches)
@@ -142,14 +143,14 @@
 //! # }
 //! ```
 //!
-//! - Chain: **`>>>`**
+//! - Chain: **`>@>`**
 //! ```rust
 //! # use join::join;
 //! # fn main() {
 //! # let value = vec![1u8].into_iter();
 //! # let expr = vec![1u8].into_iter();
 //! # let result =
-//! join! { value >>> expr }; // => value.chain(expr)
+//! join! { value >@> expr }; // => value.chain(expr)
 //! # assert_eq!(result.collect::<Vec<_>>(), vec![1, 1]);
 //! # }
 //! ```
@@ -297,6 +298,78 @@
 //! where `value` is the previous value.
 //!
 //! **Every combinator prefixed by `~` will act as deferred action (all actions will wait until completion in every step and only after move to the next one).**
+//! 
+//! ## Nested combinators
+//! 
+//! Wrap: `combinator` **`>>>`** `combinator`(s)...
+//! ```rust
+//! # use join::try_join;
+//! # fn main() {
+//! # let value = Some(Some(5));
+//! # let result =
+//! try_join! { value => >>> |> |v| v + 2 }; // => value.and_then(|value| value.map(|v| v + 2))
+//! # assert_eq!(result, Some(7));
+//! # }
+//! ```
+//! Use to create nested constructions like 
+//! ```rust
+//! # fn main() {
+//! # let a = Ok::<_,u8>(Ok::<_,u8>(Ok::<_,u8>(4)));
+//! # let value = 
+//! a.and_then(
+//!     // >>>
+//!     |b| b.and_then(
+//!         // >>>
+//!         |c| c.and_then(
+//!             // >>>
+//!             |v| Ok(v + 2)
+//!         )
+//!     )
+//! )
+//! # ;
+//! # assert_eq!(value, Ok(6));
+//! # }
+//! ```
+//! 
+//! Unwrap: **`<<<`**
+//! ```rust
+//! # use join::try_join;
+//! # fn main() {
+//! # let value = Some(Some(5));
+//! # let result =
+//! try_join! { 
+//!     value 
+//!     => >>> 
+//!         |> |v| v + 2 
+//!     <<<
+//!     |> |v| Some(v + 4)  
+//! }; // => value.and_then(|value| value.map(|v| v + 2)).map(|v| Some(v + 4))
+//! # assert_eq!(result, Some(Some(11)));
+//! # }
+//! ```
+//! Use to move out of nested constructions
+//! ```rust
+//! # fn main() {
+//! # let a = Ok::<_,u8>(Ok::<_,u8>(Ok::<_,u8>(4)));
+//! # let value = 
+//! a.and_then(
+//!     // >>>
+//!     |b| b.and_then(
+//!         // >>>
+//!         |c| c.and_then(
+//!             |v| Ok(v + 2)
+//!         )
+//!         // <<<
+//!     )
+//!     // <<<
+//! ).map(
+//!     |v| v + 1
+//! )
+//! # ;
+//! # assert_eq!(value, Ok(7));
+//! # }
+//! ```
+//!
 //!
 //! ## Handler
 //!
@@ -614,7 +687,9 @@
 //!         result = try_join_async! {
 //!             next
 //!                 |> |value| value.ok_or(format_err!("Unexpected end of input"))
-//!                 => |result| ready(result.map_err(|err| format_err!("Failed to apply codec: {:?}", err)))
+//!                 => >>> 
+//!                     !> |err| format_err!("Failed to apply codec: {:?}", err) -> ready
+//!                 <<<
 //!                 => |value|
 //!                     ready(
 //!                         value

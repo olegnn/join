@@ -1,3 +1,7 @@
+# [0.1.0-alpha.13]
+
+Added nested combinators `>>>` and `<<<`. Chain now has `>@>` group identifier.
+
 # [0.1.0-alpha.12]
 
 Documentation fixes + small refactoring.

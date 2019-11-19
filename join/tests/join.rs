@@ -45,6 +45,84 @@ mod join_tests {
     }
 
     #[test]
+    fn it_creates_nested_chains() {
+        let value = try_join! {
+            Ok::<_,u8>(Ok::<_,u8>(Some(2u16)))
+            => >>> 
+                => >>>
+                    |> |v| v + 2
+                    ..ok_or(4)
+                <<<
+                |> |v| Ok::<_,u8>(v + 5)
+            <<<    
+        };
+
+        assert_eq!(value, Ok(Ok(9)));
+
+        let value = join! {
+            Some(Some(Some(2u16)))
+            |> >>> 
+                |> >>>
+                    |> |v| v + 2
+                    ..ok_or(4)
+                    .unwrap()
+                <<<
+                |> |v| Some(v + 5)
+            <<< 
+        };
+
+        assert_eq!(value, Some(Some(Some(9))));
+
+        let value = try_join! {
+            Some(Some(Some(2u16)))
+            => >>> 
+                => >>>
+                    |> >>>
+        };
+
+        assert_eq!(value, Some(2));  
+        
+        let value = try_join! {
+            Some(Some(Some(2u16)))
+            => >>> 
+                => >>>
+                    |> >>>
+                    <<<
+                <<<
+            <<<
+        };
+
+        assert_eq!(value, Some(2)); 
+
+
+        let value = try_join! {
+            Some(Some(Some(2u16)))
+            => >>> 
+                => >>>
+                    |> >>>
+            ~=> |v| Some(v * 2)
+        };
+
+        assert_eq!(value, Some(4));
+
+        let mut captured = Some(2);
+
+        let value = try_join! {
+            Ok::<_,u8>(Ok::<_,u8>(Some(2u16)))
+            => >>> 
+                |> |v| { captured = None; v }
+                => >>>
+                    |> { let captured = captured.as_ref().unwrap().clone(); move |v| v + captured }
+                    ..ok_or(4)
+                <<<
+                |> |v| Ok::<_,u8>(v + 5)
+            <<<    
+        };
+
+        assert_eq!(value, Ok(Ok(9)));
+    }
+
+    #[test]
     fn it_produces_n_branches_with_length_1() {
         let product = try_join! {
             Ok(2u16),

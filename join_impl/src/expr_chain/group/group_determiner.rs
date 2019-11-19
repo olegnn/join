@@ -6,7 +6,7 @@ use super::super::utils::is_valid_stream;
 use proc_macro2::{TokenStream, TokenTree};
 use syn::parse::{Parse, ParseStream};
 
-use super::ActionGroup;
+use super::CommandGroup;
 
 pub type DetermineGroupPredicate = fn(ParseStream) -> bool;
 
@@ -23,9 +23,9 @@ unsafe impl std::marker::Sync for FnPointer {}
 ///
 /// `GroupDeterminer` is used to determine any `ActionGroup` or separator (for ex. `,`) in `ParseStream`
 ///
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct GroupDeterminer {
-    group_type: Option<ActionGroup>,
+    group_type: Option<CommandGroup>,
     check_input_fn: FnPointer,
     validate_parsed: bool,
     length: usize,
@@ -37,27 +37,13 @@ pub struct GroupDeterminer {
 /// For example, if `deferred_prefix` is `~`, then `->` is instant, `~->` is deferred.
 ///
 #[macro_export]
-macro_rules! instant_and_deferred_determiners {
-    ($($group_type: ident => $($token: expr),+ => $length: expr),+; deferred_prefix => $($deferred_token: expr),+ => $deferred_length: expr) => {{
-        macro_rules! deferred_tokens {
-            () => { $($deferred_token),+ }
-        }
+macro_rules! define_instant_and_deferred_determiners {
+    ($($group_type: ident => $($token: expr),+ => $length: expr),+) => {{
         [
-            {
-                fn check_comma(input: ::syn::parse::ParseStream) -> bool { input.peek(syn::token::Comma) }
-                $crate::expr_chain::group::GroupDeterminer::new_const(
-                    None,
-                    check_comma as *const (),
-                    true,
-                    0
-                )
-            },
+            $crate::define_determiner_with_no_group!(Token![,] => 0),
             $(
-                $crate::group_determiner!(
-                    $crate::expr_chain::group::ActionGroup::Instant($crate::expr_chain::group::CommandGroup::$group_type) => $($token),+; $length
-                ),
-                $crate::group_determiner!(
-                    $crate::expr_chain::group::ActionGroup::Deferred($crate::expr_chain::group::CommandGroup::$group_type) => deferred_tokens!(), $($token),+; $length + $deferred_length
+                $crate::define_group_determiner!(
+                    $crate::expr_chain::group::CommandGroup::$group_type => $($token),+ => $length
                 )
             ),*,
             $crate::expr_chain::group::GroupDeterminer::new_const(
@@ -68,6 +54,19 @@ macro_rules! instant_and_deferred_determiners {
             )
         ]
     }};
+}
+
+#[macro_export]
+macro_rules! define_determiner_with_no_group {
+    ($($token: expr),+ => $length: expr) => {{
+        let check_tokens = $crate::define_tokens_checker!($($token),+);
+        $crate::expr_chain::group::GroupDeterminer::new_const(
+            None,
+            check_tokens as *const (),
+            true,
+            $length
+        )
+    }}
 }
 
 ///
@@ -106,18 +105,18 @@ macro_rules! define_tokens_checker {
 /// Creates `GroupDeterminer` with given (`ActionGroup` => tokens; length; Check parsed tokens? bool)
 /// Example:
 /// ```
-/// use join_impl::expr_chain::group::{ActionGroup, CommandGroup};
-/// use join_impl::group_determiner;
+/// use join_impl::expr_chain::group::CommandGroup;
+/// use join_impl::define_group_determiner;
 /// use syn::Token;
 ///
 /// fn main() {
-///     let then_determiner = group_determiner!(ActionGroup::Instant(CommandGroup::Then) => Token![->]; 2); // last param is optional, true by default
+///     let then_determiner = define_group_determiner!(CommandGroup::Then => Token![->] => 2); // last param is optional, true by default
 /// }
 /// ```
 ///
 #[macro_export]
-macro_rules! group_determiner {
-    ($group_type: expr => $($tokens: expr),+; $length: expr; $validate_parsed: expr) => {{
+macro_rules! define_group_determiner {
+    ($group_type: expr => $($tokens: expr),+ => $length: expr => $validate_parsed: expr) => {{
         let check_tokens = $crate::define_tokens_checker!($($tokens),*);
         $crate::expr_chain::group::GroupDeterminer::new_const(
             Some($group_type),
@@ -126,9 +125,9 @@ macro_rules! group_determiner {
             $length
         )
     }};
-    ($group_type: expr => $($tokens: expr),+; $length: expr) => {
-        $crate::group_determiner!(
-            $group_type => $($tokens),+; $length; true
+    ($group_type: expr => $($tokens: expr),+ => $length: expr) => {
+        $crate::define_group_determiner!(
+            $group_type => $($tokens),+ => $length => true
         )
     };
 }
@@ -158,7 +157,7 @@ impl GroupDeterminer {
     /// ```
     ///
     pub const fn new_const(
-        group_type: Option<ActionGroup>,
+        group_type: Option<CommandGroup>,
         check_input_fn: *const (),
         validate_parsed: bool,
         length: usize,
@@ -197,7 +196,7 @@ impl GroupDeterminer {
     /// ```
     ///
     pub fn new(
-        group_type: impl Into<Option<ActionGroup>>,
+        group_type: impl Into<Option<CommandGroup>>,
         check_input_fn: DetermineGroupPredicate,
         validate_parsed: bool,
         length: usize,
@@ -215,7 +214,7 @@ impl GroupDeterminer {
     ///
     /// Returns type of group of `GroupDeterminer`.
     ///
-    pub fn get_group_type(&self) -> Option<ActionGroup> {
+    pub fn get_group_type(&self) -> Option<CommandGroup> {
         self.group_type
     }
 
@@ -280,17 +279,9 @@ mod tests {
             input.peek(::syn::Token![=>])
         }
 
-        let then_determiner = GroupDeterminer::new(
-            ActionGroup::Instant(CommandGroup::Then),
-            check_then,
-            true,
-            2,
-        );
+        let then_determiner = GroupDeterminer::new(CommandGroup::Then, check_then, true, 2);
 
-        assert_eq!(
-            then_determiner.get_group_type(),
-            Some(ActionGroup::Instant(CommandGroup::Then))
-        );
+        assert_eq!(then_determiner.get_group_type(), Some(CommandGroup::Then));
         assert!(then_determiner.check_parsed::<::syn::Expr>(::quote::quote! { 23 }));
         assert_eq!(then_determiner.length(), 2);
     }

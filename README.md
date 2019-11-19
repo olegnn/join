@@ -1,6 +1,6 @@
 # `join!`
 
-Provides useful shortcut combinators, combines sync/async chains, supports single and multi thread (sync/async) step by step execution of branches, transforms tuple of results in result of tuple.
+**Macro** which provides useful shortcut combinators, combines sync/async chains, supports single and multi thread (sync/async) step by step execution of branches, transforms tuple of results in result of tuple.
 
 - `join` macros will just return final values. Use it if you are working with iterators/streams etc.
 - `try_join` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options.
@@ -23,6 +23,7 @@ Provides useful shortcut combinators, combines sync/async chains, supports singl
 
 - [Demos](#demos)
 - [Combinators](#combinators)
+- [Nested combinators](#nested-combinators)
 - [Handler](#handler)
 - [Single thread examples](#single-thread-combinations)
     - [Sync](#sync-branches)
@@ -36,116 +37,162 @@ Provides useful shortcut combinators, combines sync/async chains, supports singl
 
 - Map: **`|>`**
 ```rust no_run
-join! { value |> expr } => value.map(expr)
+join! { value |> expr } // => value.map(expr)
 ```
 
 - AndThen: **`=>`**
 ```rust no_run
-join! { value => expr } => value.and_then(expr)
+join! { value => expr } // => value.and_then(expr)
 ```
 
 - Then: **`->`**
 ```rust no_run
-join! { value -> expr } => expr(value)
+join! { value -> expr } // => expr(value)
 ```
 
 - Filter: **`?>`**
 ```rust no_run
-join! { value ?> expr } => value.filter(expr)
+join! { value ?> expr } // => value.filter(expr)
 ```
 
 - Dot: **`..`** or **`>.`**
 ```rust no_run
-join! { value .. expr } => value.expr
-join! { value >. expr } => value.expr
+join! { value .. expr } // => value.expr
+join! { value >. expr } // => value.expr
 ```
 
 - Or: **`<|`**
 ```rust no_run
-join! { value <| expr } => value.or(expr)
+join! { value <| expr } // => value.or(expr)
 ```
 
 - OrElse: **`<=`**
 ```rust no_run
-join! { value <= expr } => value.or_else(expr)  
+join! { value <= expr } // => value.or_else(expr)  
 ```
 
 - MapErr: **`!>`**
 ```rust no_run
-join! { value !> expr } => value.map_err(expr)
+join! { value !> expr } // => value.map_err(expr)
 ```
 
 - Collect: **`=>[]`** (type is optional)
 ```rust no_run
-join! { value =>[] T } => value.collect::<T>()
-join! { value =>[] } => value.collect()
+join! { value =>[] T } // => value.collect::<T>()
+join! { value =>[] } // => value.collect()
 ```
 
-- Chain: **`>>>`**
+- Chain: **`>@>`**
 ```rust no_run
-join! { value >>> expr } => value.chain(expr)
+join! { value >@> expr } // => value.chain(expr)
 ```
 
 - FindMap: **`?|>@`**
 ```rust no_run
-join! { value ?|>@ expr } => value.find_map(expr)
+join! { value ?|>@ expr } // => value.find_map(expr)
 ```
 
 - FilterMap: **`?|>`**
 ```rust no_run
-join! { value ?|> expr } => value.filter_map(expr)
+join! { value ?|> expr } // => value.filter_map(expr)
 ```
 
 - Enumerate: **`|n>`**
 ```rust no_run
-join! { value |n> } => value.enumerate()
+join! { value |n> } // => value.enumerate()
 ```
 
 - Partition: **`?&!>`**
 ```rust no_run
-join! { value ?&!> expr } => value.partition(expr)
+join! { value ?&!> expr } // => value.partition(expr)
 ```
 
 - Flatten: **`^^>`**
 ```rust no_run
-join! { value ^^> } => value.flatten()
+join! { value ^^> } // => value.flatten()
 ```
 
 - Fold: **`^@`**
 ```rust no_run
-join! { value ^@ init_expr, fn_expr } => value.fold(init_expr, fn_expr)
+join! { value ^@ init_expr, fn_expr } // => value.fold(init_expr, fn_expr)
 ```
 
 - TryFold: **`?^@`**
 ```rust no_run
-join! { value ?^@ init_expr, fn_expr } => value.try_fold(init_expr, fn_expr)
+join! { value ?^@ init_expr, fn_expr } // => value.try_fold(init_expr, fn_expr)
 ```
 
 - Find: **`?@`**
 ```rust no_run
-join! { value ?@ expr } => value.find(expr)
+join! { value ?@ expr } // => value.find(expr)
 ```
 
 - Zip: **`>^>`**
 ```rust no_run
-join! { value >^> expr } => value.zip(expr)
+join! { value >^> expr } // => value.zip(expr)
 ```
 
 - Unzip: **`<->`** (types are optional)
 ```rust no_run
-join! { value <-> A, B, FromA, FromB } => value.unzip::<A, B, FromA, FromB>()
-join! { value <-> } => value.unzip()
+join! { value <-> A, B, FromA, FromB } // => value.unzip::<A, B, FromA, FromB>()
+join! { value <-> } // => value.unzip()
 ```
 
 - Inspect: **`??`** 
 ```rust no_run 
-join! { value ?? expr } => (|value| { (expr)(&value); value })(value) // for sync
-join_async! { value ?? expr } => value.inspect(expr) // for async 
+join! { value ?? expr } // => (|value| { (expr)(&value); value })(value) // for sync
+join_async! { value ?? expr } // => value.inspect(expr) // for async 
 ```
 
 where `value` is the previous value.
 
 **Every combinator prefixed by `~` will act as deferred action (all actions will wait until completion in every step and only after move to the next one).**
+
+## Nested combinators
+
+Wrap: `combinator` **`>>>`** `combinator`(s)...
+```rust
+try_join! { value => >>> |> |v| v + 2 } // => value.and_then(|value| value.map(|v| v + 2))
+```
+Use to create nested constructions like 
+```rust
+    a.and_then(
+        // >>>
+        |b| b.and_then(
+            // >>>
+            |c| c.and_then(
+                |v| Ok(v + 2)
+            )
+        )
+    )
+```
+
+Unwrap: **`<<<`**
+```rust
+try_join! { 
+    value 
+    => >>> 
+        |> |v| v + 2 
+    <<<
+    |> |v| Some(v + 4)  
+} // => value.and_then(|value| value.map(|v| v + 2)).map(|v| Some(v + 4))
+```
+Use to move out of nested constructions
+```rust
+    a.and_then(
+        // >>>
+        |b| b.and_then(
+            // >>>
+            |c| c.and_then(
+                |v| Ok(v + 2)
+            )
+            // <<<
+        )
+        // <<<
+    ).map(
+        |v| v + 1
+    )
+```
 
 ## Handler
 
@@ -451,7 +498,9 @@ async fn read_number_from_stdin() -> Result<u16, Error> {
         result = try_join_async! {
             next
                 |> |value| value.ok_or(format_err!("Unexpected end of input"))
-                => |result| ready(result.map_err(|err| format_err!("Failed to apply codec: {:?}", err)))
+                => >>> 
+                    !> |err| format_err!("Failed to apply codec: {:?}", err) -> ready
+                <<<
                 => |value|
                     ready(
                         value

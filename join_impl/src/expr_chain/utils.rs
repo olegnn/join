@@ -8,7 +8,8 @@ use syn::parse::{Parse, ParseStream};
 use syn::{parse2, Expr};
 
 use super::chain::{Unit, UnitResult};
-use super::GroupDeterminer;
+use super::expr::{ApplyType, MoveType};
+use super::{ActionGroup, CommandGroup, GroupDeterminer};
 
 ///
 /// Returns true if given stream is valid `Expr`.
@@ -40,16 +41,28 @@ pub fn is_block_expr(expr: &Expr) -> bool {
 pub fn parse_until<'a, T: Parse>(
     input: ParseStream,
     group_determiners: impl Iterator<Item = &'a GroupDeterminer> + Clone,
+    deferred_determiner: &'a GroupDeterminer,
+    wrap_determiner: &'a GroupDeterminer,
+    //unwrap_determiner: &'a GroupDeterminer,
     allow_empty_parsed: bool,
 ) -> UnitResult<T> {
-    let mut tokens = TokenStream::new();
-    let mut next_group = None;
     let (group_count, _) = group_determiners.size_hint();
     let mut group_determiners = group_determiners.cycle();
+
+    let mut tokens = TokenStream::new();
+    let mut next_group = None;
+    let mut deferred = false;
+    let mut wrap = false;
 
     while !input.is_empty()
         && !{
             let group_determiners = &mut group_determiners;
+
+            deferred = deferred_determiner.check_input(input);
+            if deferred {
+                deferred_determiner.erase_input(input)?;
+            }
+
             let possible_group = group_determiners
                 .take(group_count)
                 .find(|group| group.check_input(input));
@@ -72,13 +85,50 @@ pub fn parse_until<'a, T: Parse>(
     //
     // Parses group determiner's tokens. (for ex. => -> |> etc.)
     //
-    let _ = next_group
-        .as_ref()
-        .and_then(|group| group.erase_input(input).ok());
+    if let Some(group) = next_group {
+        if let Some(group_type) = group.get_group_type() {
+            let forked = input.fork();
+
+            group.erase_input(&forked)?;
+
+            wrap = wrap_determiner.check_input(&forked);
+
+            if deferred && wrap {
+                return Err(input.error("Action can be either deferred or wrapped but not both"));
+            } else if wrap && group_type == CommandGroup::UNWRAP {
+                return Err(input.error("Action can be either wraped or unwraped but not both"));
+            } else if wrap && !group_type.can_be_wrapper() {
+                return Err(input.error("This combinator can't be wrapper"));
+            }
+
+            if wrap {
+                wrap_determiner.erase_input(input)?;
+            }
+        }
+        group.erase_input(input)?;
+    }
 
     Ok(Unit {
         parsed: parse2(tokens)?,
-        next_group_type: next_group.and_then(GroupDeterminer::get_group_type),
+        next_group_type: next_group.and_then(|group| {
+            group.get_group_type().map(|group_type| {
+                ActionGroup::new(
+                    group_type,
+                    if deferred {
+                        ApplyType::Deferred
+                    } else {
+                        ApplyType::Instant
+                    },
+                    if wrap {
+                        MoveType::Wrap
+                    } else if group_type == CommandGroup::UNWRAP {
+                        MoveType::Unwrap
+                    } else {
+                        MoveType::None
+                    },
+                )
+            })
+        }),
     })
 }
 

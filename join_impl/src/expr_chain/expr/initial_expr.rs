@@ -33,7 +33,7 @@ impl InnerExpr for InitialExpr {
         Some(vec![&self.0])
     }
 
-    fn replace_inner(&self, exprs: &mut Vec<Expr>) -> Option<Self> {
+    fn replace_inner(&self, mut exprs: Vec<Expr>) -> Option<Self> {
         exprs.pop().and_then(|expr| {
             if exprs.is_empty() {
                 Some(InitialExpr(expr))
@@ -54,7 +54,7 @@ mod tests {
     }
 
     #[test]
-    fn it_tests_extract_inner_trait_impl_for_err_expr() {
+    fn it_tests_inner_expr_trait_impl_for_err_expr() {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         assert_eq!(
@@ -70,7 +70,7 @@ mod tests {
 
         assert_eq!(
             InitialExpr(expr)
-                .replace_inner(&mut vec![replace_inner.clone()])
+                .replace_inner(vec![replace_inner.clone()])
                 .unwrap()
                 .extract_inner()
                 .clone(),
