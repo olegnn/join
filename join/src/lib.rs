@@ -301,7 +301,7 @@
 //! 
 //! ## Nested combinators
 //! 
-//! Wrap: `combinator` **`>>>`** `combinator`(s)...
+//! - Wrap: `combinator` **`>>>`** `combinator`(s)...
 //! ```rust
 //! # use join::try_join;
 //! # fn main() {
@@ -330,7 +330,7 @@
 //! # }
 //! ```
 //! 
-//! Unwrap: **`<<<`**
+//! - Unwrap: **`<<<`**
 //! ```rust
 //! # use join::try_join;
 //! # fn main() {

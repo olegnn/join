@@ -150,7 +150,7 @@ where `value` is the previous value.
 
 ## Nested combinators
 
-Wrap: `combinator` **`>>>`** `combinator`(s)...
+- Wrap: `combinator` **`>>>`** `combinator`(s)...
 ```rust
 try_join! { value => >>> |> |v| v + 2 } // => value.and_then(|value| value.map(|v| v + 2))
 ```
@@ -167,7 +167,7 @@ Use to create nested constructions like
     )
 ```
 
-Unwrap: **`<<<`**
+- Unwrap: **`<<<`**
 ```rust
 try_join! { 
     value 
