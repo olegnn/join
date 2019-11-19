@@ -1,6 +1,6 @@
 //! # `join!`
 //!
-//! Provides useful shortcut combinators, combines sync/async chains, supports single and multi thread (sync/async) step by step execution of branches, transforms tuple of results in result of tuple.
+//! **Macro** which provides useful shortcut combinators, combines sync/async chains, supports single and multi thread (sync/async) step by step execution of branches, transforms tuple of results in result of tuple.
 //!
 //! - `join` macros will just return final values. Use it if you are working with iterators/streams etc.
 //! - `try_join` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options.
@@ -321,7 +321,6 @@
 //!     |b| b.and_then(
 //!         // >>>
 //!         |c| c.and_then(
-//!             // >>>
 //!             |v| Ok(v + 2)
 //!         )
 //!     )
