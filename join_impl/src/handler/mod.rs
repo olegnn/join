@@ -83,4 +83,13 @@ impl Handler {
             || Handler::is_and_then_handler(input)
             || Handler::is_map_handler(input)
     }
+
+    ///
+    /// Extracts inner expr.
+    ///
+    pub fn extract_expr(&self) -> &Expr {
+        match self {
+            Self::Map(expr) | Self::Then(expr) | Self::AndThen(expr) => expr,
+        }
+    }
 }

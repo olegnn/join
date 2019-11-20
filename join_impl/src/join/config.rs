@@ -17,5 +17,5 @@ pub struct Config {
     ///
     /// Spawn `std::thread` for sync or `tokio::spawn` for futures.
     ///
-    pub spawn: bool,
+    pub is_spawn: bool,
 }

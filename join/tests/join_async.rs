@@ -22,16 +22,12 @@ mod join_async_tests {
         Ok(4)
     }
 
-    async fn get_some_five() -> Option<u16> {
-        Some(5)
+    async fn get_ok_five() -> Result<u16> {
+        Ok(5)
     }
 
     async fn get_err() -> Result<u16> {
         Err("error".into())
-    }
-
-    async fn get_none() -> Option<u16> {
-        None
     }
 
     fn add_one_sync(v: u16) -> u16 {
@@ -50,10 +46,6 @@ mod join_async_tests {
         Err(v.to_string().into())
     }
 
-    async fn to_some(v: u16) -> Option<u16> {
-        Some(v)
-    }
-
     fn add_one_to_ok(v: Result<u16>) -> Result<u16> {
         v.map(add_one_sync)
     }
@@ -65,7 +57,7 @@ mod join_async_tests {
                 ok(2u16),
                 ok(get_three().await),
                 get_ok_four(),
-                ok(get_some_five().await.unwrap()),
+                ok(get_ok_five().await.unwrap()),
                 and_then => |a, b, c, d| ok(a * b * c * d)
             };
 
@@ -93,7 +85,7 @@ mod join_async_tests {
                 ok(2u16).map(add_one_to_ok).and_then(add_one_ok), //4
                 ok(get_three().await).and_then(add_one_ok).map(add_one_to_ok).map(add_one_to_ok).map(add_one_to_ok), //7
                 get_ok_four().map(add_one_to_ok), //5
-                get_some_five().map(|v| v.ok_or("unreachable".into())).and_then(to_err).and_then(add_one_ok).or_else(|_| ok(5)), // 5
+                get_ok_five().map(|v| v).and_then(to_err).and_then(add_one_ok).or_else(|_| ok(5)), // 5
                 and_then => |a, b, c, d| ok(a * b * c * d)
             };
 
@@ -121,7 +113,7 @@ mod join_async_tests {
                 ok(2u16) |> add_one_to_ok => add_one_ok, //4
                 ok(get_three().await) => add_one_ok |> add_one_to_ok |> add_one_to_ok |> add_one_to_ok, //7
                 get_ok_four() |> add_one_to_ok, //5
-                get_some_five() |> |v| v.ok_or("hello".into()) |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
+                get_ok_five() |> |v| v |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
                 map => |a, b, c, d| a * b * c * d
             };
 
@@ -131,7 +123,7 @@ mod join_async_tests {
                 2u16 -> ok |> add_one_to_ok => add_one_ok, //4
                 get_three().await -> ok => add_one_ok |> add_one_to_ok |> add_one_to_ok |> add_one_to_ok, //7
                 get_ok_four() |> add_one_to_ok, //5
-                get_some_five() |> |v| v.ok_or("hello".into()) |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
+                get_ok_five() |> |v| v |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
                 and_then => |a, b, c, d| ok(a + b + c + d)
             };
 
@@ -150,16 +142,6 @@ mod join_async_tests {
                 format!("{:?}", err.unwrap_err()),
                 format!("{:?}", to_err(get_three().await).await.unwrap_err())
             );
-
-            let none = try_join_async! {
-                2 -> to_some,
-                get_some_five().await -> ready |> |_| None,
-                get_ok_four() |> |v| v.ok(),
-                get_none(),
-                map => |a: u16, b: u16, c: u16, d: u16| a * b * c * d
-            };
-
-            assert_eq!(none.await, None);
         });
     }
 
@@ -188,51 +170,52 @@ mod join_async_tests {
             );
 
             let some = try_join_async! {
-                ready(Some(2u16)),
-                ready(Some(3u16)),
-                get_some_five(),
+                ready(Ok(2u16)),
+                ready(Ok(3u16)),
+                get_ok_five(),
                 map => |a, b, c| a
             };
 
-            assert_eq!(some.await, Some(2u16));
+            assert_eq!(some.await.unwrap(), 2u16);
 
-            let none = try_join_async! {
-                ready(Some(2u16)),
-                ready(Some(3u16)),
-                get_some_five(),
-                then => |a, b, c| ready(None::<u16>)
-            };
+            let error: Result<u16> = try_join_async! {
+                ready(Ok(2u16)),
+                ready(Ok(3u16)),
+                get_ok_five(),
+                and_then => |a, b, c| ready(Err("error".into()))
+            }
+            .await;
 
-            assert_eq!(none.await, None);
+            assert_eq!(error.unwrap_err().to_string(), "error".to_string());
 
             let some = try_join_async! {
-                ready(Some(2u16)),
-                ready(Some(3u16)),
-                get_some_five(),
+                ready(Ok(2u16)),
+                ready(Ok(3u16)),
+                get_ok_five(),
                 map => |a, b, c| a + b + c
             };
 
-            assert_eq!(some.await, Some(10));
+            assert_eq!(some.await.unwrap(), 10);
 
-            let none = try_join_async! {
-                ready(Some(2u16)),
-                None -> ready,
-                get_some_five(),
+            let error = try_join_async! {
+                ready(Ok(2u16)),
+                Err("hey".into()) -> ready,
+                get_ok_five(),
                 map => |a: u16, b: u16, c: u16| a + b + c
             };
 
-            assert_eq!(none.await, None);
+            assert_eq!(error.await.unwrap_err().to_string(), "hey".to_string());
 
-            let ok_value = try_join_async! {
+            let ok_value = join_async! {
                 ok(2u16),
                 ok(3u16),
                 get_ok_four(),
-                then => |a: Result<u16>, b: Result<u16>, c: Result<u16>| ok::<_, u8>(a.unwrap() + b.unwrap() + c.unwrap())
+                then => |a: Result<u16>, b: Result<u16>, c: Result<u16>| ok::<_,u8>(a.unwrap() + b.unwrap() + c.unwrap())
             };
 
             assert_eq!(ok_value.await.unwrap(), 9u16);
 
-            let err_value = try_join_async! {
+            let err_value = join_async! {
                 ok(2u16),
                 ok(3u16),
                 get_ok_four(),
@@ -240,6 +223,16 @@ mod join_async_tests {
             };
 
             assert_eq!(err_value.await, Err(9));
+        });
+    }
+
+    #[allow(unreachable_code)]
+    #[test]
+    fn it_checks_evalutation_in_case_of_error() {
+        block_on(async {
+            let error =
+                try_join_async! { err::<u8,u8>(2u8) ~=> |_| { unreachable!(); ok(2u8) }, ok::<u8,u8>(3u8) };
+            assert_eq!(error.await, Err(2u8));
         });
     }
 
@@ -251,7 +244,7 @@ mod join_async_tests {
                     let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
                     let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
                     let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                    let branch_3 = branch_3.as_ref().map(Clone::clone);
+                    let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
                     move |value: Result<u16>| {
                         assert_eq!(branch_0, value.as_ref().ok().map(Clone::clone));
                         assert_eq!(branch_1, Some(3));
@@ -274,7 +267,7 @@ mod join_async_tests {
                     }
                 } ~|> add_one_to_ok ~|> add_one_to_ok, //7
                 let branch_2 = get_ok_four() ~|> add_one_to_ok, //5
-                let branch_3 = get_some_five() ~|> |v| v.ok_or("unreachable".into()) ~|> add_one_to_ok ~=> to_err <= |_| ok(5) ~=> add_one_ok, // 6
+                let branch_3 = get_ok_five() ~|> |v| v ~|> add_one_to_ok ~=> to_err <= |_| ok(5) ~=> add_one_ok, // 6
                 map => |a, b, c, d| a * b * c * d
             };
 
@@ -290,7 +283,7 @@ mod join_async_tests {
 
             let values = Arc::new(Mutex::new(Vec::new()));
 
-            let _ = try_join_async! {
+            let _ = join_async! {
                 { ok((values.clone(), 1u16)) } => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(1)).await;
@@ -318,8 +311,8 @@ mod join_async_tests {
                     values.pop();
                     Ok::<_, BoxedError>(())
                 },
-                then => move |_, _, _| async move {
-                    assert_eq!(values.lock().await.len(), 0);
+                then => |_, _, _| async {
+                    assert_eq!(values.clone().lock().await.len(), 0);
                     Ok::<_, BoxedError>(())
                 }
             }
@@ -343,7 +336,7 @@ mod join_async_tests {
     #[test]
     fn it_produces_single_value() {
         block_on(async {
-            let value = try_join_async! { ready(Some(1)) }.await;
+            let value = try_join_async! { ready(Ok::<_,u8>(1)) }.await;
             assert_eq!(value.unwrap(), 1);
         });
     }
@@ -352,7 +345,7 @@ mod join_async_tests {
     #[test]
     fn it_creates_unpolled_future() {
         block_on(async {
-            let _fut = try_join_async! {
+            let _fut = join_async! {
                 ready(panic!()),
                 ready(unreachable!()),
                 then => |a: Result<u8>, b: Result<u8>| ready(a)
@@ -366,9 +359,7 @@ mod join_async_tests {
         let refer = &mut arr;
         block_on(Box::pin(async move {
             let _ = try_join_async! {
-                ok::<_,u8>(refer) ~|> |v| Ok::<_, u8>(v.unwrap()) => |arr_ref: &mut [u8; 5]| {
-                    arr_ref.into_iter().for_each(|v| { *v += 1; }); ok(())
-                },
+                ok::<_,u8>(refer) ~=> >>> ..into_iter().for_each(|v| { *v += 1; }) -> ok,
             }
             .await;
         }));
@@ -378,7 +369,7 @@ mod join_async_tests {
     #[test]
     fn it_tests_multi_step_single_branch() {
         block_on(async {
-            let values = try_join_async! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~..await ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
+            let values = try_join_async! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ok ~=> >>> ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
             assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
         });
     }
@@ -386,10 +377,10 @@ mod join_async_tests {
     #[test]
     fn it_tests_iter_combinators() {
         block_on(async {
-            let mut some_vec = Some(vec![0u8]);
+            let mut some_vec = Ok(vec![0u8]);
 
             let values: (Vec<u8>, Vec<u8>) = join_async! {
-                [2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64 -> ready
+                vec![2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = Err(5); v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64 -> ready
             }.await;
 
             assert_eq!(values, (vec![], vec![0u8, 4, 7, 10, 13, 16]));

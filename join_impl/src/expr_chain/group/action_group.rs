@@ -43,16 +43,18 @@ impl ActionGroup {
         } = self;
 
         if move_type == MoveType::Wrap {
+            let return_value = quote! { |__value| __value };
             if group.is_process_expr() {
                 group
-                    .to_process_expr(quote! { |__v| __v })
+                    .to_process_expr(return_value)
                     .and_then(|value| {
-                        value.ok_or_else(|| input.error("This combinator can't be wrapper"))
+                        value.ok_or_else(|| input.error("This combinator can't be wrapper!"))
                     })
                     .and_then(|parsed| {
                         let Unit {
                             next_group_type, ..
                         } = group.parse_empty_expr(action_expr_chain, input).unwrap()?;
+
                         Ok(Unit {
                             parsed: ActionExpr::Process(Action::new(parsed, apply_type, move_type)),
                             next_group_type,
@@ -60,21 +62,24 @@ impl ActionGroup {
                     })
             } else if group.is_err_expr() {
                 group
-                    .to_err_expr(quote! { |__v| __v })
+                    .to_err_expr(return_value)
                     .and_then(|value| {
-                        value.ok_or_else(|| input.error("This combinator can't be wrapper"))
+                        value.ok_or_else(|| input.error("This combinator can't be wrapper!"))
                     })
                     .and_then(|parsed| {
                         let Unit {
                             next_group_type, ..
                         } = group.parse_empty_expr(action_expr_chain, input).unwrap()?;
+
                         Ok(Unit {
                             parsed: ActionExpr::Err(Action::new(parsed, apply_type, move_type)),
                             next_group_type,
                         })
                     })
             } else {
-                unreachable!()
+                unreachable!(
+                    "join: Initial group can't be wrapper. This's a bug, please report it."
+                )
             }
         } else if group.is_process_expr() {
             group.parse_process_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (process). This is a bug, please report it.")

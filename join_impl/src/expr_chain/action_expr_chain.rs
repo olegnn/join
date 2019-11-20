@@ -11,7 +11,7 @@ use super::*;
 use quote::ToTokens;
 
 ///
-/// Defines public  ExprChain` struct.
+/// Defines public `ExprChain` struct.
 ///
 pub struct ExprChain<Member: Sized> {
     members: Vec<Member>,
@@ -54,6 +54,9 @@ impl<'a> ActionExprChainGenerator<'a> {
         }
     }
 
+    ///
+    /// Creates new `ActionExprChainGenerator` with given `GroupDeterminer`'s.
+    ///
     #[cfg(feature = "static")]
     pub fn new(
         group_determiners: ::std::sync::Arc<&'a [GroupDeterminer]>,
@@ -74,7 +77,7 @@ impl<'a> ActionExprChainGenerator<'a> {
         let mut group_type =
             ActionGroup::new(CommandGroup::Initial, ApplyType::Instant, MoveType::None);
         let mut member_index = 0;
-        let mut wrapper_count = 0i32;
+        let mut wrapper_count = 0i16;
 
         loop {
             let input = input;
@@ -88,6 +91,10 @@ impl<'a> ActionExprChainGenerator<'a> {
                 let exprs = action_expr.extract_inner().expect(
                     "join: Failed to extract initial expr. This's a bug, please report it.",
                 );
+
+                // If we have branch starting with `let` pattern,
+                // check if it's correct and then, if it's, associate
+                // it with given branch
                 if let Let(let_expr) = exprs
                     .first()
                     .expect("join: Failed to extract first expr of initial expr. This's a bug, please report it.")
@@ -101,6 +108,7 @@ impl<'a> ActionExprChainGenerator<'a> {
                         .replace_inner(vec![*let_expr.expr.clone()])
                         .expect("join: Failed to replace initial expr. This's a bug, please report it.");
                 }
+
                 if action_expr
                     .extract_inner()
                     .expect("join: Failed to extract initial expr. This's a bug, please report it.")
@@ -170,7 +178,7 @@ impl<'a> ActionExprChainGenerator<'a> {
 }
 
 ///
-/// Implementation of `Chain` with `Member=ActionExpr`.
+/// Implementation of `Chain` with `ActionExpr` members.
 ///
 impl Chain for ActionExprChain
 where
@@ -194,8 +202,11 @@ impl ActionExprChain
 where
     Self: Sized,
 {
+    ///
+    /// Constructs new `ActionExprChain` from given `ParseStream` using `ActionExprChainGenerator`.
+    /// 
     pub fn new<'a>(
-        input: ParseStream,
+        input: ParseStream<'_>,
         expr_chain_generator: &'a ActionExprChainGenerator,
     ) -> syn::Result<Option<Self>> {
         let mut expr_chain = ExprChain {

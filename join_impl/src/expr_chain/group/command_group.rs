@@ -1,5 +1,5 @@
 //!
-//! Definition of `CommandGroup`.
+//! Definition of `CommandGroup` with parsers for all possible groups.
 //!
 //!
 use proc_macro2::TokenStream;
@@ -63,7 +63,7 @@ pub enum CommandGroup {
     FilterMap,
     /// [ProcessExpr::FindMap]
     FindMap,
-    /// UNWRAP (Special `CommandGroup` used to define next group nested position [which will be #value.and_then(#previous_expr).#next_expr] )
+    /// UNWRAP (Special `CommandGroup` used to define that next group position is by one level up [which will be #value.and_then(#previous_expr).#next_expr] )
     UNWRAP,
 }
 
@@ -203,7 +203,7 @@ pub enum CommandGroup {
     TryFold,
     /// [ProcessExpr::TryForEach]
     TryForEach,
-    /// UNWRAP (Special `CommandGroup` used to define next group nested position [which will be #value.and_then(#previous_expr).#next_expr] )
+    /// UNWRAP (Special `CommandGroup` used to define that next group position is by one level up [which will be #value.and_then(#previous_expr).#next_expr] )
     UNWRAP,
     /// [ProcessExpr::Unzip]
     Unzip,
@@ -217,12 +217,15 @@ impl ::std::fmt::Display for CommandGroup {
     }
 }
 
-pub struct Empty();
+///
+/// Struct which parses empty `ParseStream` as `Ok`, non-empty as `Err`.
+///
+pub struct Empty;
 
 impl Parse for Empty {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         if input.is_empty() {
-            Ok(Empty())
+            Ok(Empty)
         } else {
             Err(input.error("Unexpected tokens"))
         }
@@ -241,7 +244,7 @@ fn parse_empty_unit(
     action_expr_chain_gen: &ActionExprChainGenerator,
     input: ParseStream<'_>,
 ) -> UnitResult<Empty> {
-    action_expr_chain_gen.parse_unit::<Empty>(input, true)
+    action_expr_chain_gen.parse_unit(input, true)
 }
 
 fn parse_single_unit<ParseUnit: Parse, ResultExpr>(
@@ -292,7 +295,10 @@ fn parse_n_or_empty_unit<ParseUnit: Parse, ResultExpr>(
                                     if unit.next_group_type.is_none() {
                                         Ok(unit)
                                     } else {
-                                        Err(input.error("Unexpected action group."))
+                                        Err(input.error(&format!(
+                                            "Expected {} units, found group identifier!",
+                                            unit_count
+                                        )))
                                     }
                                 })
                             } else {
@@ -421,7 +427,7 @@ impl CommandGroup {
 
     ///
     /// Returns true if command group can be a wrapper.
-    /// 
+    ///
     pub fn can_be_wrapper(self) -> bool {
         match self {
             CommandGroup::Map => true,
@@ -440,15 +446,13 @@ impl CommandGroup {
 
     ///
     /// Attempts to parse given `TokenStream` as `ProcessExpr`.
-    /// 
+    ///
     // TODO: implement for full list of process expr.
     pub fn to_process_expr(self, tokens: TokenStream) -> syn::Result<Option<ProcessExpr>> {
         Ok(Some(match self {
             CommandGroup::Map => ProcessExpr::Map(parse2(tokens)?),
             CommandGroup::AndThen => ProcessExpr::AndThen(parse2(tokens)?),
             CommandGroup::Filter => ProcessExpr::Filter(parse2(tokens)?),
-            CommandGroup::Flatten => ProcessExpr::Flatten,
-            CommandGroup::Dot => ProcessExpr::Dot(parse2(tokens)?),
             CommandGroup::Then => ProcessExpr::Then(parse2(tokens)?),
             CommandGroup::Inspect => ProcessExpr::Inspect(parse2(tokens)?),
             CommandGroup::Chain => ProcessExpr::Chain(parse2(tokens)?),
@@ -481,12 +485,10 @@ impl CommandGroup {
     /// Attempts to parse given `TokenStream` as `InitialExpr`.
     ///
     pub fn to_initial_expr(self, tokens: TokenStream) -> syn::Result<Option<InitialExpr>> {
-        Ok(Some(match self {
-            CommandGroup::Initial => InitialExpr(parse2(tokens)?),
-            _ => {
-                return Ok(None);
-            }
-        }))
+        Ok(match self {
+            CommandGroup::Initial => Some(InitialExpr(parse2(tokens)?)),
+            _ => None,
+        })
     }
 
     ///
@@ -794,6 +796,6 @@ mod tests {
         assert!(!CommandGroup::Zip.can_be_wrapper());
         assert!(!CommandGroup::UNWRAP.can_be_wrapper());
     }
+
+    // TODO: more tests
 }
-
-

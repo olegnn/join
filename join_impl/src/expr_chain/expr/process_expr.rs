@@ -80,7 +80,7 @@ pub enum ProcessExpr {
     ///
     TryFold((Expr, Expr)),
     ///
-    ///	.unzip()
+    ///	.unzip::<A, B, FromA, FromB>()
     ///
     Unzip(Option<Vec<Type>>),
     ///
@@ -408,7 +408,7 @@ pub enum ProcessExpr {
     ///
     TryForEach(Expr),
     ///
-    ///	.unzip()
+    ///	.unzip::<A, B, FromA, FromB>()
     ///
     Unzip(Option<Vec<Type>>),
     ///
@@ -880,7 +880,7 @@ mod tests {
     }
 
     #[test]
-    fn it_tests_replace_inner_trait_impl_for_process_expr() {
+    fn it_tests_inner_expr_trait_impl_replace_inner_for_process_expr() {
         let expr: Expr = parse_quote! { |v| v + 1 };
         let replace_inner: Expr = parse_quote! { |v| 3 + v };
 

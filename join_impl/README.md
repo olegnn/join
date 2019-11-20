@@ -2,10 +2,10 @@
 
 # `join!`
 
-**Macro** which provides useful shortcut combinators, combines sync/async chains, supports single and multi thread (sync/async) step by step execution of branches, transforms tuple of results in result of tuple.
+**Macros** which provide useful shortcut combinators, combine sync/async chains, support single and multi thread (sync/async) step by step execution of branches, transform tuple of results in result of tuple.
 
-- `join` macros will just return final values. Use it if you are working with iterators/streams etc.
-- `try_join` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options.
+- `join!` macros will just return final values. Use it if you are working with iterators/streams etc.
+- `try_join!` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options. If one of branches at the end of step produces `Err`/`None`, next steps execution will be aborted. In case of `async` macro you can only provide `Result`s because `::futures::try_join` doesn't support `Option`s.
 
 [![Docs][docs-badge]][docs-url]
 [![Crates.io][crates-badge]][crates-url]
@@ -23,10 +23,13 @@
 
 **Use [these docs](https://docs.rs/join) for development, they are more convenient.**
 
-- [Demos](#demos)
+- [Macros](#macros)
 - [Combinators](#combinators)
 - [Nested combinators](#nested-combinators)
 - [Handler](#handler)
+- [Let pattern](#let-pattern)
+- [Block captures](#block-captures)
+- [Demos](#demos)
 - [Single thread examples](#single-thread-combinations)
     - [Sync](#sync-branches)
     - [Async](#futures)
@@ -35,115 +38,154 @@
     - [Async](#future-tasks)
 - [Detailed steps example](#detailed-steps-example)
 
+## Macros
+
+- `try_join!` - combines results, transposes tuple of results in result of tuple.
+```rust
+assert_eq!(try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
+```
+- `try_join_async!` - combines futures, transposes tuple of results in result of tuple.
+```rust
+assert_eq!(try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
+```
+- `try_join_spawn!` - spawns `std::thread` per each branch and joins results, transposes tuple of results in result of tuple.
+```rust
+assert_eq!(try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
+```
+- `try_spawn!` - alias for `try_join_spawn!`.
+- `try_join_async_spawn!` - spawns tokio task using `tokio::spawn` per each branch, transposes tuple of results in result of tuple.
+```rust
+assert_eq!(try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
+```
+- `try_async_spawn!` - alias for `try_join_async_spawn!`.
+- `join!` - combines values.
+```rust
+assert_eq!(join!(1, "2", 3.0), (1, "2", 3.0));
+```
+- `join_async!` - combines futures.
+```rust
+assert_eq!(join_async!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0));
+```
+- `join_spawn!` - spawns `std::thread` per each branch.
+```rust
+assert_eq!(join_spawn!(1, "2", 3.0), (1, "2", 3.0));
+```
+- `spawn!` - alias for `join_spawn!`.
+- `join_async_spawn!` -  spawns tokio task using `tokio::spawn` per each branch.
+```rust
+assert_eq!(join_async_spawn!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0));
+```
+- `async_spawn!` - alias for `join_async_spawn!`.
+
 ## Combinators
 
 - Map: **`|>`**
 ```rust no_run
-join! { value |> expr } // => value.map(expr)
+join! { value |> expr }; // => value.map(expr)
 ```
 
 - AndThen: **`=>`**
 ```rust no_run
-join! { value => expr } // => value.and_then(expr)
+join! { value => expr }; // => value.and_then(expr)
 ```
 
 - Then: **`->`**
 ```rust no_run
-join! { value -> expr } // => expr(value)
+join! { value -> expr }; // => expr(value)
 ```
 
 - Filter: **`?>`**
 ```rust no_run
-join! { value ?> expr } // => value.filter(expr)
+join! { value ?> expr }; // => value.filter(expr)
 ```
 
 - Dot: **`..`** or **`>.`**
 ```rust no_run
-join! { value .. expr } // => value.expr
-join! { value >. expr } // => value.expr
+join! { value .. expr }; // => value.expr
+join! { value >. expr }; // => value.expr
 ```
 
 - Or: **`<|`**
 ```rust no_run
-join! { value <| expr } // => value.or(expr)
+join! { value <| expr }; // => value.or(expr)
 ```
 
 - OrElse: **`<=`**
 ```rust no_run
-join! { value <= expr } // => value.or_else(expr)  
+join! { value <= expr }; // => value.or_else(expr)  
 ```
 
 - MapErr: **`!>`**
 ```rust no_run
-join! { value !> expr } // => value.map_err(expr)
+join! { value !> expr }; // => value.map_err(expr)
 ```
 
 - Collect: **`=>[]`** (type is optional)
 ```rust no_run
-join! { value =>[] T } // => value.collect::<T>()
-join! { value =>[] } // => value.collect()
+join! { value =>[] T }; // => value.collect::<T>()
+join! { value =>[] }; // => value.collect()
 ```
 
 - Chain: **`>@>`**
 ```rust no_run
-join! { value >@> expr } // => value.chain(expr)
+join! { value >@> expr }; // => value.chain(expr)
 ```
 
 - FindMap: **`?|>@`**
 ```rust no_run
-join! { value ?|>@ expr } // => value.find_map(expr)
+join! { value ?|>@ expr }; // => value.find_map(expr)
 ```
 
 - FilterMap: **`?|>`**
 ```rust no_run
-join! { value ?|> expr } // => value.filter_map(expr)
+join! { value ?|> expr }; // => value.filter_map(expr)
 ```
 
 - Enumerate: **`|n>`**
 ```rust no_run
-join! { value |n> } // => value.enumerate()
+join! { value |n> }; // => value.enumerate()
 ```
 
 - Partition: **`?&!>`**
 ```rust no_run
-join! { value ?&!> expr } // => value.partition(expr)
+join! { value ?&!> expr }; // => value.partition(expr)
 ```
 
 - Flatten: **`^^>`**
 ```rust no_run
-join! { value ^^> } // => value.flatten()
+join! { value ^^> }; // => value.flatten()
 ```
 
 - Fold: **`^@`**
 ```rust no_run
-join! { value ^@ init_expr, fn_expr } // => value.fold(init_expr, fn_expr)
+join! { value ^@ init_expr, fn_expr }; // => value.fold(init_expr, fn_expr)
 ```
 
 - TryFold: **`?^@`**
 ```rust no_run
-join! { value ?^@ init_expr, fn_expr } // => value.try_fold(init_expr, fn_expr)
+join! { value ?^@ init_expr, fn_expr }; // => value.try_fold(init_expr, fn_expr)
 ```
 
 - Find: **`?@`**
 ```rust no_run
-join! { value ?@ expr } // => value.find(expr)
+join! { value ?@ expr }; // => value.find(expr)
 ```
 
 - Zip: **`>^>`**
 ```rust no_run
-join! { value >^> expr } // => value.zip(expr)
+join! { value >^> expr }; // => value.zip(expr)
 ```
 
 - Unzip: **`<->`** (types are optional)
 ```rust no_run
-join! { value <-> A, B, FromA, FromB } // => value.unzip::<A, B, FromA, FromB>()
-join! { value <-> } // => value.unzip()
+join! { value <-> A, B, FromA, FromB }; // => value.unzip::<A, B, FromA, FromB>()
+join! { value <-> }; // => value.unzip()
 ```
 
 - Inspect: **`??`** 
 ```rust no_run 
-join! { value ?? expr } // => (|value| { (expr)(&value); value })(value) // for sync
-join_async! { value ?? expr } // => value.inspect(expr) // for async 
+join! { value ?? expr }; // => (|value| { (expr)(&value); value })(value) // for sync
+join_async! { value ?? expr }; // => value.inspect(expr) // for async 
 ```
 
 where `value` is the previous value.
@@ -156,17 +198,17 @@ where `value` is the previous value.
 ```rust
 try_join! { value => >>> |> |v| v + 2 } // => value.and_then(|value| value.map(|v| v + 2))
 ```
-Use to create nested constructions like 
+Use to enter to nested constructions like 
 ```rust
-    a.and_then(
+a.and_then(
+    // >>>
+    |b| b.and_then(
         // >>>
-        |b| b.and_then(
-            // >>>
-            |c| c.and_then(
-                |v| Ok(v + 2)
-            )
+        |c| c.and_then(
+            |v| Ok(v + 2)
         )
     )
+)
 ```
 
 - Unwrap: **`<<<`**
@@ -181,39 +223,41 @@ try_join! {
 ```
 Use to move out of nested constructions
 ```rust
-    a.and_then(
+a.and_then(
+    // >>>
+    |b| b.and_then(
         // >>>
-        |b| b.and_then(
-            // >>>
-            |c| c.and_then(
-                |v| Ok(v + 2)
-            )
-            // <<<
+        |c| c.and_then(
+            |v| Ok(v + 2)
         )
         // <<<
-    ).map(
-        |v| v + 1
     )
+    // <<<
+).map(
+    |v| v + 1
+)
 ```
 
 ## Handler
 
-**Only valid in `try` form.**
-
 might be one of
 
-- `map` => will act as `results.map(|(result0, result1, ..)| handler(result0, result1, ..))`
-```rust no_run
+- `map` => **Only valid for `try` macros.** Will act as `results.map(|(result0, result1, ..)| handler(result0, result1, ..))`
+
+```rust
 assert_eq!(try_join! { Some(1), Some(2), Some(3), map => |a, b, c| a + b + c }, Some(6));
 ```
-- `and_then` => will act as `results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))`
-```rust no_run
+- `and_then` => **Only valid for `try` macros.** Will act as `results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))`
+
+```rust
 assert_eq!(try_join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Some(a + b + c) }, Some(6));
 ```
-- `then` => will act as `handler(result0, result1, ..)`
-```rust no_run
-assert_eq!(try_join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Ok(a.unwrap() + b.unwrap() + c.unwrap()) }, Some(6));
+- `then` => **Only valid for not `try` macros.** Will be executed in any case, act as `handler(result0, result1, ..)`
+
+```rust
+assert_eq!(join! { Some(1), Some(2), Some(3), then => |a: Option<u8>, b: Option<u8>, c: Option<u8>| Some(a.unwrap() + b.unwrap() + c.unwrap()) }, Some(6));
 ```
+
 or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned.
 
 ## Custom futures crate path
@@ -234,6 +278,37 @@ async fn main() {
     println!("{}", value);
 }
 ```
+
+## Let pattern
+
+You can specify `let` pattern for each branch in order to share result with other branches, or in case if you need to have `mut` value between steps.
+
+```rust
+assert_eq!(try_join! {
+    let mut branch_0 = Ok::<_,u8>(1) ~|> |v| v + 1,
+    let branch_1 = Ok::<_,u8>(2) ~|> { let value_0 = branch_0.as_ref().unwrap(); move |v| v + value_0 },
+    map => |b_0, b_1| b_0 * b_1
+}.unwrap(), 6);
+```
+
+## Block captures
+
+In order to capture variables (for ex. values of other branches in example above) you can pass block statements instead of functions:
+```rust
+let mut some_value = Some("capture me");
+assert_eq!(try_join! {
+    Some(0) |> |v| { 
+        // assign `None` to some_value in step expr
+        some_value = None; 
+        v 
+    } |> { 
+        // capture value before step and get str len
+        let captured_len = some_value.as_ref().unwrap().len(); 
+        move |v| v + captured_len
+    }
+}.unwrap(), 10);
+```
+These blocks will be placed before actual step expressions.
 
 ## Demos
 
@@ -263,36 +338,36 @@ fn main() {
                 // Collect values into `Vec<_>`
                 =>[] Vec<_>
                 // Use `Arc` to share data with branch 1
-                -> Arc::new
+                -> Arc::new -> Some
                 // Find max and clone its value
-                ~..iter().max()
-                |> Clone::clone,
+                ~=> >>> ..iter().max() |> Clone::clone,
         generate_random_vec(10000, 100000000000000f64)
             .into_iter()
             // Extract sqrt from every element
             |> get_sqrt
-            // Add index in order to compare with the values of branch 0 (call `enumerate`)
-            |n>
-            ~|> {
-                // Get data from branch 0 by cloning arc
-                let branch_0 = branch_0.clone();
-                let len = branch_0.len();
-                // Compare every element of branch 1 with element of branch 0
-                // with the same index and take min
-                move |(index, value)|
-                    if index < len && value as u64 > branch_0[index] {
-                        branch_0[index]
-                    } else {
-                        value as u64
-                    }
-            }
-            ..max(),
+            -> Some
+            ~=> >>> // Add index in order to compare with the values of branch 0 (call `enumerate`)
+                |n>
+                |> {
+                    // Get data from branch 0 by cloning arc
+                    let branch_0 = branch_0.as_ref().unwrap().clone();
+                    let len = branch_0.len();
+                    // Compare every element of branch 1 with element of branch 0
+                    // with the same index and take min
+                    move |(index, value)|
+                        if index < len && value as u64 > branch_0[index] {
+                            branch_0[index]
+                        } else {
+                            value as u64
+                        }
+                }..max(),
         generate_random_vec(100000, 100000u32)
             .into_iter()
-            ~..max(),
-        map => |max0, max1, max2|
+            -> Some
+            ~=> >>> ..max(),
+        and_then => |max0, max1, max2|
             // Find final max
-            *[max0, max1, max2 as u64].into_iter().max().unwrap()
+            [max0, max1, max2 as u64].iter().max().map(Clone::clone)
     }
     .unwrap();
     println!("Max: {}", max);
@@ -463,7 +538,7 @@ async fn main() {
                     _ => "have the same result as random generator!"
                 }
             )
-    ).unwrap();  
+    ).unwrap_or_else(|error| eprintln!("Error: {:#?}", error));
 }
 
 fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
@@ -500,7 +575,7 @@ async fn read_number_from_stdin() -> Result<u16, Error> {
         result = try_join_async! {
             next
                 |> |value| value.ok_or(format_err!("Unexpected end of input"))
-                => >>> 
+                => >>>
                     !> |err| format_err!("Failed to apply codec: {:?}", err) -> ready
                 <<<
                 => |value|
@@ -562,7 +637,7 @@ fn main() {
 
 ### Futures
 
-Each branch will represent future chain. All branches will be joined using `::futures::join!` macro and `try_join_async!`/`join_async!` will return `unpolled` future.
+Each branch will represent future chain. All branches will be joined using `::futures::join!`/`::futures::try_join!` macro and `join_async!`/`try_join_async!` will return `unpolled` future.
 
 ```rust
 #![recursion_limit="256"]
@@ -646,6 +721,47 @@ fn main() {
 
     println!("Calculated: {}", sum);
 }
+```
+
+*Thread names* 
+
+In runtime thread's name will be constructed from name of parent thread and join_%branch_index%.
+
+Example code with many branches:
+
+```rust
+extern crate join;
+
+use std::thread;
+
+use join::try_join_spawn;
+
+fn get_current_thread_name() -> String {
+    thread::current().name().unwrap().to_owned()
+}
+
+fn print_branch_thread_name(index: &Result<usize, ()>) {
+    println!("Branch: {}. Thead name: {}.", index.unwrap(), get_current_thread_name());
+}
+
+fn main() {
+    let _ = try_join_spawn! {
+        Ok(0) ?? print_branch_thread_name,
+        Ok(1) ?? print_branch_thread_name,
+        try_join_spawn! {
+            Ok(2) ?? print_branch_thread_name,
+            try_join_spawn! {
+                Ok(3) ?? print_branch_thread_name,
+            }
+        }
+    }.unwrap();
+}
+
+// Branch: 0. Thead name: main_join_0.
+// Branch: 1. Thead name: main_join_1.
+// Branch: 2. Thead name: main_join_2_join_0.
+// Branch: 3. Thead name: main_join_2_join_1_join_0.
+// Order could be different.
 ```
 
 ### Future tasks

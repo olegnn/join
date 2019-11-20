@@ -1,11 +1,12 @@
 [package]
 name = "join"
-version = "0.1.0-alpha.15"
+version = "0.1.0-alpha.16"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 license = "MIT"
 description = """
-Macro which provides useful shortcut combinators, combines sync/async chains, transforms tuple of results in result of tuple, 
-supports single and multi thread (sync/async) step by step execution of branches.
+Macros which provide useful shortcut combinators, combine sync/async chains, 
+support single and multi thread (sync/async) step by step execution of branches, 
+transform tuple of results in result of tuple.
 """
 edition = "2018"
 repository = "https://github.com/olegnn/join"
@@ -22,7 +23,7 @@ full = ["join_export/full"]
 [dependencies]
 proc-macro-hack = "0.5.10"
 proc-macro-nested = "0.1.3"
-join_export = { path = "../join_export", version = "0.1.0-alpha.12" }
+join_export = { path = "../join_export", version = "0.1.0-alpha.16" }
 
 [dev-dependencies]
 futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }

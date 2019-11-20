@@ -48,43 +48,43 @@ mod join_tests {
     fn it_creates_nested_chains() {
         let value = try_join! {
             Ok::<_,u8>(Ok::<_,u8>(Some(2u16)))
-            => >>> 
+            => >>>
                 => >>>
                     |> |v| v + 2
                     ..ok_or(4)
                 <<<
                 |> |v| Ok::<_,u8>(v + 5)
-            <<<    
+            <<<
         };
 
         assert_eq!(value, Ok(Ok(9)));
 
         let value = join! {
             Some(Some(Some(2u16)))
-            |> >>> 
+            |> >>>
                 |> >>>
                     |> |v| v + 2
                     ..ok_or(4)
                     .unwrap()
                 <<<
                 |> |v| Some(v + 5)
-            <<< 
+            <<<
         };
 
         assert_eq!(value, Some(Some(Some(9))));
 
         let value = try_join! {
             Some(Some(Some(2u16)))
-            => >>> 
+            => >>>
                 => >>>
                     |> >>>
         };
 
-        assert_eq!(value, Some(2));  
-        
+        assert_eq!(value, Some(2));
+
         let value = try_join! {
             Some(Some(Some(2u16)))
-            => >>> 
+            => >>>
                 => >>>
                     |> >>>
                     <<<
@@ -92,12 +92,11 @@ mod join_tests {
             <<<
         };
 
-        assert_eq!(value, Some(2)); 
-
+        assert_eq!(value, Some(2));
 
         let value = try_join! {
             Some(Some(Some(2u16)))
-            => >>> 
+            => >>>
                 => >>>
                     |> >>>
             ~=> |v| Some(v * 2)
@@ -109,14 +108,14 @@ mod join_tests {
 
         let value = try_join! {
             Ok::<_,u8>(Ok::<_,u8>(Some(2u16)))
-            => >>> 
+            => >>>
                 |> |v| { captured = None; v }
                 => >>>
                     |> { let captured = captured.as_ref().unwrap().clone(); move |v| v + captured }
                     ..ok_or(4)
                 <<<
                 |> |v| Ok::<_,u8>(v + 5)
-            <<<    
+            <<<
         };
 
         assert_eq!(value, Ok(Ok(9)));
@@ -292,7 +291,7 @@ mod join_tests {
         let map: Result<u16> = Ok(3);
         let and_then = get_ok_four;
 
-        let ok = try_join! {
+        let ok = join! {
             then,
             map,
             and_then(),
@@ -301,7 +300,7 @@ mod join_tests {
 
         assert_eq!(ok, Ok(9));
 
-        let err = try_join! {
+        let err = join! {
             Ok(2),
             Ok(3),
             get_ok_four(),
@@ -318,18 +317,18 @@ mod join_tests {
                 assert_eq!(branch_0, Ok(value));
                 assert_eq!(branch_1, Ok(3));
                 assert_eq!(branch_2, Ok(4));
-                assert_eq!(branch_3, Some(5));
+                assert_eq!(branch_3, Ok(6));
                 add_one(value)
             } ~=> add_one_ok, //4
             let branch_1 = Ok(get_three()) ~=> add_one_ok ~|> |value| value |> |value| {
                 assert_eq!(branch_0, Ok(3));
                 assert_eq!(branch_1, Ok(value));
                 assert_eq!(branch_2, Ok(5));
-                assert_eq!(branch_3, Ok(6));
+                assert_eq!(branch_3, Ok(5));
                 add_one(value)
             } ~|> add_one ~|> add_one, //7
             let branch_2 = get_ok_four() ~|> add_one, //5
-            let branch_3 = get_some_five() ~|> add_one ..ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
+            let branch_3 = get_some_five() |> add_one ..ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -345,9 +344,15 @@ mod join_tests {
     #[test]
     fn it_tests_multi_step_single_branch() {
         let values =
-            try_join! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~?> |v| v % 3 != 0 =>[] Vec<_> ~-> Some }
+            try_join! { vec![1,2,3,4,5,6,7,8,9].into_iter() -> Some ~|> >>> ?> |v| v % 3 != 0 =>[] Vec<_> ~|> |v| v }
                 .unwrap();
         assert_eq!(values, vec![1, 2, 4, 5, 7, 8]);
+    }
+
+    #[test]
+    fn it_checks_evalutation_in_case_of_error() {
+        let error = try_join! { Err::<u8,_>(2) ~|> |_| unreachable!(), Ok::<_,u8>(3) };
+        assert_eq!(error, Err(2));
     }
 
     #[test]
@@ -386,7 +391,7 @@ mod join_tests {
         );
 
         assert_eq!(
-            try_join! { let mut v = vec![1, 2, 3, 4, 5] ~..into_iter() ~?|>@ |v| if v % 2 == 0 { Some(v) } else { None } },
+            try_join! { let mut v = vec![1, 2, 3, 4, 5] -> Some ~=> >>> ..into_iter() ?|>@ |v| if v % 2 == 0 { Some(v) } else { None } },
             Some(2)
         );
 

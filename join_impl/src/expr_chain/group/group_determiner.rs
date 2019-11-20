@@ -32,9 +32,7 @@ pub struct GroupDeterminer {
 }
 
 ///
-/// Creates instant and deferred `GroupDeterminer`'s for given `ActionGroup`s with provided tokens.
-/// Deferred are prefixed by `deferred_prefix`.
-/// For example, if `deferred_prefix` is `~`, then `->` is instant, `~->` is deferred.
+/// Creates `GroupDeterminer` for given `CommandGroup`s with provided tokens.
 ///
 #[macro_export]
 macro_rules! define_instant_and_deferred_determiners {
@@ -56,6 +54,9 @@ macro_rules! define_instant_and_deferred_determiners {
     }};
 }
 
+///
+/// Creates `GroupDeterminer` with no `CommandGroup` and provided tokens.
+///
 #[macro_export]
 macro_rules! define_determiner_with_no_group {
     ($($token: expr),+ => $length: expr) => {{

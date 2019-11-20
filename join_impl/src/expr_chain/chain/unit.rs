@@ -1,5 +1,5 @@
 //!
-//! `Unit` module describes one unit of expression parsing which contains current `Expr`
+//! `Unit` module describes one unit of expression parsing which contains currently parsed `T`
 //! and optional next `ActionGroup`
 //!
 use super::super::group::ActionGroup;
@@ -18,6 +18,9 @@ pub struct Unit<T> {
     pub next_group_type: Option<ActionGroup>,
 }
 
+///
+/// `UnitResult` defines `Result` of one unit expression parsing.
+///
 pub type UnitResult<T> = syn::Result<Unit<T>>;
 
 ///

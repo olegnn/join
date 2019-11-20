@@ -64,7 +64,7 @@ mod tests {
     }
 
     #[test]
-    fn it_tests_replace_inner_trait_impl_for_initial_expr() {
+    fn it_tests_inner_expr_trait_impl_replace_inner_for_initial_expr() {
         let expr: Expr = parse_quote! { |v| v + 1 };
         let replace_inner: Expr = parse_quote! { |v| 1 + v };
 

@@ -210,7 +210,7 @@ mod join_spawn_tests {
 
         assert_eq!(none, None);
 
-        let ok = try_join_spawn! {
+        let ok = join_spawn! {
             Ok(2),
             Ok(3),
             get_ok_four(),
@@ -219,7 +219,7 @@ mod join_spawn_tests {
 
         assert_eq!(ok, Ok(9));
 
-        let err = try_join_spawn! {
+        let err = join_spawn! {
             Ok(2),
             Ok(3),
             get_ok_four(),
@@ -236,18 +236,18 @@ mod join_spawn_tests {
                 assert_eq!(branch_0, Ok(value));
                 assert_eq!(branch_1, Ok(3));
                 assert_eq!(branch_2, Ok(4));
-                assert_eq!(branch_3, Some(5));
+                assert_eq!(branch_3, Ok(6));
                 add_one(value)
             } ~=> add_one_ok, //4
             let branch_1 = Ok(get_three()) ~=> add_one_ok ~|> move |value| {
                 assert_eq!(branch_0, Ok(3));
                 assert_eq!(branch_1, Ok(value));
                 assert_eq!(branch_2, Ok(5));
-                assert_eq!(branch_3, Ok(6));
+                assert_eq!(branch_3, Ok(5));
                 add_one(value)
             } ~|> add_one ~|> add_one, //7
             let branch_2 = get_ok_four() ~|> add_one, //5
-            let branch_3 = get_some_five() ~|> add_one ..ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
+            let branch_3 = get_some_five() |> add_one ..ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -264,7 +264,7 @@ mod join_spawn_tests {
 
         let (values0, values1, values2) = (values.clone(), values.clone(), values.clone());
 
-        let _ = try_join_spawn! {
+        let _ = join_spawn! {
             Ok::<_,u8>((values0, 1)) |> |(values, value)| {
                 values.lock().unwrap().push(value);
                 thread::sleep(Duration::from_secs(1));
@@ -312,12 +312,12 @@ mod join_spawn_tests {
                 let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
                 let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
                 let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                let branch_3 = branch_3.as_ref().map(Clone::clone);
+                let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
                 move |value| {
                     assert_eq!(branch_0, Some(value));
                     assert_eq!(branch_1, Some(3));
                     assert_eq!(branch_2, Some(4));
-                    assert_eq!(branch_3, Some(5));
+                    assert_eq!(branch_3, Some(6));
                     add_one(value)
                 }
             } ~=> add_one_ok, //4
@@ -330,12 +330,12 @@ mod join_spawn_tests {
                     assert_eq!(branch_0, Some(3));
                     assert_eq!(branch_1, Some(value));
                     assert_eq!(branch_2, Some(5));
-                    assert_eq!(branch_3, Some(6));
+                    assert_eq!(branch_3, Some(5));
                     add_one(value)
                 }
             }  ~|> add_one ~|> add_one, //7
             let branch_2 = Ok::<_, BoxedError>(4u16) ~|> add_one, //5
-            let branch_3 = get_some_five() ~|> add_one ..ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
+            let branch_3 = get_some_five() |> add_one ..ok_or(2) !> |e| e.to_string().into() ~=> |_| Err("".into()) <| Ok(5) ~=> add_one_ok, // 6
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -355,8 +355,14 @@ mod join_spawn_tests {
     }
 
     #[test]
+    fn it_checks_evalutation_in_case_of_error() {
+        let error = try_join_spawn! { Err::<u8,_>(2) ~|> |_| unreachable!(), Ok::<_,u8>(3) };
+        assert_eq!(error, Err(2));
+    }
+
+    #[test]
     fn it_tests_multi_step_single_branch() {
-        let values = try_join_spawn! { vec![1,2,3,4,5,6,7,8,9].into_iter() ~?> |v| v % 3 != 0 =>[] Vec<_> ~-> Some }.unwrap();
+        let values = try_join_spawn! { vec![1,2,3,4,5,6,7,8,9].into_iter() -> Some ~|> >>> ?> |v| v % 3 != 0 =>[] Vec<_> }.unwrap();
         assert_eq!(values, vec![1, 2, 4, 5, 7, 8]);
     }
 
@@ -365,7 +371,7 @@ mod join_spawn_tests {
         let mut some_vec = Some(vec![0u8]);
 
         let values: (Vec<_>, Vec<_>) = join_spawn! {
-            [2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64
+            vec![2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64
         };
 
         assert_eq!(values, (vec![], vec![0, 4, 7, 10, 13, 16]));
@@ -396,7 +402,7 @@ mod join_spawn_tests {
         );
 
         assert_eq!(
-            try_join_spawn! { let mut v = vec![1, 2, 3, 4, 5] ~..into_iter() ~?|>@ |v| if v % 2 == 0 { Some(v) } else { None } },
+            try_join_spawn! { let mut v = vec![1, 2, 3, 4, 5] -> Some ~=> >>> ..into_iter() ?|>@ |v| if v % 2 == 0 { Some(v) } else { None } },
             Some(2)
         );
 

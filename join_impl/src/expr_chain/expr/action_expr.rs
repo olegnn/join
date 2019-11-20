@@ -44,17 +44,17 @@ impl ActionExpr {
 /// Defines `expr` with configuration (`ApplyType`, `MoveType`).
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Action<Expr: InnerExpr> {
-    pub expr: Expr,
+pub struct Action<E: InnerExpr> {
+    pub expr: E,
     pub apply_type: ApplyType,
     pub move_type: MoveType,
 }
 
-impl<Inner: InnerExpr> Action<Inner> {
+impl<E: InnerExpr> Action<E> {
     ///
     /// Create new `Action` with given expr and config.
     ///
-    pub fn new(expr: Inner, apply_type: ApplyType, move_type: MoveType) -> Self {
+    pub fn new(expr: E, apply_type: ApplyType, move_type: MoveType) -> Self {
         Self {
             expr,
             apply_type,
@@ -63,8 +63,8 @@ impl<Inner: InnerExpr> Action<Inner> {
     }
 }
 
-impl<Inner: InnerExpr> InnerExpr for Action<Inner> {
-    fn replace_inner(&self, exprs: Vec<Expr>) -> Option<Action<Inner>> {
+impl<E: InnerExpr> InnerExpr for Action<E> {
+    fn replace_inner(&self, exprs: Vec<Expr>) -> Option<Self> {
         self.expr.replace_inner(exprs).map(|expr| Self {
             expr,
             apply_type: self.apply_type.clone(),
@@ -90,7 +90,7 @@ impl InnerExpr for ActionExpr {
         }
     }
 
-    fn replace_inner(&self, exprs: Vec<Expr>) -> Option<ActionExpr> {
+    fn replace_inner(&self, exprs: Vec<Expr>) -> Option<Self> {
         match self {
             Self::Process(inner) => inner.replace_inner(exprs).map(Self::Process),
             Self::Err(inner) => inner.replace_inner(exprs).map(Self::Err),

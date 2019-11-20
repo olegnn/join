@@ -23,16 +23,12 @@ mod join_async_spawn_tests {
         Ok(4)
     }
 
-    async fn get_some_five() -> Option<u16> {
-        Some(5)
+    async fn get_ok_five() -> Result<u16> {
+        Ok(5)
     }
 
     async fn get_err() -> Result<u16> {
         Err("error".into())
-    }
-
-    async fn get_none() -> Option<u16> {
-        None
     }
 
     fn add_one_sync(v: u16) -> u16 {
@@ -51,10 +47,6 @@ mod join_async_spawn_tests {
         Err(v.to_string().into())
     }
 
-    async fn to_some(v: u16) -> Option<u16> {
-        Some(v)
-    }
-
     fn add_one_to_ok(v: Result<u16>) -> Result<u16> {
         v.map(add_one_sync)
     }
@@ -67,7 +59,7 @@ mod join_async_spawn_tests {
                 ok(2u16),
                 ok(get_three().await),
                 get_ok_four(),
-                ok(get_some_five().await.unwrap()),
+                ok(get_ok_five().await.unwrap()),
                 and_then => |a, b, c, d| ok(a * b * c * d)
             };
 
@@ -96,7 +88,7 @@ mod join_async_spawn_tests {
                 ok(2u16).map(add_one_to_ok).and_then(add_one_ok), //4
                 ok(get_three().await).and_then(add_one_ok).map(add_one_to_ok).map(add_one_to_ok).map(add_one_to_ok), //7
                 get_ok_four().map(add_one_to_ok), //5
-                get_some_five().map(|v| v.ok_or("unreachable".into())).and_then(to_err).and_then(add_one_ok).or_else(|_| ok(5)), // 5
+                get_ok_five().and_then(to_err).and_then(add_one_ok).or_else(|_| ok(5)), // 5
                 and_then => |a, b, c, d| ok(a * b * c * d)
             };
 
@@ -106,7 +98,7 @@ mod join_async_spawn_tests {
                 ok(2).map(add_one_to_ok),
                 ok(get_three().await).and_then(to_err),
                 get_ok_four(),
-                get_err(),
+                ok(2) ~=> |_| get_err(),
                 map => |a, b, c, d| a * b * c * d
             };
 
@@ -116,6 +108,7 @@ mod join_async_spawn_tests {
             );
         });
     }
+
     #[test]
     fn it_produces_n_branches_with_any_length_using_combinators() {
         let rt = Runtime::new().unwrap();
@@ -124,7 +117,7 @@ mod join_async_spawn_tests {
                 ok(2u16) |> add_one_to_ok => add_one_ok, //4
                 ok(get_three().await) => add_one_ok |> add_one_to_ok |> add_one_to_ok |> add_one_to_ok, //7
                 get_ok_four() |> add_one_to_ok, //5
-                get_some_five() |> |v| v.ok_or("hello".into()) |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
+                get_ok_five() |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
                 map => |a, b, c, d| a * b * c * d
             };
 
@@ -134,13 +127,13 @@ mod join_async_spawn_tests {
                 2u16 -> ok |> add_one_to_ok => add_one_ok, //4
                 get_three().await -> ok => add_one_ok |> add_one_to_ok |> add_one_to_ok |> add_one_to_ok, //7
                 get_ok_four() |> add_one_to_ok, //5
-                get_some_five() |> |v| v.ok_or("hello".into()) |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
+                get_ok_five() |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
                 and_then => |a, b, c, d| ok(a + b + c + d)
             };
 
             assert_eq!(sum.await.unwrap(), 21);
 
-            let err: Result<u16> = try_join_async_spawn! {
+            let error: Result<u16> = try_join_async_spawn! {
                 ok(2) |> add_one_to_ok,
                 ok(get_three().await) => to_err,
                 get_ok_four() => |_| err("some error".into()),
@@ -149,20 +142,31 @@ mod join_async_spawn_tests {
             }
             .await;
 
-            assert_eq!(
-                format!("{:?}", err.unwrap_err()),
-                format!("{:?}", to_err(get_three().await).await.unwrap_err())
-            );
+            assert!(error.is_err());
 
-            let none = try_join_async_spawn! {
-                2 -> to_some,
-                get_some_five().await -> ready |> |_| None,
-                get_ok_four() |> |v| v.ok(),
-                get_none(),
+            let error = try_join_async_spawn! {
+                2 -> ok,
+                get_ok_five() ~=> |_| err("some error".into()),
+                get_ok_four(),
+                get_err(),
                 map => |a: u16, b: u16, c: u16, d: u16| a * b * c * d
             };
 
-            assert_eq!(none.await, None);
+            assert_eq!(
+                format!("{:#?}", error.await.unwrap_err()),
+                format!("{:#?}", Box::new("error"))
+            );
+        });
+    }
+
+    #[allow(unreachable_code)]
+    #[test]
+    fn it_checks_evalutation_in_case_of_error() {
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            let error =
+                try_join_async_spawn! { err::<u8,u8>(2u8) ~=> |_| { unreachable!(); ok(2u8) }, ok::<u8,u8>(3u8) };
+            assert_eq!(error.await, Err(2u8));
         });
     }
 
@@ -190,42 +194,33 @@ mod join_async_spawn_tests {
                 assert_eq!(format!("{:?}", err_value.await.unwrap_err()), format!("{:?}", to_err(2).await.unwrap_err()));
 
                 let some = try_join_async_spawn! {
-                    ready(Some(2u16)),
-                    ready(Some(3u16)),
-                    get_some_five(),
+                    ready(Ok(2u16)),
+                    ready(Ok(3u16)),
+                    get_ok_five(),
                     map => |a, b, c| a
                 };
 
-                assert_eq!(some.await, Some(2u16));
+                assert_eq!(some.await.unwrap(), 2u16);
 
-                let none = try_join_async_spawn! {
-                    ready(Some(2u16)),
-                    ready(Some(3u16)),
-                    get_some_five(),
-                    then => |a, b, c| ready(None::<u16>)
-                };
+                let error: Result<u16> = join_async_spawn! {
+                    ready(Ok::<_,BoxedError>(2u16)),
+                    ready(Ok::<_,BoxedError>(3u16)),
+                    get_ok_five(),
+                    then => |a, b, c| ready(Err("25".into()))
+                }.await;
 
-                assert_eq!(none.await, None);
+                assert!(error.is_err());
 
-                let some = try_join_async_spawn! {
-                    ready(Some(2u16)),
-                    ready(Some(3u16)),
-                    get_some_five(),
+                let okay = try_join_async_spawn! {
+                    ready(Ok(2u16)),
+                    ready(Ok(3u16)),
+                    get_ok_five(),
                     map => |a, b, c| a + b + c
                 };
 
-                assert_eq!(some.await, Some(10));
+                assert_eq!(okay.await.unwrap(), 10);
 
-                let none = try_join_async_spawn! {
-                    ready(Some(2u16)),
-                    None -> ready,
-                    get_some_five(),
-                    map => |a: u16, b: u16, c: u16| a + b + c
-                };
-
-                assert_eq!(none.await, None);
-
-                let ok_value= try_join_async_spawn! {
+                let ok_value= join_async_spawn! {
                     ok(2u16),
                     ok(3u16),
                     get_ok_four(),
@@ -234,7 +229,7 @@ mod join_async_spawn_tests {
 
                 assert_eq!(ok_value.await.unwrap(), 9u16);
 
-                let err_value = try_join_async_spawn! {
+                let err_value = join_async_spawn! {
                     ok(2u16),
                     ok(3u16),
                     get_ok_four(),
@@ -255,7 +250,7 @@ mod join_async_spawn_tests {
                     let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
                     let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
                     let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                    let branch_3 = branch_3.as_ref().map(Clone::clone);
+                    let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
                     move |value: Result<u16>| {
                         assert_eq!(branch_0, value.as_ref().ok().map(Clone::clone));
                         assert_eq!(branch_1, Some(3));
@@ -273,12 +268,12 @@ mod join_async_spawn_tests {
                         assert_eq!(branch_0, Some(3));
                         assert_eq!(branch_1, value.as_ref().ok().map(Clone::clone));
                         assert_eq!(branch_2, Some(5));
-                        assert_eq!(branch_3, Some(5));
+                        assert_eq!(branch_3, Some(6));
                         value.map(add_one_sync)
                     }
                 } ~|> add_one_to_ok ~|> add_one_to_ok, //7
                 let branch_2 = get_ok_four() ~|> add_one_to_ok, //5
-                let branch_3 = get_some_five() ~|> |v| v.ok_or("unreachable".into()) ~|> add_one_to_ok ~=> to_err <= |_| ok(5) ~=> add_one_ok, // 6
+                let branch_3 = get_ok_five() ~|> add_one_to_ok ~=> to_err <= |_| ok(5) ~=> add_one_ok, // 6
                 map => |a, b, c, d| a * b * c * d
             };
 
@@ -297,7 +292,7 @@ mod join_async_spawn_tests {
 
             let values = Arc::new(Mutex::new(Vec::new()));
 
-            let _ = try_join_async_spawn! {
+            let _ = join_async_spawn! {
                 ok((values.clone(), 1u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(1)).await;
@@ -325,8 +320,8 @@ mod join_async_spawn_tests {
                     values.pop();
                     Ok::<_, BoxedError>(())
                 },
-                then => move |_, _, _| async move {
-                    assert_eq!(values.lock().await.len(), 0);
+                then => |_, _, _| async {
+                    assert_eq!(values.clone().lock().await.len(), 0);
                     Ok::<_, BoxedError>(())
                 }
             }
@@ -348,7 +343,7 @@ mod join_async_spawn_tests {
     fn it_produces_single_value() {
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
-            let value = try_join_async_spawn! { ready(Some(1)) }.await;
+            let value = try_join_async_spawn! { ready(Ok::<_,u8>(1)) }.await;
             assert_eq!(value.unwrap(), 1);
         });
     }
@@ -358,7 +353,7 @@ mod join_async_spawn_tests {
     fn it_creates_unpolled_future() {
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
-            let _fut = try_join_async_spawn! {
+            let _fut = join_async_spawn! {
                 ready(panic!()),
                 ready(unreachable!()),
                 then => |a: Result<u8>, b: Result<u8>| ready(a)
@@ -370,7 +365,7 @@ mod join_async_spawn_tests {
     fn it_cant_work_without_tokio() {
         assert!(
             ::std::panic::catch_unwind(|| ::futures::executor::block_on(async {
-                let failure = try_join_async_spawn! { ::futures::future::ready(Some(2u16)) };
+                let failure = try_join_async_spawn! { ::futures::future::ready(Ok::<_,u8>(2u16)) };
                 failure.await
             }))
             .is_err()
@@ -381,7 +376,7 @@ mod join_async_spawn_tests {
     fn it_tests_multi_step_single_branch() {
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
-            let values = try_join_async_spawn! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ready ~..await ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
+            let values = try_join_async_spawn! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ok ~=> >>> ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
             assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
         });
     }
@@ -393,7 +388,7 @@ mod join_async_spawn_tests {
             let mut some_vec = Some(vec![0u8]);
 
             let values: (Vec<u8>, Vec<u8>) = join_async_spawn! {
-                [2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64 -> ready
+                vec![2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64 -> ready
             }.await;
 
             assert_eq!(values, (vec![], vec![0u8, 4, 7, 10, 13, 16]));

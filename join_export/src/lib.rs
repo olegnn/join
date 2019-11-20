@@ -23,7 +23,7 @@ pub fn join(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: false,
-            spawn: false,
+            is_spawn: false,
             is_try: false,
         },
     )
@@ -37,7 +37,7 @@ pub fn join_async(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: true,
-            spawn: false,
+            is_spawn: false,
             is_try: false,
         },
     )
@@ -51,7 +51,7 @@ pub fn join_spawn(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: false,
-            spawn: true,
+            is_spawn: true,
             is_try: false,
         },
     )
@@ -65,7 +65,7 @@ pub fn spawn(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: false,
-            spawn: true,
+            is_spawn: true,
             is_try: false,
         },
     )
@@ -79,7 +79,7 @@ pub fn join_async_spawn(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: true,
-            spawn: true,
+            is_spawn: true,
             is_try: false,
         },
     )
@@ -93,7 +93,7 @@ pub fn async_spawn(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: true,
-            spawn: true,
+            is_spawn: true,
             is_try: false,
         },
     )
@@ -107,7 +107,7 @@ pub fn try_join(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: false,
-            spawn: false,
+            is_spawn: false,
             is_try: true,
         },
     )
@@ -121,7 +121,7 @@ pub fn try_join_async(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: true,
-            spawn: false,
+            is_spawn: false,
             is_try: true,
         },
     )
@@ -135,7 +135,7 @@ pub fn try_join_spawn(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: false,
-            spawn: true,
+            is_spawn: true,
             is_try: true,
         },
     )
@@ -149,7 +149,7 @@ pub fn try_spawn(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: false,
-            spawn: true,
+            is_spawn: true,
             is_try: true,
         },
     )
@@ -163,7 +163,7 @@ pub fn try_join_async_spawn(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: true,
-            spawn: true,
+            is_spawn: true,
             is_try: true,
         },
     )
@@ -177,7 +177,7 @@ pub fn try_async_spawn(input: TokenStream) -> TokenStream {
         parsed,
         Config {
             is_async: true,
-            spawn: true,
+            is_spawn: true,
             is_try: true,
         },
     )

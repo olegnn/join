@@ -1,9 +1,9 @@
 //! # `join!`
 //!
-//! **Macro** which provides useful shortcut combinators, combines sync/async chains, supports single and multi thread (sync/async) step by step execution of branches, transforms tuple of results in result of tuple.
+//! **Macros** which provide useful shortcut combinators, combine sync/async chains, support single and multi thread (sync/async) step by step execution of branches, transform tuple of results in result of tuple.
 //!
-//! - `join` macros will just return final values. Use it if you are working with iterators/streams etc.
-//! - `try_join` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options.
+//! - `join!` macros will just return final values. Use it if you are working with iterators/streams etc.
+//! - `try_join!` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options. If one of branches at the end of step produces `Err`/`None`, next steps execution will be aborted. In case of `async` macro you can only provide `Result`s because `::futures::try_join` doesn't support `Option`s. 
 //!
 //! [![Docs][docs-badge]][docs-url]
 //! [![Crates.io][crates-badge]][crates-url]
@@ -19,10 +19,13 @@
 //! [travis-badge]: https://travis-ci.org/olegnn/join.svg?branch=master
 //! [travis-url]: https://travis-ci.org/olegnn/join
 //!
-//! - [Demos](#demos)
+//! - [Macros](#macros)
 //! - [Combinators](#combinators)
 //! - [Nested combinators](#nested-combinators)
 //! - [Handler](#handler)
+//! - [Let pattern](#let-pattern)
+//! - [Block captures](#block-captures)
+//! - [Demos](#demos)
 //! - [Single thread examples](#single-thread-combinations)
 //!     - [Sync](#sync-branches)
 //!     - [Async](#futures)
@@ -30,6 +33,77 @@
 //!     - [Sync](#sync-threads)
 //!     - [Async](#future-tasks)
 //! - [Detailed steps example](#detailed-steps-example)
+//!
+//! ## Macros
+//!
+//! - [`try_join!`](macro.join.html) - combines results/options, transposes tuple of results in result of tuple.
+//! ```rust
+//! # use join::*;
+//! # fn main() {
+//! assert_eq!(try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
+//! # }
+//! ```
+//! - [`try_join_async!`](macro.try_join_async.html) - combines futures, transposes tuple of results in result of tuple.
+//! ```rust
+//! # use join::*;
+//! # use futures::future::*;
+//! # #[tokio::main]
+//! # async fn main() {
+//! assert_eq!(try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
+//! # }
+//! ```
+//! - [`try_join_spawn!`](macro.try_join_spawn.html) - spawns [`std::thread`](https://doc.rust-lang.org/std/thread/) per each branch and joins results, transposes tuple of results in result of tuple.
+//! ```rust
+//! # use join::*;
+//! # fn main() {
+//! assert_eq!(try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
+//! # }
+//! ```
+//! - [`try_spawn!`](macro.try_spawn.html) - alias for [`try_join_spawn!`](macro.try_join_spawn.html).
+//! - [`try_join_async_spawn!`](macro.try_join_async_spawn.html) - spawns futures into default `tokio` executor using [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each branch, transposes tuple of results in result of tuple.
+//! ```rust
+//! # use join::*;
+//! # use futures::future::*;
+//! # #[tokio::main]
+//! # async fn main() {
+//! assert_eq!(try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
+//! # }
+//! ```
+//! - [`try_async_spawn!`](macro.try_async_spawn.html) - alias for [`try_join_async_spawn!`](macro.try_join_async_spawn.html).
+//! - [`join!`](macro.join.html) - combines values.
+//! ```rust
+//! # use join::*;
+//! # fn main() {
+//! assert_eq!(join!(1, "2", 3.0), (1, "2", 3.0));
+//! # }
+//! ```
+//! - [`join_async!`](macro.join_async.html) - combines futures.
+//! ```rust
+//! # use join::*;
+//! # use futures::future::*;
+//! # #[tokio::main]
+//! # async fn main() {
+//! assert_eq!(join_async!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0));
+//! # }
+//! ```
+//! - [`join_spawn!`](macro.join_spawn.html) - spawns [`std::thread`](https://doc.rust-lang.org/std/thread/) per each branch.
+//! ```rust
+//! # use join::*;
+//! # fn main() {
+//! assert_eq!(join_spawn!(1, "2", 3.0), (1, "2", 3.0));
+//! # }
+//! ```
+//! - [`spawn!`](macro.spawn.html) - alias for [`join_spawn!`](macro.join_spawn.html).
+//! - [`join_async_spawn!`](macro.join_async_spawn.html) -  spawns futures into default `tokio` executor using [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each branch.
+//! ```rust
+//! # use join::*;
+//! # use futures::future::*;
+//! # #[tokio::main]
+//! # async fn main() {
+//! assert_eq!(join_async_spawn!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0));
+//! # }
+//! ```
+//! - [`async_spawn!`](macro.async_spawn.html) - alias for [`join_async_spawn!`](macro.join_async_spawn.html).
 //!
 //! ## Combinators
 //!
@@ -298,9 +372,9 @@
 //! where `value` is the previous value.
 //!
 //! **Every combinator prefixed by `~` will act as deferred action (all actions will wait until completion in every step and only after move to the next one).**
-//! 
+//!
 //! ## Nested combinators
-//! 
+//!
 //! - Wrap: `combinator` **`>>>`** `combinator`(s)...
 //! ```rust
 //! # use join::try_join;
@@ -311,11 +385,11 @@
 //! # assert_eq!(result, Some(7));
 //! # }
 //! ```
-//! Use to create nested constructions like 
+//! Use to create nested constructions like
 //! ```rust
 //! # fn main() {
 //! # let a = Ok::<_,u8>(Ok::<_,u8>(Ok::<_,u8>(4)));
-//! # let value = 
+//! # let value =
 //! a.and_then(
 //!     // >>>
 //!     |b| b.and_then(
@@ -329,17 +403,17 @@
 //! # assert_eq!(value, Ok(6));
 //! # }
 //! ```
-//! 
+//!
 //! - Unwrap: **`<<<`**
 //! ```rust
 //! # use join::try_join;
 //! # fn main() {
 //! # let value = Some(Some(5));
 //! # let result =
-//! try_join! { 
-//!     value 
-//!     => >>> 
-//!         |> |v| v + 2 
+//! try_join! {
+//!     value
+//!     => >>>
+//!         |> |v| v + 2
 //!     <<<
 //!     |> |v| Some(v + 4)  
 //! }; // => value.and_then(|value| value.map(|v| v + 2)).map(|v| Some(v + 4))
@@ -350,7 +424,7 @@
 //! ```rust
 //! # fn main() {
 //! # let a = Ok::<_,u8>(Ok::<_,u8>(Ok::<_,u8>(4)));
-//! # let value = 
+//! # let value =
 //! a.and_then(
 //!     // >>>
 //!     |b| b.and_then(
@@ -372,11 +446,10 @@
 //!
 //! ## Handler
 //!
-//! **Only valid in `try` form.**
 //!
 //! might be one of
 //!
-//! - `map` => will act as `results.map(|(result0, result1, ..)| handler(result0, result1, ..))`
+//! - `map` => **Only valid for `try` macros.** Will act as `results.map(|(result0, result1, ..)| handler(result0, result1, ..))`
 //! ```rust
 //! # use join::try_join;
 //! # fn main() {
@@ -384,7 +457,7 @@
 //! assert_eq!(try_join! { Some(1), Some(2), Some(3), map => |a, b, c| a + b + c }, Some(6));
 //! # }
 //! ```
-//! - `and_then` => will act as `results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))`
+//! - `and_then` => **Only valid for `try` macros.** Will act as `results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))`
 //! ```rust
 //! # use join::try_join;
 //! # fn main() {
@@ -392,12 +465,11 @@
 //! assert_eq!(try_join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Some(a + b + c) }, Some(6));
 //! # }
 //! ```
-//! - `then` => will act as `handler(result0, result1, ..)`
+//! - `then` => **Only valid for not `try` macros.** Will be executed in any case, act as `handler(result0, result1, ..)`
 //! ```rust
-//! # use join::try_join;
+//! # use join::join;
 //! # fn main() {
-//! # let value = Some(1u8);
-//! assert_eq!(try_join! { Some(1), Some(2), Some(3), then => |a: Option<u8>, b: Option<u8>, c: Option<u8>| Some(a.unwrap() + b.unwrap() + c.unwrap()) }, Some(6));
+//! assert_eq!(join! { Some(1), Some(2), Some(3), then => |a: Option<u8>, b: Option<u8>, c: Option<u8>| Some(a.unwrap() + b.unwrap() + c.unwrap()) }, Some(6));
 //! # }
 //! ```
 //! or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned.
@@ -420,6 +492,43 @@
 //!     println!("{}", value);
 //! }
 //! ```
+//!
+//! ## Let pattern
+//!
+//! You can specify `let` pattern for each branch in order to share result with other branches, or in case if you need to have `mut` value between steps.
+//!
+//! ```rust
+//! # use join::*;
+//! # fn main() {
+//! assert_eq!(try_join! {
+//!     let mut branch_0 = Ok::<_,u8>(1) ~|> |v| v + 1,
+//!     let branch_1 = Ok::<_,u8>(2) ~|> { let value_0 = branch_0.as_ref().unwrap(); move |v| v + value_0 },
+//!     map => |b_0, b_1| b_0 * b_1
+//! }.unwrap(), 6);
+//! # }
+//! ```
+//!
+//! ## Block captures
+//!
+//! In order to capture variables (for ex. values of other branches in example above) you can pass block statements instead of functions:
+//! ```rust
+//! # use join::*;
+//! # fn main() {
+//! let mut some_value = Some("capture me");
+//! assert_eq!(try_join! {
+//!     Some(0) |> |v| {
+//!         // assign `None` to some_value in step expr
+//!         some_value = None;
+//!         v
+//!     } |> {
+//!         // capture value before step and get str len
+//!         let captured_len = some_value.as_ref().unwrap().len();
+//!         move |v| v + captured_len
+//!     }
+//! }.unwrap(), 10);
+//! # }
+//! ```
+//! These blocks will be placed before actual step expressions.
 //!
 //! ## Demos
 //!
@@ -449,36 +558,36 @@
 //!                 // Collect values into `Vec<_>`
 //!                 =>[] Vec<_>
 //!                 // Use `Arc` to share data with branch 1
-//!                 -> Arc::new
+//!                 -> Arc::new -> Some
 //!                 // Find max and clone its value
-//!                 ~..iter().max()
-//!                 |> Clone::clone,
+//!                 ~=> >>> ..iter().max() |> Clone::clone,
 //!         generate_random_vec(10000, 100000000000000f64)
 //!             .into_iter()
 //!             // Extract sqrt from every element
 //!             |> get_sqrt
-//!             // Add index in order to compare with the values of branch 0 (call `enumerate`)
-//!             |n>
-//!             ~|> {
-//!                 // Get data from branch 0 by cloning arc
-//!                 let branch_0 = branch_0.clone();
-//!                 let len = branch_0.len();
-//!                 // Compare every element of branch 1 with element of branch 0
-//!                 // with the same index and take min
-//!                 move |(index, value)|
-//!                     if index < len && value as u64 > branch_0[index] {
-//!                         branch_0[index]
-//!                     } else {
-//!                         value as u64
-//!                     }
-//!             }
-//!             ..max(),
+//!             -> Some
+//!             ~=> >>> // Add index in order to compare with the values of branch 0 (call `enumerate`)
+//!                 |n>
+//!                 |> {
+//!                      // Get data from branch 0 by cloning arc
+//!                      let branch_0 = branch_0.as_ref().unwrap().clone();
+//!                      let len = branch_0.len();
+//!                      // Compare every element of branch 1 with element of branch 0
+//!                      // with the same index and take min
+//!                      move |(index, value)|
+//!                          if index < len && value as u64 > branch_0[index] {
+//!                              branch_0[index]
+//!                          } else {
+//!                              value as u64
+//!                          }
+//!                  }..max(),
 //!         generate_random_vec(100000, 100000u32)
 //!             .into_iter()
-//!             ~..max(),
-//!         map => |max0, max1, max2|
+//!             -> Some
+//!             ~=> >>> ..max(),
+//!         and_then => |max0, max1, max2|
 //!             // Find final max
-//!             *[max0, max1, max2 as u64].into_iter().max().unwrap()
+//!             [max0, max1, max2 as u64].iter().max().map(Clone::clone)
 //!     }
 //!     .unwrap();
 //!     println!("Max: {}", max);
@@ -649,7 +758,7 @@
 //!                     _ => "have the same result as random generator!"
 //!                 }
 //!             )
-//!     ).unwrap();  
+//!     ).unwrap_or_else(|error| eprintln!("Error: {:#?}", error));
 //! }
 //!
 //! fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
@@ -686,7 +795,7 @@
 //!         result = try_join_async! {
 //!             next
 //!                 |> |value| value.ok_or(format_err!("Unexpected end of input"))
-//!                 => >>> 
+//!                 => >>>
 //!                     !> |err| format_err!("Failed to apply codec: {:?}", err) -> ready
 //!                 <<<
 //!                 => |value|
@@ -748,7 +857,7 @@
 //!
 //! ### Futures
 //!
-//! Each branch will represent future chain. All branches will be joined using `::futures::join!` macro and `join_async!` will return `unpolled` future.
+//! Each branch will represent future chain. All branches will be joined using `::futures::join!`/`::futures::try_join!` macro and `join_async!`/`try_join_async!` will return `unpolled` future.
 //!
 //! ```rust
 //! #![recursion_limit="256"]
@@ -834,11 +943,51 @@
 //!     println!("Calculated: {}", sum);
 //! }
 //! ```
+//! 
+//! *Thread names* 
+//! 
+//! In runtime thread's name will be constructed from name of parent thread and join_%branch_index%.
+//!
+//! Example code with many branches:
+//! 
+//! ```rust
+//! extern crate join;
+//!
+//! use std::thread;
+//!
+//! use join::try_join_spawn;
+//!
+//! fn get_current_thread_name() -> String {
+//!     thread::current().name().unwrap().to_owned()
+//! }
+//!
+//! fn print_branch_thread_name(index: &Result<usize, ()>) {
+//!     println!("Branch: {}. Thead name: {}.", index.unwrap(), get_current_thread_name());
+//! }
+//!
+//! fn main() {
+//!     let _ = try_join_spawn! {
+//!         Ok(0) ?? print_branch_thread_name,
+//!         Ok(1) ?? print_branch_thread_name,
+//!         try_join_spawn! {
+//!             Ok(2) ?? print_branch_thread_name,
+//!             try_join_spawn! {
+//!                 Ok(3) ?? print_branch_thread_name,
+//!             }
+//!         }
+//!     }.unwrap();
+//! }
+//!
+//! // Branch: 0. Thead name: main_join_0.
+//! // Branch: 1. Thead name: main_join_1.
+//! // Branch: 2. Thead name: main_join_2_join_0.
+//! // Branch: 3. Thead name: main_join_2_join_1_join_0.
+//! // Order could be different.
+//! ```
 //!
 //! ### Future tasks
 //!
-//! `join_async_spawn!` uses `::tokio::spawn` function to spawn tasks so it should be done inside `tokio` runtime
-//! (number of branches is the max count of `tokio` tasks at the time).
+//! [`join_async_spawn!`](macro.join_async_spawn.html) uses [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) function to spawn futures so it should be done inside `tokio` runtime.
 //!
 //! ```rust
 //! #![recursion_limit="256"]
@@ -931,7 +1080,6 @@
 //!     println!("Calculated: {}", sum);
 //! }
 //! ```
-#![recursion_limit = "256"]
 extern crate join_export;
 extern crate proc_macro_hack;
 extern crate proc_macro_nested;
@@ -939,7 +1087,7 @@ extern crate proc_macro_nested;
 use proc_macro_hack::proc_macro_hack;
 
 ///
-/// Use to combine sync results.
+/// Use to combine results.
 ///
 /// ```rust
 /// extern crate join;
@@ -990,7 +1138,7 @@ pub use join_export::try_join;
 pub use join_export::try_join_async;
 
 ///
-/// Use to spawn `::std::thread` per each step of each branch.
+/// Use to spawn [`::std::thread`](https://doc.rust-lang.org/std/thread/) per each step of each branch.
 ///
 /// ```rust
 /// extern crate join;
@@ -1020,13 +1168,13 @@ pub use join_export::try_join_async;
 pub use join_export::try_join_spawn;
 
 ///
-/// Alias for `try_join_spawn!`.
+/// Alias for [`try_join_spawn!`](macro.try_join_spawn.html).
 ///
 #[proc_macro_hack(support_nested)]
 pub use join_export::try_spawn;
 
 ///
-/// Use to spawn `::tokio::spawn` per each step of each branch.
+/// Use to spawn [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each step of each branch.
 /// ```rust
 /// #![recursion_limit="512"]
 ///
@@ -1066,7 +1214,7 @@ pub use join_export::try_spawn;
 pub use join_export::try_join_async_spawn;
 
 ///
-/// Alias for `try_join_async_spawn!`.
+/// Alias for [`try_join_async_spawn!`](macro.try_join_async_spawn.html).
 ///
 #[proc_macro_hack(support_nested, internal_macro_calls = 20)]
 pub use join_export::try_async_spawn;
@@ -1112,7 +1260,7 @@ pub use join_export::join;
 pub use join_export::join_async;
 
 ///
-/// Use to spawn `::std::thread` per each step of each branch.
+/// Use to spawn [`::std::thread`](https://doc.rust-lang.org/std/thread/) per each step of each branch.
 ///
 /// ```rust
 /// extern crate join;
@@ -1128,13 +1276,13 @@ pub use join_export::join_async;
 pub use join_export::join_spawn;
 
 ///
-/// Alias for `join_spawn!`.
+/// Alias for [`join_spawn!`](macro.join_spawn.html).
 ///
 #[proc_macro_hack(support_nested)]
 pub use join_export::spawn;
 
 ///
-/// Use to spawn `::tokio::spawn` per each step of each branch.
+/// Use to spawn futures using [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each step of each branch.
 /// ```rust
 /// #![recursion_limit="256"]
 ///
@@ -1155,7 +1303,7 @@ pub use join_export::spawn;
 pub use join_export::join_async_spawn;
 
 ///
-/// Alias for `join_async_spawn!`.
+/// Alias for [`join_async_spawn!`](macro.join_async_spawn.html).
 ///
 #[proc_macro_hack(support_nested, internal_macro_calls = 20)]
 pub use join_export::async_spawn;

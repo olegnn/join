@@ -93,9 +93,7 @@ pub fn parse_until<'a, T: Parse>(
 
             wrap = wrap_determiner.check_input(&forked);
 
-            if deferred && wrap {
-                return Err(input.error("Action can be either deferred or wrapped but not both"));
-            } else if wrap && group_type == CommandGroup::UNWRAP {
+            if wrap && group_type == CommandGroup::UNWRAP {
                 return Err(input.error("Action can be either wraped or unwraped but not both"));
             } else if wrap && !group_type.can_be_wrapper() {
                 return Err(input.error("This combinator can't be wrapper"));
