@@ -36,7 +36,7 @@
 //!
 //! ## Macros
 //!
-//! - [`try_join!`](macro.join.html) - combines results/options, transposes tuple of results in result of tuple.
+//! - [`try_join!`](macro.join.html) - combines results/options, transposes tuple of results/options in result/option of tuple.
 //! ```rust
 //! # use join::*;
 //! # fn main() {

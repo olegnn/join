@@ -38,7 +38,7 @@
 
 ## Macros
 
-- `try_join!` - combines results, transposes tuple of results in result of tuple.
+- `try_join!` - combines results/options, transposes tuple of results/options in result/option of tuple.
 ```rust
 assert_eq!(try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
 ```
