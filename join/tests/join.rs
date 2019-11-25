@@ -3,8 +3,11 @@
 #[cfg(test)]
 mod join_tests {
     use join::{join, try_join};
+    use std::error::Error;
 
-    type Result<T> = std::result::Result<T, u8>;
+    type BoxedError = Box<dyn Error + Send + Sync>;
+
+    type Result<T> = std::result::Result<T, BoxedError>;
 
     type _Result<T, E> = std::result::Result<T, E>;
 
@@ -21,7 +24,7 @@ mod join_tests {
     }
 
     fn get_err() -> Result<u16> {
-        Err(6)
+        Err("error".to_string().into())
     }
 
     fn get_none() -> Option<u16> {
@@ -37,7 +40,7 @@ mod join_tests {
     }
 
     fn to_err(v: u16) -> Result<u16> {
-        Err(v as u8)
+        Err(v.to_string().into())
     }
 
     fn to_none(_: u16) -> Option<u16> {
@@ -57,7 +60,7 @@ mod join_tests {
             <<<
         };
 
-        assert_eq!(value, Ok(Ok(9)));
+        assert_eq!(value.unwrap(), Ok(9));
 
         let value = join! {
             Some(Some(Some(2u16)))
@@ -118,7 +121,7 @@ mod join_tests {
             <<<
         };
 
-        assert_eq!(value, Ok(Ok(9)));
+        assert_eq!(value.unwrap(), Ok(9));
     }
 
     #[test]
@@ -127,11 +130,11 @@ mod join_tests {
             Ok(2u16),
             Ok(get_three()),
             get_ok_four(),
-            get_some_five().ok_or(2),
+            get_some_five().ok_or("some error".into()),
             map => |a, b, c, d| a * b * c * d
         };
 
-        assert_eq!(product, Ok(120));
+        assert_eq!(product.unwrap(), 120);
 
         let err = try_join! {
             Ok(2),
@@ -141,7 +144,10 @@ mod join_tests {
             map => |a, b, c, d| a * b * c * d
         };
 
-        assert_eq!(err, get_err());
+        assert_eq!(
+            err.unwrap_err().to_string(),
+            get_err().unwrap_err().to_string()
+        );
 
         let product = try_join! {
             Some(2),
@@ -171,21 +177,24 @@ mod join_tests {
             Ok(2u16).map(add_one).and_then(add_one_ok), //4
             Ok(get_three()).and_then(add_one_ok).map(add_one).map(add_one).map(add_one), //7
             get_ok_four().map(add_one), //5
-            get_some_five().map(add_one).ok_or(2).and_then(to_err).and_then(add_one_ok).or(Ok(5)), // 5
+            get_some_five().map(add_one).ok_or("some error".into()).and_then(to_err).and_then(add_one_ok).or(Ok(5)), // 5
             map => |a, b, c, d| a * b * c * d
         };
 
-        assert_eq!(product, Ok(700));
+        assert_eq!(product.unwrap(), 700);
 
         let err = try_join! {
             Ok(2).map(add_one),
             Ok(get_three()).and_then(to_err),
-            get_ok_four().and_then(|_| -> Result<u16> { Err(10) }),
+            get_ok_four().and_then(|_| -> Result<u16> { Err("ERROR".into()) }),
             get_err(),
             map => |a, b, c, d| a * b * c * d
         };
 
-        assert_eq!(err, to_err(get_three()));
+        assert_eq!(
+            err.unwrap_err().to_string(),
+            to_err(get_three()).unwrap_err().to_string()
+        );
     }
 
     #[test]
@@ -194,31 +203,34 @@ mod join_tests {
             Ok(2u16) |> add_one => add_one_ok, //4
             Ok(get_three()) => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
-            get_some_five() |> add_one ..ok_or(2) => to_err => add_one_ok <| Ok(5), // 5
+            get_some_five() |> add_one ..ok_or("some error".into()) => to_err => add_one_ok <| Ok(5), // 5
             map => |a, b, c, d| a * b * c * d
         };
 
-        assert_eq!(product, Ok(700));
+        assert_eq!(product.unwrap(), 700);
 
         let sum = try_join! {
             2u16 -> Ok |> add_one => add_one_ok, //4
             get_three() -> Ok => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
-            get_some_five() |> add_one ..ok_or(2) => to_err => add_one_ok <| Ok(5), // 5
+            get_some_five() |> add_one ..ok_or("some error".into()) => to_err => add_one_ok <| Ok(5), // 5
             and_then => |a, b, c, d| Ok(a + b + c + d)
         };
 
-        assert_eq!(sum, Ok(21));
+        assert_eq!(sum.unwrap(), 21);
 
         let err = try_join! {
             Ok(2) |> add_one,
             Ok(get_three()) => to_err,
-            get_ok_four() => |_| -> Result<u16> { Err(10) },
+            get_ok_four() => |_| -> Result<u16> { Err("ERROR!".into()) },
             get_err(),
             map => |a, b, c, d| a * b * c * d
         };
 
-        assert_eq!(err, to_err(get_three()));
+        assert_eq!(
+            err.unwrap_err().to_string(),
+            to_err(get_three()).unwrap_err().to_string()
+        );
 
         let none = try_join! {
             2 -> Some |> add_one,
@@ -240,16 +252,19 @@ mod join_tests {
             and_then => |a, b, c| Ok::<Option<u16>, _>(None)
         };
 
-        assert_eq!(ok, Ok(None));
+        assert_eq!(ok.unwrap(), None);
 
         let err = try_join! {
             Ok(2),
             Ok(3),
             get_ok_four(),
-            and_then => |a, b, c| Err::<Option<u16>, _>(a)
+            and_then => |a: u8, b, c| Err::<Option<u16>, _>(a.to_string().into())
         };
 
-        assert_eq!(err, Err(2));
+        assert_eq!(
+            err.unwrap_err().to_string(),
+            Err::<u8, BoxedError>("2".into()).unwrap_err().to_string()
+        );
 
         let some = try_join! {
             Some(2),
@@ -298,7 +313,7 @@ mod join_tests {
             then => |a: Result<u16>, b: Result<u16>, c: Result<u16>| Ok::<_, u8>(a.unwrap() + b.unwrap() + c.unwrap())
         };
 
-        assert_eq!(ok, Ok(9));
+        assert_eq!(ok.unwrap(), 9);
 
         let err = join! {
             Ok(2),
@@ -313,26 +328,40 @@ mod join_tests {
     #[test]
     fn it_tests_steps() {
         let product = try_join! {
-            let branch_0 = Ok(2u16) ~|> |value| {
-                assert_eq!(branch_0, Ok(value));
-                assert_eq!(branch_1, Ok(3));
-                assert_eq!(branch_2, Ok(4));
-                assert_eq!(branch_3, Ok(6));
-                add_one(value)
+            let branch_0 = Ok(2u16) ~|> {
+                let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
+                let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
+                let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
+                let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
+
+                move |value| {
+                    assert_eq!(branch_0.unwrap(), value);
+                    assert_eq!(branch_1.unwrap(), 3);
+                    assert_eq!(branch_2.unwrap(), 4);
+                    assert_eq!(branch_3.unwrap(), 6);
+                    add_one(value)
+                }
             } ~=> add_one_ok, //4
-            let branch_1 = Ok(get_three()) ~=> add_one_ok ~|> |value| value |> |value| {
-                assert_eq!(branch_0, Ok(3));
-                assert_eq!(branch_1, Ok(value));
-                assert_eq!(branch_2, Ok(5));
-                assert_eq!(branch_3, Ok(5));
-                add_one(value)
+            let branch_1 = Ok(get_three()) ~=> add_one_ok ~|> |value| value |> {
+                let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
+                let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
+                let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
+                let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
+
+                move |value| {
+                    assert_eq!(branch_0.unwrap(), 3);
+                    assert_eq!(branch_1.unwrap(), value);
+                    assert_eq!(branch_2.unwrap(), 5);
+                    assert_eq!(branch_3.unwrap(), 5);
+                    add_one(value)
+                }
             } ~|> add_one ~|> add_one, //7
             let branch_2 = get_ok_four() ~|> add_one, //5
-            let branch_3 = get_some_five() |> add_one ..ok_or(2) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
+            let branch_3 = get_some_five() |> add_one ..ok_or("some error".into()) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
             map => |a, b, c, d| a * b * c * d
         };
 
-        assert_eq!(product, Ok(840));
+        assert_eq!(product.unwrap(), 840);
     }
 
     #[test]

@@ -566,8 +566,8 @@
 //!             // Extract sqrt from every element
 //!             |> get_sqrt
 //!             -> Some
-//!             ~=> >>> 
-                // Add index in order to compare with the values of branch_0 (call `enumerate`)
+//!             ~=> >>>
+//!                 // Add index in order to compare with the values of branch_0 (call `enumerate`)
 //!                 |n>
 //!                 |> {
 //!                      // Get data from branch 0 by cloning arc
