@@ -1,6 +1,10 @@
+# [0.1.0-alpha.17]
+
+Optimized steps: branches which are not active during step are excluded from code. Fixed `join_spawn!` last step behaviour. 
+
 # [0.1.0-alpha.16]
 
-Handler definition moved to the beginning of generated code. `try` macros will abort execution in case of `Err`/`None` value at the end of any step. Use `::futures::try_join` in `try` `async` macros. Updated docs. Small refactoring.
+Handler definition moved to the beginning of generated code. `try` macros will abort execution in case of `None`/`Err`  value at the end of any step. Use `::futures::try_join` in `try` `async` macros. Updated docs. Small refactoring.
 
 # [0.1.0-alpha.15]
 

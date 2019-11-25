@@ -169,14 +169,14 @@ mod join_async_tests {
                 format!("{:?}", to_err(2).await.unwrap_err())
             );
 
-            let some = try_join_async! {
+            let okay = try_join_async! {
                 ready(Ok(2u16)),
                 ready(Ok(3u16)),
                 get_ok_five(),
                 map => |a, b, c| a
             };
 
-            assert_eq!(some.await.unwrap(), 2u16);
+            assert_eq!(okay.await.unwrap(), 2u16);
 
             let error: Result<u16> = try_join_async! {
                 ready(Ok(2u16)),
@@ -188,14 +188,24 @@ mod join_async_tests {
 
             assert_eq!(error.unwrap_err().to_string(), "error".to_string());
 
-            let some = try_join_async! {
+            let okay = try_join_async! {
                 ready(Ok(2u16)),
                 ready(Ok(3u16)),
                 get_ok_five(),
                 map => |a, b, c| a + b + c
             };
 
-            assert_eq!(some.await.unwrap(), 10);
+            assert_eq!(okay.await.unwrap(), 10);
+
+            let okay: Result<u16> = join_async! {
+                ready(Ok::<_,BoxedError>(2u16)),
+                ready(Ok::<_,BoxedError>(3u16)),
+                err::<u16,BoxedError>("25".into()),
+                then => |a, b, c| ready(a)
+            }
+            .await;
+
+            assert!(okay.is_ok());
 
             let error = try_join_async! {
                 ready(Ok(2u16)),
@@ -230,8 +240,7 @@ mod join_async_tests {
     #[test]
     fn it_checks_evalutation_in_case_of_error() {
         block_on(async {
-            let error =
-                try_join_async! { err::<u8,u8>(2u8) ~=> |_| { unreachable!(); ok(2u8) }, ok::<u8,u8>(3u8) };
+            let error = try_join_async! { err::<u8,u8>(2u8) ~=> |_| { unreachable!(); ok(2u8) }, ok::<u8,u8>(3u8) };
             assert_eq!(error.await, Err(2u8));
         });
     }
@@ -284,35 +293,62 @@ mod join_async_tests {
             let values = Arc::new(Mutex::new(Vec::new()));
 
             let _ = join_async! {
-                { ok((values.clone(), 1u16)) } => |(values, value)| async move {
+                ok((values.clone(), 1u16)) => |(values, value)| async move {
+                    values.lock().await.push(value);
+                    Delay::new(Duration::from_secs(1)).await;
+                    {
+                        let mut values = values.lock().await;
+                        values.sort();
+                        assert_eq!(values[..], [1, 2, 3]);
+                        values.pop();
+                    }
+                    Ok::<_, BoxedError>((values, value + 1))
+                } ~=> |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(1)).await;
                     let mut values = values.lock().await;
                     values.sort();
-                    assert_eq!(values[..], [1, 2, 3]);
-                    values.pop();
+                    assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
                 ok((values.clone(), 2u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(2)).await;
+                    {
+                        let mut values = values.lock().await;
+                        values.sort();
+                        assert_eq!(values[..], [1, 2]);
+                        values.pop();
+                    }
+                    Ok::<_, BoxedError>((values, value + 1))
+                } ~=> |(values, value)| async move {
+                    values.lock().await.push(value);
+                    Delay::new(Duration::from_secs(2)).await;
                     let mut values = values.lock().await;
                     values.sort();
-                    assert_eq!(values[..], [1, 2]);
-                    values.pop();
+                    assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
                 ok((values.clone(), 3u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(3)).await;
+                    {
+                        let mut values = values.lock().await;
+                        values.sort();
+                        assert_eq!(values[..], [1]);
+                        values.pop();
+                    }
+                    Ok::<_, BoxedError>((values, value + 1))
+                } ~=> |(values, value)| async move {
+                    values.lock().await.push(value);
+                    Delay::new(Duration::from_secs(3)).await;
                     let mut values = values.lock().await;
                     values.sort();
-                    assert_eq!(values[..], [1]);
-                    values.pop();
+                    assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
                 then => |_, _, _| async {
-                    assert_eq!(values.clone().lock().await.len(), 0);
+                    assert_eq!(values.clone().lock().await[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 }
             }
@@ -435,12 +471,53 @@ mod join_async_tests {
     }
 
     #[test]
+    fn it_tests_nested_macro_combinations() {
+        use futures::executor::block_on;
+        use futures::future::*;
+        use join::*;
+
+        block_on(async {
+            let value = try_join_async! {
+                try_join_async! {
+                    ok::<_,u8>(2u32),
+                    ok::<_,u8>(3u32),
+                    ok::<_,u8>(4u32),
+                    try_join_async! {
+                        ok::<_,u8>(6u32),
+                        join_async! {
+                            ok::<_,u8>(8u32),
+                            ok::<_,u8>(9) ~=> |v| ok(v + 1)
+                        } |> |v| v.1,
+                        map => |a, b| b - a // 4
+                    },
+                    map => |a, b, c, d| a + b + c + d // 13
+                },
+                try_join_async!{
+                    try_join_async! {
+                        ok::<_,u8>(21u32),
+                        ok::<_,u8>(22u32),
+                        ok::<_,u8>(23u32),
+                        map => |a, b, c| a * b * c // 10626
+                    },
+                    ok(2u32),
+                    and_then => |a, b| ok(a * b) // 21252
+                },
+                map => |a, b| a + b // 21265
+            }
+            .await
+            .unwrap();
+
+            assert_eq!(value, 21265);
+        });
+    }
+
+    #[test]
     fn it_tests_readme_demo_async_behaviour_and_requires_internet_connection() {
         use ::failure::{format_err, Error};
-        use ::futures::future::{ok, ready, try_join_all};
+        use ::futures::future::try_join_all;
         use ::futures::stream::{iter, Stream};
         use ::reqwest::Client;
-        use join::{try_join, try_join_async};
+        use join::try_join;
 
         type Result<T, E> = std::result::Result<T, E>;
 
@@ -608,7 +685,7 @@ mod join_async_tests {
             let out = Arc::new(5);
             let value = try_join_async! {
                 let pat_1 = { let out = out.clone(); ok::<_,()>(*out) },
-                let pat_2 = {  ok::<_,()>(*out) },
+                let pat_2 = { ok::<_,()>(*out) },
                 map => |a, _| a
             }
             .await

@@ -204,7 +204,7 @@ where
 {
     ///
     /// Constructs new `ActionExprChain` from given `ParseStream` using `ActionExprChainGenerator`.
-    /// 
+    ///
     pub fn new<'a>(
         input: ParseStream<'_>,
         expr_chain_generator: &'a ActionExprChainGenerator,

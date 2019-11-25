@@ -40,13 +40,6 @@ pub fn construct_inspect_fn_name() -> Ident {
 }
 
 ///
-/// Constructs condition variable name. For internal usage.
-///
-pub fn construct_bool_cond_name() -> Ident {
-    Ident::new("__condition", Span::call_site())
-}
-
-///
 /// Constructs `tokio::spawn` wrapper function name. For internal usage.
 ///
 pub fn construct_spawn_tokio_fn_name() -> Ident {
@@ -109,7 +102,7 @@ pub fn construct_expr_wrapper_name(
 ///     };
 /// }
 /// ```
-/// In runtime thread's name will be constructed from {(name of parent thread (if it's `Some`) + `_`) or `` (if it's None)}join_{index of branch (starting from 0)}.
+/// In runtime thread's name will be constructed from name of parent thread and join_%branch_index%.
 ///
 /// Example code with many branches.
 /// ```
@@ -124,7 +117,7 @@ pub fn construct_expr_wrapper_name(
 /// }
 ///
 /// fn print_branch_thread_name(index: &Result<usize, ()>) {
-///     println!("Branch: {}. Thead name: {}.", index.unwrap(), get_current_thread_name());
+///     println!("Branch: {}. Thread name: {}.", index.unwrap(), get_current_thread_name());
 /// }
 ///
 /// fn main() {
@@ -140,10 +133,10 @@ pub fn construct_expr_wrapper_name(
 ///     }.unwrap();
 /// }
 ///
-/// // Branch: 0. Thead name: main_join_0.
-/// // Branch: 1. Thead name: main_join_1.
-/// // Branch: 2. Thead name: main_join_2_join_0.
-/// // Branch: 3. Thead name: main_join_2_join_1_join_0.
+/// // Branch: 0. Thread name: main_join_0.
+/// // Branch: 1. Thread name: main_join_1.
+/// // Branch: 2. Thread name: main_join_2_join_0.
+/// // Branch: 3. Thread name: main_join_2_join_1_join_0.
 /// // Order could be different.
 /// ```
 ///

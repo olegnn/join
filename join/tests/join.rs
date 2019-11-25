@@ -1,4 +1,4 @@
-#![recursion_limit = "256"]
+#![recursion_limit = "512"]
 
 #[cfg(test)]
 mod join_tests {
@@ -360,7 +360,7 @@ mod join_tests {
         let mut some_vec = Some(vec![0u8]);
 
         let values: (Vec<_>, Vec<_>) = join! {
-            vec![2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64
+            vec![2u8, 3, 4, 5, 6, 7, 8, 9, 10, 11].into_iter() |> |v| { some_vec = None; v + 1 } ?|> |v| if v % 2 == 0 { Some(v) } else { None } |n> ^@ { some_vec.clone() }, |mut acc, (index, v)| { acc.as_mut().unwrap().push(v + (index as u8)); acc } ..unwrap().into_iter() =>[] Vec<_> ~..into_iter() ?&!> |&n| (n as f64).cos().abs() > ::std::f64::consts::PI / 3f64
         };
 
         assert_eq!(values, (vec![], vec![0, 4, 7, 10, 13, 16]));
@@ -416,6 +416,46 @@ mod join_tests {
     fn it_tests_filter() {
         let value = try_join! { vec![1,2,3,4].into_iter() ?> |&value| value % 2 == 0 -> Some };
         assert_eq!(value.unwrap().collect::<Vec<_>>(), vec![2, 4]);
+    }
+
+    #[test]
+    fn it_tests_nested_macro_combinations() {
+        use futures::executor::block_on;
+        use futures::future::*;
+        use join::*;
+
+        block_on(async {
+            let value = try_join! {
+                try_join! {
+                    Ok::<_,u8>(2u32),
+                    Ok::<_,u8>(3u32),
+                    Ok::<_,u8>(4u32),
+                    try_join! {
+                        Ok::<_,u8>(6u32),
+                        join! {
+                            Ok::<_,u8>(8u32),
+                            Ok::<_,u8>(9) ~|> |v| v + 1
+                        }.1,
+                        map => |a, b| b - a // 4
+                    },
+                    map => |a, b, c, d| a + b + c + d // 13
+                },
+                try_join!{
+                    try_join_async! {
+                        ok::<_,u8>(21u32),
+                        ok::<_,u8>(22u32),
+                        ok::<_,u8>(23u32),
+                        map => |a, b, c| a * b * c // 10626
+                    }.await,
+                    Ok(2u32),
+                    and_then => |a, b| Ok(a * b) // 21252
+                },
+                map => |a, b| a + b // 21265
+            }
+            .unwrap();
+
+            assert_eq!(value, 21265);
+        });
     }
 
     #[test]

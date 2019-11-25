@@ -5,7 +5,7 @@
 **Macros** which provide useful shortcut combinators, combine sync/async chains, support single and multi thread (sync/async) step by step execution of branches, transform tuple of results in result of tuple.
 
 - `join!` macros will just return final values. Use it if you are working with iterators/streams etc.
-- `try_join!` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options. If one of branches at the end of step produces `Err`/`None`, next steps execution will be aborted. In case of `async` macro you can only provide `Result`s because `::futures::try_join` doesn't support `Option`s.
+- `try_join!` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options. If one of branches produces `None`/`Err`  at the end of step , next steps execution will be aborted. In case of `async` macro you can only provide `Result`s because `::futures::try_join` doesn't support `Option`s.
 
 [![Docs][docs-badge]][docs-url]
 [![Crates.io][crates-badge]][crates-url]
@@ -346,13 +346,14 @@ fn main() {
             // Extract sqrt from every element
             |> get_sqrt
             -> Some
-            ~=> >>> // Add index in order to compare with the values of branch 0 (call `enumerate`)
+            ~=> >>> 
+                // Add index in order to compare with the values of branch_0 (call `enumerate`)
                 |n>
                 |> {
                     // Get data from branch 0 by cloning arc
                     let branch_0 = branch_0.as_ref().unwrap().clone();
                     let len = branch_0.len();
-                    // Compare every element of branch 1 with element of branch 0
+                    // Compare every element of branch 1 with element of branch_0
                     // with the same index and take min
                     move |(index, value)|
                         if index < len && value as u64 > branch_0[index] {
@@ -741,7 +742,7 @@ fn get_current_thread_name() -> String {
 }
 
 fn print_branch_thread_name(index: &Result<usize, ()>) {
-    println!("Branch: {}. Thead name: {}.", index.unwrap(), get_current_thread_name());
+    println!("Branch: {}. Thread name: {}.", index.unwrap(), get_current_thread_name());
 }
 
 fn main() {
@@ -757,10 +758,10 @@ fn main() {
     }.unwrap();
 }
 
-// Branch: 0. Thead name: main_join_0.
-// Branch: 1. Thead name: main_join_1.
-// Branch: 2. Thead name: main_join_2_join_0.
-// Branch: 3. Thead name: main_join_2_join_1_join_0.
+// Branch: 0. Thread name: main_join_0.
+// Branch: 1. Thread name: main_join_1.
+// Branch: 2. Thread name: main_join_2_join_0.
+// Branch: 3. Thread name: main_join_2_join_1_join_0.
 // Order could be different.
 ```
 

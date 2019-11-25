@@ -230,6 +230,42 @@ mod join_spawn_tests {
     }
 
     #[test]
+    fn it_tests_nested_macro_combinations() {
+        use join::*;
+
+        let value = try_join_spawn! {
+            try_join_spawn! {
+                Ok::<_,u8>(2u32),
+                Ok::<_,u8>(3u32),
+                Ok::<_,u8>(4u32),
+                try_join_spawn! {
+                    Ok::<_,u8>(6u32),
+                    join_spawn! {
+                        Ok::<_,u8>(8u32),
+                        Ok::<_,u8>(9) ~|> |v| v + 1
+                    }.1,
+                    map => |a, b| b - a // 4
+                },
+                map => |a, b, c, d| a + b + c + d // 13
+            },
+            try_join_spawn!{
+                try_join! {
+                    Ok::<_,u8>(21u32),
+                    Ok::<_,u8>(22u32),
+                    Ok::<_,u8>(23u32),
+                    map => |a, b, c| a * b * c // 10626
+                },
+                Ok(2u32),
+                and_then => |a, b| Ok(a * b) // 21252
+            },
+            map => |a, b| a + b // 21265
+        }
+        .unwrap();
+
+        assert_eq!(value, 21265);
+    }
+
+    #[test]
     fn it_tests_steps() {
         let product = try_join_spawn! {
             let branch_0 = Ok(2u16) ~|> move |value| {
@@ -255,7 +291,7 @@ mod join_spawn_tests {
     }
 
     #[test]
-    fn it_checks_mutli_threading() {
+    fn it_checks_multi_threading() {
         use std::sync::{Arc, Mutex};
         use std::thread;
         use std::time::Duration;
@@ -268,29 +304,62 @@ mod join_spawn_tests {
             Ok::<_,u8>((values0, 1)) |> |(values, value)| {
                 values.lock().unwrap().push(value);
                 thread::sleep(Duration::from_secs(1));
-                let mut values = values.lock().unwrap();
-                values.sort();
-                assert_eq!(values[..], [1, 2, 3]);
-                values.pop();
+                {
+                    let mut values = values.lock().unwrap();
+                    values.sort();
+                    assert_eq!(values[..], [1, 2, 3]);
+                    values.pop();
+                }
+                (values, value + 1)
+            } ~|> |(values, value)| {
+                values.lock().unwrap().push(value);
+                thread::sleep(Duration::from_secs(1));
+                {
+                    let mut values = values.lock().unwrap();
+                    values.sort();
+                    assert_eq!(values[..], [2, 3, 4]);
+                }
             },
             Ok::<_,u8>((values1, 2)) |> |(values, value)| {
                 values.lock().unwrap().push(value);
                 thread::sleep(Duration::from_secs(2));
-                let mut values = values.lock().unwrap();
-                values.sort();
-                assert_eq!(values[..], [1, 2]);
-                values.pop();
+                {
+                    let mut values = values.lock().unwrap();
+                    values.sort();
+                    assert_eq!(values[..], [1, 2]);
+                    values.pop();
+                }
+                (values, value + 1)
+            } ~|> |(values, value)| {
+                values.lock().unwrap().push(value);
+                thread::sleep(Duration::from_secs(2));
+                {
+                    let mut values = values.lock().unwrap();
+                    values.sort();
+                    assert_eq!(values[..], [2, 3, 4]);
+                }
             },
             Ok::<_,u8>((values2, 3)) |> |(values, value)| {
                 values.lock().unwrap().push(value);
                 thread::sleep(Duration::from_secs(3));
-                let mut values = values.lock().unwrap();
-                values.sort();
-                assert_eq!(values[..], [1]);
-                values.pop();
+                {
+                    let mut values = values.lock().unwrap();
+                    values.sort();
+                    assert_eq!(values[..], [1]);
+                    values.pop();
+                }
+                (values, value + 1)
+            } ~|> |(values, value)| {
+                values.lock().unwrap().push(value);
+                thread::sleep(Duration::from_secs(3));
+                {
+                    let mut values = values.lock().unwrap();
+                    values.sort();
+                    assert_eq!(values[..], [2, 3, 4]);
+                }
             },
             then => move |_, _, _| {
-                assert_eq!(values.lock().unwrap().len(), 0);
+                assert_eq!(values.lock().unwrap()[..], [2, 3, 4]);
                 Ok::<_,u8>(())
             }
         }

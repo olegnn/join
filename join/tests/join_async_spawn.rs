@@ -202,14 +202,14 @@ mod join_async_spawn_tests {
 
                 assert_eq!(some.await.unwrap(), 2u16);
 
-                let error: Result<u16> = join_async_spawn! {
+                let okay: Result<u16> = join_async_spawn! {
                     ready(Ok::<_,BoxedError>(2u16)),
                     ready(Ok::<_,BoxedError>(3u16)),
-                    get_ok_five(),
-                    then => |a, b, c| ready(Err("25".into()))
+                    err::<u16,BoxedError>("25".into()),
+                    then => |a, b, c| ready(a)
                 }.await;
 
-                assert!(error.is_err());
+                assert!(okay.is_ok());
 
                 let okay = try_join_async_spawn! {
                     ready(Ok(2u16)),
@@ -280,8 +280,45 @@ mod join_async_spawn_tests {
             assert_eq!(product.await.unwrap(), 840);
         });
     }
+
     #[test]
-    fn it_checks_mutli_threading() {
+    fn it_tests_nested_macro_combinations() {
+        use join::*;
+        let rt = tokio::runtime::Builder::new()
+            .core_threads(4)
+            .build()
+            .unwrap();
+
+        rt.block_on(async {
+            let value = try_join_async! {
+                try_join_async_spawn! {
+                    ok::<_,u8>(2u32),
+                    ok::<_,u8>(3u32),
+                    ok::<_,u8>(4u32),
+                    ok::<_,u8>(4u32),
+                    map => |a, b, c, d| a + b + c + d // 13
+                },
+                try_join_async!{
+                    try_join_async! {
+                        ok::<_,u8>(21u32),
+                        ok::<_,u8>(22u32),
+                        ok::<_,u8>(23u32),
+                        map => |a, b, c| a * b * c // 10626
+                    },
+                    ok(2u32),
+                    and_then => |a, b| ok(a * b) // 21252
+                },
+                map => |a, b| a + b // 21265
+            }
+            .await
+            .unwrap();
+
+            assert_eq!(value, 21265);
+        });
+    }
+
+    #[test]
+    fn it_checks_concurrent_branches_execution() {
         let rt = tokio::runtime::Builder::new()
             .core_threads(4)
             .build()
@@ -296,32 +333,59 @@ mod join_async_spawn_tests {
                 ok((values.clone(), 1u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(1)).await;
+                    {
+                        let mut values = values.lock().await;
+                        values.sort();
+                        assert_eq!(values[..], [1, 2, 3]);
+                        values.pop();
+                    }
+                    Ok::<_, BoxedError>((values, value + 1))
+                } ~=> |(values, value)| async move {
+                    values.lock().await.push(value);
+                    Delay::new(Duration::from_secs(1)).await;
                     let mut values = values.lock().await;
                     values.sort();
-                    assert_eq!(values[..], [1, 2, 3]);
-                    values.pop();
+                    assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
                 ok((values.clone(), 2u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(2)).await;
+                    {
+                        let mut values = values.lock().await;
+                        values.sort();
+                        assert_eq!(values[..], [1, 2]);
+                        values.pop();
+                    }
+                    Ok::<_, BoxedError>((values, value + 1))
+                } ~=> |(values, value)| async move {
+                    values.lock().await.push(value);
+                    Delay::new(Duration::from_secs(2)).await;
                     let mut values = values.lock().await;
                     values.sort();
-                    assert_eq!(values[..], [1, 2]);
-                    values.pop();
+                    assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
                 ok((values.clone(), 3u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(3)).await;
+                    {
+                        let mut values = values.lock().await;
+                        values.sort();
+                        assert_eq!(values[..], [1]);
+                        values.pop();
+                    }
+                    Ok::<_, BoxedError>((values, value + 1))
+                } ~=> |(values, value)| async move {
+                    values.lock().await.push(value);
+                    Delay::new(Duration::from_secs(3)).await;
                     let mut values = values.lock().await;
                     values.sort();
-                    assert_eq!(values[..], [1]);
-                    values.pop();
+                    assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
                 then => |_, _, _| async {
-                    assert_eq!(values.clone().lock().await.len(), 0);
+                    assert_eq!(values.clone().lock().await[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 }
             }

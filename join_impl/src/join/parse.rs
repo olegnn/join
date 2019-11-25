@@ -21,7 +21,7 @@ mod keywords {
 }
 
 ///
-/// Default `GroupDeterminer`'s definition.
+/// Default `GroupDeterminer`'s definitions.
 ///
 pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::define_instant_and_deferred_determiners! {
     UNWRAP => Token![<], Token![<], Token![<] => 3,
@@ -49,10 +49,16 @@ pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::define_instant
     Unzip => Token![<], Token![-], Token![>] => 3
 };
 
+///
+/// `GroupDeterminer` used to determine deferred group.
+///
 pub const DEFERRED_DETERMINER: &GroupDeterminer = &crate::define_determiner_with_no_group! {
     Token![~] => 1
 };
 
+///
+/// `GroupDeterminer` used to determine wrapper group.
+///
 pub const WRAP_DETERMINER: &GroupDeterminer = &crate::define_determiner_with_no_group! {
     Token![>], Token![>], Token![>] => 3
 };
@@ -95,12 +101,12 @@ impl Parse for JoinDefault {
         }
 
         while !input.is_empty() {
-            if Handler::is_handler(&input) {
+            if Handler::peek_handler(&input) {
                 if join.handler.is_some() {
                     return Err(input.error("Multiple `handler` cases found, only one allowed. Please, specify one of `map`, `and_then`, `then`."));
                 }
                 let handler = Handler::new(input)?.expect(
-                    "join: Handler `is_handler` check failed. This's a bug, please report it.",
+                    "join: Handler `peek_handler` check failed. This's a bug, please report it.",
                 );
                 join.handler = Some(handler);
             } else {

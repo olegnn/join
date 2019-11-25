@@ -46,7 +46,7 @@ macro_rules! define_instant_and_deferred_determiners {
             ),*,
             $crate::expr_chain::group::GroupDeterminer::new_const(
                 None,
-                $crate::handler::Handler::is_handler as *const (),
+                $crate::handler::Handler::peek_handler as *const (),
                 true,
                 0
             )

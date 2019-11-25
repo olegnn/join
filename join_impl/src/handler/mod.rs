@@ -31,15 +31,15 @@ impl Handler {
     /// Will return Err if `ParseStream` must contain `Handler` but it can't be parsed.
     ///
     pub fn new(input: ParseStream<'_>) -> syn::Result<Option<Handler>> {
-        let result = if Handler::is_then_handler(input) {
+        let result = if Handler::peek_then_handler(input) {
             input.parse::<keywords::then>()?;
             input.parse::<Token![=>]>()?;
             Some(Handler::Then(input.parse()?))
-        } else if Handler::is_and_then_handler(input) {
+        } else if Handler::peek_and_then_handler(input) {
             input.parse::<keywords::and_then>()?;
             input.parse::<Token![=>]>()?;
             Some(Handler::AndThen(input.parse()?))
-        } else if Handler::is_map_handler(input) {
+        } else if Handler::peek_map_handler(input) {
             input.parse::<keywords::map>()?;
             input.parse::<Token![=>]>()?;
             Some(Handler::Map(input.parse()?))
@@ -55,33 +55,63 @@ impl Handler {
     }
 
     ///
+    /// Returns true if handler is `Map`.
+    ///
+    pub fn is_map(&self) -> bool {
+        match self {
+            Self::Map(_) => true,
+            _ => false,
+        }
+    }
+
+    ///
+    /// Returns true if handler is `Then`.
+    ///
+    pub fn is_then(&self) -> bool {
+        match self {
+            Self::Then(_) => true,
+            _ => false,
+        }
+    }
+
+    ///
+    /// Returns true if handler is `AndThen`.
+    ///
+    pub fn is_and_then(&self) -> bool {
+        match self {
+            Self::AndThen(_) => true,
+            _ => false,
+        }
+    }
+
+    ///
     /// Returns true if next value in input `ParseStream` is the definition of `map` `Handler`.
     ///
-    fn is_map_handler(input: ParseStream<'_>) -> bool {
+    fn peek_map_handler(input: ParseStream<'_>) -> bool {
         input.peek(keywords::map) && input.peek2(Token![=>])
     }
 
     ///
     /// Returns true if next value in input `ParseStream` is the definition of `then` `Handler`.
     ///
-    fn is_then_handler(input: ParseStream<'_>) -> bool {
+    fn peek_then_handler(input: ParseStream<'_>) -> bool {
         input.peek(keywords::then) && input.peek2(Token![=>])
     }
 
     ///
     /// Returns true if next value in input `ParseStream` is the definition of `and_then` `Handler`.
     ///
-    fn is_and_then_handler(input: ParseStream<'_>) -> bool {
+    fn peek_and_then_handler(input: ParseStream<'_>) -> bool {
         input.peek(keywords::and_then) && input.peek2(Token![=>])
     }
 
     ///
     /// Returns true if next value in input `ParseStream` is the definition of `Handler`.
     ///  
-    pub fn is_handler(input: ParseStream<'_>) -> bool {
-        Handler::is_then_handler(input)
-            || Handler::is_and_then_handler(input)
-            || Handler::is_map_handler(input)
+    pub fn peek_handler(input: ParseStream<'_>) -> bool {
+        Handler::peek_then_handler(input)
+            || Handler::peek_and_then_handler(input)
+            || Handler::peek_map_handler(input)
     }
 
     ///
