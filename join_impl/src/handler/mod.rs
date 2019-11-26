@@ -30,19 +30,19 @@ impl Handler {
     /// Checks if input `ParseStream` next value is a `Handler` and then if it's true, attempts to parse it, otherwise returns `None`.
     /// Will return Err if `ParseStream` must contain `Handler` but it can't be parsed.
     ///
-    pub fn new(input: ParseStream<'_>) -> syn::Result<Option<Handler>> {
-        let result = if Handler::peek_then_handler(input) {
+    pub fn new(input: ParseStream<'_>) -> syn::Result<Option<Self>> {
+        let result = if Self::peek_then_handler(input) {
             input.parse::<keywords::then>()?;
             input.parse::<Token![=>]>()?;
-            Some(Handler::Then(input.parse()?))
-        } else if Handler::peek_and_then_handler(input) {
+            Some(Self::Then(input.parse()?))
+        } else if Self::peek_and_then_handler(input) {
             input.parse::<keywords::and_then>()?;
             input.parse::<Token![=>]>()?;
-            Some(Handler::AndThen(input.parse()?))
-        } else if Handler::peek_map_handler(input) {
+            Some(Self::AndThen(input.parse()?))
+        } else if Self::peek_map_handler(input) {
             input.parse::<keywords::map>()?;
             input.parse::<Token![=>]>()?;
-            Some(Handler::Map(input.parse()?))
+            Some(Self::Map(input.parse()?))
         } else {
             None
         };
@@ -109,9 +109,9 @@ impl Handler {
     /// Returns true if next value in input `ParseStream` is the definition of `Handler`.
     ///  
     pub fn peek_handler(input: ParseStream<'_>) -> bool {
-        Handler::peek_then_handler(input)
-            || Handler::peek_and_then_handler(input)
-            || Handler::peek_map_handler(input)
+        Self::peek_then_handler(input)
+            || Self::peek_and_then_handler(input)
+            || Self::peek_map_handler(input)
     }
 
     ///

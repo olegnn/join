@@ -225,7 +225,7 @@ pub struct Empty;
 impl Parse for Empty {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         if input.is_empty() {
-            Ok(Empty)
+            Ok(Self)
         } else {
             Err(input.error("Unexpected tokens"))
         }
@@ -408,9 +408,9 @@ impl CommandGroup {
     ///
     pub fn is_err_expr(self) -> bool {
         match self {
-            CommandGroup::Or => true,
-            CommandGroup::OrElse => true,
-            CommandGroup::MapErr => true,
+            Self::Or => true,
+            Self::OrElse => true,
+            Self::MapErr => true,
             _ => false,
         }
     }
@@ -420,7 +420,7 @@ impl CommandGroup {
     ///
     pub fn is_initial_expr(self) -> bool {
         match self {
-            CommandGroup::Initial => true,
+            Self::Initial => true,
             _ => false,
         }
     }
@@ -430,16 +430,16 @@ impl CommandGroup {
     ///
     pub fn can_be_wrapper(self) -> bool {
         match self {
-            CommandGroup::Map => true,
-            CommandGroup::AndThen => true,
-            CommandGroup::Filter => true,
-            CommandGroup::Inspect => true,
-            CommandGroup::FilterMap => true,
-            CommandGroup::Find => true,
-            CommandGroup::FindMap => true,
-            CommandGroup::Partition => true,
-            CommandGroup::OrElse => true,
-            CommandGroup::MapErr => true,
+            Self::Map => true,
+            Self::AndThen => true,
+            Self::Filter => true,
+            Self::Inspect => true,
+            Self::FilterMap => true,
+            Self::Find => true,
+            Self::FindMap => true,
+            Self::Partition => true,
+            Self::OrElse => true,
+            Self::MapErr => true,
             _ => false,
         }
     }
@@ -450,17 +450,17 @@ impl CommandGroup {
     // TODO: implement for full list of process expr.
     pub fn to_process_expr(self, tokens: TokenStream) -> syn::Result<Option<ProcessExpr>> {
         Ok(Some(match self {
-            CommandGroup::Map => ProcessExpr::Map(parse2(tokens)?),
-            CommandGroup::AndThen => ProcessExpr::AndThen(parse2(tokens)?),
-            CommandGroup::Filter => ProcessExpr::Filter(parse2(tokens)?),
-            CommandGroup::Then => ProcessExpr::Then(parse2(tokens)?),
-            CommandGroup::Inspect => ProcessExpr::Inspect(parse2(tokens)?),
-            CommandGroup::Chain => ProcessExpr::Chain(parse2(tokens)?),
-            CommandGroup::FilterMap => ProcessExpr::FilterMap(parse2(tokens)?),
-            CommandGroup::Find => ProcessExpr::Find(parse2(tokens)?),
-            CommandGroup::FindMap => ProcessExpr::FindMap(parse2(tokens)?),
-            CommandGroup::Partition => ProcessExpr::Partition(parse2(tokens)?),
-            CommandGroup::Zip => ProcessExpr::Zip(parse2(tokens)?),
+            Self::Map => ProcessExpr::Map(parse2(tokens)?),
+            Self::AndThen => ProcessExpr::AndThen(parse2(tokens)?),
+            Self::Filter => ProcessExpr::Filter(parse2(tokens)?),
+            Self::Then => ProcessExpr::Then(parse2(tokens)?),
+            Self::Inspect => ProcessExpr::Inspect(parse2(tokens)?),
+            Self::Chain => ProcessExpr::Chain(parse2(tokens)?),
+            Self::FilterMap => ProcessExpr::FilterMap(parse2(tokens)?),
+            Self::Find => ProcessExpr::Find(parse2(tokens)?),
+            Self::FindMap => ProcessExpr::FindMap(parse2(tokens)?),
+            Self::Partition => ProcessExpr::Partition(parse2(tokens)?),
+            Self::Zip => ProcessExpr::Zip(parse2(tokens)?),
             _ => {
                 return Ok(None);
             }
@@ -472,9 +472,9 @@ impl CommandGroup {
     ///
     pub fn to_err_expr(self, tokens: TokenStream) -> syn::Result<Option<ErrExpr>> {
         Ok(Some(match self {
-            CommandGroup::Or => ErrExpr::Or(parse2(tokens)?),
-            CommandGroup::OrElse => ErrExpr::OrElse(parse2(tokens)?),
-            CommandGroup::MapErr => ErrExpr::MapErr(parse2(tokens)?),
+            Self::Or => ErrExpr::Or(parse2(tokens)?),
+            Self::OrElse => ErrExpr::OrElse(parse2(tokens)?),
+            Self::MapErr => ErrExpr::MapErr(parse2(tokens)?),
             _ => {
                 return Ok(None);
             }
@@ -486,7 +486,7 @@ impl CommandGroup {
     ///
     pub fn to_initial_expr(self, tokens: TokenStream) -> syn::Result<Option<InitialExpr>> {
         Ok(match self {
-            CommandGroup::Initial => Some(InitialExpr(parse2(tokens)?)),
+            Self::Initial => Some(InitialExpr(parse2(tokens)?)),
             _ => None,
         })
     }
@@ -501,57 +501,35 @@ impl CommandGroup {
         input: ParseStream,
     ) -> Option<UnitResult<ProcessExpr>> {
         match self {
-            CommandGroup::Map => from_single_unit!(ProcessExpr::Map, action_expr_chain_gen, input),
-            CommandGroup::AndThen => {
-                from_single_unit!(ProcessExpr::AndThen, action_expr_chain_gen, input)
-            }
-            CommandGroup::Filter => {
-                from_single_unit!(ProcessExpr::Filter, action_expr_chain_gen, input)
-            }
-            CommandGroup::Flatten => {
-                from_empty_unit!(ProcessExpr::Flatten, action_expr_chain_gen, input)
-            }
-            CommandGroup::Dot => from_single_unit!(ProcessExpr::Dot, action_expr_chain_gen, input),
-            CommandGroup::Then => {
-                from_single_unit!(ProcessExpr::Then, action_expr_chain_gen, input)
-            }
-            CommandGroup::Inspect => {
-                from_single_unit!(ProcessExpr::Inspect, action_expr_chain_gen, input)
-            }
-            CommandGroup::Chain => {
-                from_single_unit!(ProcessExpr::Chain, action_expr_chain_gen, input)
-            }
-            CommandGroup::Collect => {
+            Self::Map => from_single_unit!(ProcessExpr::Map, action_expr_chain_gen, input),
+            Self::AndThen => from_single_unit!(ProcessExpr::AndThen, action_expr_chain_gen, input),
+            Self::Filter => from_single_unit!(ProcessExpr::Filter, action_expr_chain_gen, input),
+            Self::Flatten => from_empty_unit!(ProcessExpr::Flatten, action_expr_chain_gen, input),
+            Self::Dot => from_single_unit!(ProcessExpr::Dot, action_expr_chain_gen, input),
+            Self::Then => from_single_unit!(ProcessExpr::Then, action_expr_chain_gen, input),
+            Self::Inspect => from_single_unit!(ProcessExpr::Inspect, action_expr_chain_gen, input),
+            Self::Chain => from_single_unit!(ProcessExpr::Chain, action_expr_chain_gen, input),
+            Self::Collect => {
                 from_single_or_empty_unit!(ProcessExpr::Collect, action_expr_chain_gen, input)
             }
-            CommandGroup::Enumerate => {
+            Self::Enumerate => {
                 from_empty_unit!(ProcessExpr::Enumerate, action_expr_chain_gen, input)
             }
-            CommandGroup::FilterMap => {
+            Self::FilterMap => {
                 from_single_unit!(ProcessExpr::FilterMap, action_expr_chain_gen, input)
             }
-            CommandGroup::Find => {
-                from_single_unit!(ProcessExpr::Find, action_expr_chain_gen, input)
-            }
-            CommandGroup::Fold => {
-                from_double_unit!(ProcessExpr::Fold, action_expr_chain_gen, input)
-            }
-            CommandGroup::FindMap => {
-                from_single_unit!(ProcessExpr::FindMap, action_expr_chain_gen, input)
-            }
-            CommandGroup::Partition => {
+            Self::Find => from_single_unit!(ProcessExpr::Find, action_expr_chain_gen, input),
+            Self::Fold => from_double_unit!(ProcessExpr::Fold, action_expr_chain_gen, input),
+            Self::FindMap => from_single_unit!(ProcessExpr::FindMap, action_expr_chain_gen, input),
+            Self::Partition => {
                 from_single_unit!(ProcessExpr::Partition, action_expr_chain_gen, input)
             }
-            CommandGroup::TryFold => {
-                from_double_unit!(ProcessExpr::TryFold, action_expr_chain_gen, input)
-            }
-            CommandGroup::Unzip => {
+            Self::TryFold => from_double_unit!(ProcessExpr::TryFold, action_expr_chain_gen, input),
+            Self::Unzip => {
                 from_four_or_empty_unit!(ProcessExpr::Unzip, action_expr_chain_gen, input)
             }
-            CommandGroup::Zip => from_single_unit!(ProcessExpr::Zip, action_expr_chain_gen, input),
-            CommandGroup::UNWRAP => {
-                from_empty_unit!(ProcessExpr::UNWRAP, action_expr_chain_gen, input)
-            }
+            Self::Zip => from_single_unit!(ProcessExpr::Zip, action_expr_chain_gen, input),
+            Self::UNWRAP => from_empty_unit!(ProcessExpr::UNWRAP, action_expr_chain_gen, input),
             _ => None,
         }
     }
@@ -566,157 +544,103 @@ impl CommandGroup {
         input: ParseStream,
     ) -> Option<UnitResult<ProcessExpr>> {
         match self {
-            CommandGroup::Map => from_single_unit!(ProcessExpr::Map, action_expr_chain_gen, input),
-            CommandGroup::AndThen => {
-                from_single_unit!(ProcessExpr::AndThen, action_expr_chain_gen, input)
-            }
-            CommandGroup::Filter => {
-                from_single_unit!(ProcessExpr::Filter, action_expr_chain_gen, input)
-            }
-            CommandGroup::Dot => from_single_unit!(ProcessExpr::Dot, action_expr_chain_gen, input),
-            CommandGroup::Then => {
-                from_single_unit!(ProcessExpr::Then, action_expr_chain_gen, input)
-            }
-            CommandGroup::Inspect => {
-                from_single_unit!(ProcessExpr::Inspect, action_expr_chain_gen, input)
-            }
-            CommandGroup::All => from_single_unit!(ProcessExpr::All, action_expr_chain_gen, input),
-            CommandGroup::Any => from_single_unit!(ProcessExpr::Any, action_expr_chain_gen, input),
-            CommandGroup::ByRef => {
-                from_empty_unit!(ProcessExpr::ByRef, action_expr_chain_gen, input)
-            }
-            CommandGroup::Chain => {
-                from_single_unit!(ProcessExpr::Chain, action_expr_chain_gen, input)
-            }
-            CommandGroup::Cloned => {
-                from_empty_unit!(ProcessExpr::Cloned, action_expr_chain_gen, input)
-            }
-            CommandGroup::Cmp => from_single_unit!(ProcessExpr::Cmp, action_expr_chain_gen, input),
-            CommandGroup::Collect => {
+            Self::Map => from_single_unit!(ProcessExpr::Map, action_expr_chain_gen, input),
+            Self::AndThen => from_single_unit!(ProcessExpr::AndThen, action_expr_chain_gen, input),
+            Self::Filter => from_single_unit!(ProcessExpr::Filter, action_expr_chain_gen, input),
+            Self::Dot => from_single_unit!(ProcessExpr::Dot, action_expr_chain_gen, input),
+            Self::Then => from_single_unit!(ProcessExpr::Then, action_expr_chain_gen, input),
+            Self::Inspect => from_single_unit!(ProcessExpr::Inspect, action_expr_chain_gen, input),
+            Self::All => from_single_unit!(ProcessExpr::All, action_expr_chain_gen, input),
+            Self::Any => from_single_unit!(ProcessExpr::Any, action_expr_chain_gen, input),
+            Self::ByRef => from_empty_unit!(ProcessExpr::ByRef, action_expr_chain_gen, input),
+            Self::Chain => from_single_unit!(ProcessExpr::Chain, action_expr_chain_gen, input),
+            Self::Cloned => from_empty_unit!(ProcessExpr::Cloned, action_expr_chain_gen, input),
+            Self::Cmp => from_single_unit!(ProcessExpr::Cmp, action_expr_chain_gen, input),
+            Self::Collect => {
                 from_single_or_empty_unit!(ProcessExpr::Collect, action_expr_chain_gen, input)
             }
-            CommandGroup::Copied => {
-                from_empty_unit!(ProcessExpr::Copied, action_expr_chain_gen, input)
-            }
-            CommandGroup::Count => {
-                from_empty_unit!(ProcessExpr::Count, action_expr_chain_gen, input)
-            }
-            CommandGroup::Cycle => {
-                from_empty_unit!(ProcessExpr::Cycle, action_expr_chain_gen, input)
-            }
-            CommandGroup::Enumerate => {
+            Self::Copied => from_empty_unit!(ProcessExpr::Copied, action_expr_chain_gen, input),
+            Self::Count => from_empty_unit!(ProcessExpr::Count, action_expr_chain_gen, input),
+            Self::Cycle => from_empty_unit!(ProcessExpr::Cycle, action_expr_chain_gen, input),
+            Self::Enumerate => {
                 from_empty_unit!(ProcessExpr::Enumerate, action_expr_chain_gen, input)
             }
-            CommandGroup::Eq => from_single_unit!(ProcessExpr::Eq, action_expr_chain_gen, input),
-            CommandGroup::FilterMap => {
+            Self::Eq => from_single_unit!(ProcessExpr::Eq, action_expr_chain_gen, input),
+            Self::FilterMap => {
                 from_single_unit!(ProcessExpr::FilterMap, action_expr_chain_gen, input)
             }
-            CommandGroup::Find => {
-                from_single_unit!(ProcessExpr::Find, action_expr_chain_gen, input)
-            }
-            CommandGroup::FindMap => {
-                from_single_unit!(ProcessExpr::FindMap, action_expr_chain_gen, input)
-            }
-            CommandGroup::FlatMap => {
-                from_single_unit!(ProcessExpr::FlatMap, action_expr_chain_gen, input)
-            }
-            CommandGroup::Flatten => {
-                from_empty_unit!(ProcessExpr::Flatten, action_expr_chain_gen, input)
-            }
-            CommandGroup::Fold => {
-                from_double_unit!(ProcessExpr::Fold, action_expr_chain_gen, input)
-            }
-            CommandGroup::ForEach => {
-                from_single_unit!(ProcessExpr::ForEach, action_expr_chain_gen, input)
-            }
-            CommandGroup::Fuse => from_empty_unit!(ProcessExpr::Fuse, action_expr_chain_gen, input),
-            CommandGroup::Ge => from_single_unit!(ProcessExpr::Ge, action_expr_chain_gen, input),
-            CommandGroup::Gt => from_single_unit!(ProcessExpr::Gt, action_expr_chain_gen, input),
-            CommandGroup::IsSorted => {
-                from_empty_unit!(ProcessExpr::IsSorted, action_expr_chain_gen, input)
-            }
-            CommandGroup::IsSortedBy => {
+            Self::Find => from_single_unit!(ProcessExpr::Find, action_expr_chain_gen, input),
+            Self::FindMap => from_single_unit!(ProcessExpr::FindMap, action_expr_chain_gen, input),
+            Self::FlatMap => from_single_unit!(ProcessExpr::FlatMap, action_expr_chain_gen, input),
+            Self::Flatten => from_empty_unit!(ProcessExpr::Flatten, action_expr_chain_gen, input),
+            Self::Fold => from_double_unit!(ProcessExpr::Fold, action_expr_chain_gen, input),
+            Self::ForEach => from_single_unit!(ProcessExpr::ForEach, action_expr_chain_gen, input),
+            Self::Fuse => from_empty_unit!(ProcessExpr::Fuse, action_expr_chain_gen, input),
+            Self::Ge => from_single_unit!(ProcessExpr::Ge, action_expr_chain_gen, input),
+            Self::Gt => from_single_unit!(ProcessExpr::Gt, action_expr_chain_gen, input),
+            Self::IsSorted => from_empty_unit!(ProcessExpr::IsSorted, action_expr_chain_gen, input),
+            Self::IsSortedBy => {
                 from_single_unit!(ProcessExpr::IsSortedBy, action_expr_chain_gen, input)
             }
-            CommandGroup::IsSortedByKey => {
+            Self::IsSortedByKey => {
                 from_single_unit!(ProcessExpr::IsSortedByKey, action_expr_chain_gen, input)
             }
-            CommandGroup::IsPartitioned => {
+            Self::IsPartitioned => {
                 from_empty_unit!(ProcessExpr::IsPartitioned, action_expr_chain_gen, input)
             }
-            CommandGroup::Last => from_empty_unit!(ProcessExpr::Last, action_expr_chain_gen, input),
-            CommandGroup::Le => from_single_unit!(ProcessExpr::Le, action_expr_chain_gen, input),
-            CommandGroup::Lt => from_single_unit!(ProcessExpr::Lt, action_expr_chain_gen, input),
-            CommandGroup::Max => from_empty_unit!(ProcessExpr::Max, action_expr_chain_gen, input),
-            CommandGroup::MaxBy => {
-                from_single_unit!(ProcessExpr::MaxBy, action_expr_chain_gen, input)
-            }
-            CommandGroup::MaxByKey => {
+            Self::Last => from_empty_unit!(ProcessExpr::Last, action_expr_chain_gen, input),
+            Self::Le => from_single_unit!(ProcessExpr::Le, action_expr_chain_gen, input),
+            Self::Lt => from_single_unit!(ProcessExpr::Lt, action_expr_chain_gen, input),
+            Self::Max => from_empty_unit!(ProcessExpr::Max, action_expr_chain_gen, input),
+            Self::MaxBy => from_single_unit!(ProcessExpr::MaxBy, action_expr_chain_gen, input),
+            Self::MaxByKey => {
                 from_single_unit!(ProcessExpr::MaxByKey, action_expr_chain_gen, input)
             }
-            CommandGroup::Min => from_empty_unit!(ProcessExpr::Min, action_expr_chain_gen, input),
-            CommandGroup::MinBy => {
-                from_single_unit!(ProcessExpr::MinBy, action_expr_chain_gen, input)
-            }
-            CommandGroup::MinByKey => {
+            Self::Min => from_empty_unit!(ProcessExpr::Min, action_expr_chain_gen, input),
+            Self::MinBy => from_single_unit!(ProcessExpr::MinBy, action_expr_chain_gen, input),
+            Self::MinByKey => {
                 from_single_unit!(ProcessExpr::MinByKey, action_expr_chain_gen, input)
             }
-            CommandGroup::Ne => from_single_unit!(ProcessExpr::Ne, action_expr_chain_gen, input),
-            CommandGroup::Nth => from_single_unit!(ProcessExpr::Nth, action_expr_chain_gen, input),
-            CommandGroup::PartialCmp => {
+            Self::Ne => from_single_unit!(ProcessExpr::Ne, action_expr_chain_gen, input),
+            Self::Nth => from_single_unit!(ProcessExpr::Nth, action_expr_chain_gen, input),
+            Self::PartialCmp => {
                 from_single_unit!(ProcessExpr::PartialCmp, action_expr_chain_gen, input)
             }
-            CommandGroup::Partition => {
+            Self::Partition => {
                 from_single_unit!(ProcessExpr::Partition, action_expr_chain_gen, input)
             }
-            CommandGroup::PartitionInPlace => {
+            Self::PartitionInPlace => {
                 from_single_unit!(ProcessExpr::PartitionInPlace, action_expr_chain_gen, input)
             }
-            CommandGroup::Peekable => {
-                from_empty_unit!(ProcessExpr::Peekable, action_expr_chain_gen, input)
-            }
-            CommandGroup::Position => {
+            Self::Peekable => from_empty_unit!(ProcessExpr::Peekable, action_expr_chain_gen, input),
+            Self::Position => {
                 from_single_unit!(ProcessExpr::Position, action_expr_chain_gen, input)
             }
-            CommandGroup::Product => {
-                from_empty_unit!(ProcessExpr::Product, action_expr_chain_gen, input)
-            }
-            CommandGroup::Rev => from_empty_unit!(ProcessExpr::Rev, action_expr_chain_gen, input),
-            CommandGroup::Rposition => {
+            Self::Product => from_empty_unit!(ProcessExpr::Product, action_expr_chain_gen, input),
+            Self::Rev => from_empty_unit!(ProcessExpr::Rev, action_expr_chain_gen, input),
+            Self::Rposition => {
                 from_single_unit!(ProcessExpr::Rposition, action_expr_chain_gen, input)
             }
-            CommandGroup::Scan => {
-                from_single_unit!(ProcessExpr::Scan, action_expr_chain_gen, input)
-            }
-            CommandGroup::SizeHint => {
-                from_empty_unit!(ProcessExpr::SizeHint, action_expr_chain_gen, input)
-            }
-            CommandGroup::Skip => {
-                from_single_unit!(ProcessExpr::Skip, action_expr_chain_gen, input)
-            }
-            CommandGroup::SkipWhile => {
+            Self::Scan => from_single_unit!(ProcessExpr::Scan, action_expr_chain_gen, input),
+            Self::SizeHint => from_empty_unit!(ProcessExpr::SizeHint, action_expr_chain_gen, input),
+            Self::Skip => from_single_unit!(ProcessExpr::Skip, action_expr_chain_gen, input),
+            Self::SkipWhile => {
                 from_single_unit!(ProcessExpr::SkipWhile, action_expr_chain_gen, input)
             }
-            CommandGroup::StepBy => {
-                from_single_unit!(ProcessExpr::StepBy, action_expr_chain_gen, input)
-            }
-            CommandGroup::Sum => from_empty_unit!(ProcessExpr::Sum, action_expr_chain_gen, input),
-            CommandGroup::Take => {
-                from_single_unit!(ProcessExpr::Take, action_expr_chain_gen, input)
-            }
-            CommandGroup::TakeWhile => {
+            Self::StepBy => from_single_unit!(ProcessExpr::StepBy, action_expr_chain_gen, input),
+            Self::Sum => from_empty_unit!(ProcessExpr::Sum, action_expr_chain_gen, input),
+            Self::Take => from_single_unit!(ProcessExpr::Take, action_expr_chain_gen, input),
+            Self::TakeWhile => {
                 from_single_unit!(ProcessExpr::TakeWhile, action_expr_chain_gen, input)
             }
-            CommandGroup::TryFold => {
-                from_double_unit!(ProcessExpr::TryFold, action_expr_chain_gen, input)
-            }
-            CommandGroup::TryForEach => {
+            Self::TryFold => from_double_unit!(ProcessExpr::TryFold, action_expr_chain_gen, input),
+            Self::TryForEach => {
                 from_single_unit!(ProcessExpr::TryForEach, action_expr_chain_gen, input)
             }
-            CommandGroup::Unzip => {
+            Self::Unzip => {
                 from_four_or_empty_unit!(ProcessExpr::Unzip, action_expr_chain_gen, input)
             }
-            CommandGroup::Zip => from_single_unit!(ProcessExpr::Zip, action_expr_chain_gen, input),
+            Self::Zip => from_single_unit!(ProcessExpr::Zip, action_expr_chain_gen, input),
             _ => None,
         }
     }
@@ -730,13 +654,9 @@ impl CommandGroup {
         input: ParseStream,
     ) -> Option<UnitResult<ErrExpr>> {
         match self {
-            CommandGroup::Or => from_single_unit!(ErrExpr::Or, action_expr_chain_gen, input),
-            CommandGroup::OrElse => {
-                from_single_unit!(ErrExpr::OrElse, action_expr_chain_gen, input)
-            }
-            CommandGroup::MapErr => {
-                from_single_unit!(ErrExpr::MapErr, action_expr_chain_gen, input)
-            }
+            Self::Or => from_single_unit!(ErrExpr::Or, action_expr_chain_gen, input),
+            Self::OrElse => from_single_unit!(ErrExpr::OrElse, action_expr_chain_gen, input),
+            Self::MapErr => from_single_unit!(ErrExpr::MapErr, action_expr_chain_gen, input),
             _ => None,
         }
     }
@@ -750,7 +670,7 @@ impl CommandGroup {
         input: ParseStream,
     ) -> Option<UnitResult<InitialExpr>> {
         match self {
-            CommandGroup::Initial => from_single_unit!(InitialExpr, action_expr_chain_gen, input),
+            Self::Initial => from_single_unit!(InitialExpr, action_expr_chain_gen, input),
             _ => None,
         }
     }

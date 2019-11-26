@@ -29,13 +29,13 @@ pub enum ErrExpr {
 impl ToTokens for ErrExpr {
     fn to_tokens(&self, output: &mut TokenStream) {
         let tokens = match self {
-            ErrExpr::Or(expr) => {
+            Self::Or(expr) => {
                 quote! { .or(#expr) }
             }
-            ErrExpr::OrElse(expr) => {
+            Self::OrElse(expr) => {
                 quote! { .or_else(#expr) }
             }
-            ErrExpr::MapErr(expr) => {
+            Self::MapErr(expr) => {
                 quote! { .map_err(#expr) }
             }
         };

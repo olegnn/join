@@ -73,7 +73,7 @@ pub const WRAP_DETERMINER: &GroupDeterminer = &crate::define_determiner_with_no_
 
 impl Parse for JoinDefault {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let mut join = JoinDefault {
+        let mut join = Self {
             branches: Vec::new(),
             handler: None,
             futures_crate_path: None,

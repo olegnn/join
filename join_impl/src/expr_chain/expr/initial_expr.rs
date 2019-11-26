@@ -36,7 +36,7 @@ impl InnerExpr for InitialExpr {
     fn replace_inner(&self, mut exprs: Vec<Expr>) -> Option<Self> {
         exprs.pop().and_then(|expr| {
             if exprs.is_empty() {
-                Some(InitialExpr(expr))
+                Some(Self(expr))
             } else {
                 None
             }

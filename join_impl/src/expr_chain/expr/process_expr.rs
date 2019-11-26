@@ -425,63 +425,63 @@ impl ToTokens for ProcessExpr {
     #[cfg(not(feature = "full"))]
     fn to_tokens(&self, output: &mut TokenStream) {
         let tokens = match self {
-            ProcessExpr::AndThen(expr) => {
+            Self::AndThen(expr) => {
                 quote! { .and_then(#expr) }
             }
-            ProcessExpr::Map(expr) => {
+            Self::Map(expr) => {
                 quote! { .map(#expr) }
             }
-            ProcessExpr::Dot(expr) => {
+            Self::Dot(expr) => {
                 quote! { .#expr }
             }
-            ProcessExpr::Filter(expr) => {
+            Self::Filter(expr) => {
                 quote! { .filter(#expr) }
             }
-            ProcessExpr::Then(expr) => {
+            Self::Then(expr) => {
                 quote! {{ let __handler = #expr; __handler }}
             }
             //
             // Not used for now because returning closure requires bound lifetimes
             //
-            ProcessExpr::Inspect(_) => unimplemented!(),
-            ProcessExpr::Chain(expr) => {
+            Self::Inspect(_) => unimplemented!(),
+            Self::Chain(expr) => {
                 quote! { .chain(#expr) }
             }
-            ProcessExpr::Collect(type_spec) => {
+            Self::Collect(type_spec) => {
                 quote! { .collect::<#type_spec>() }
             }
-            ProcessExpr::Enumerate => {
+            Self::Enumerate => {
                 quote! { .enumerate() }
             }
-            ProcessExpr::FilterMap(expr) => {
+            Self::FilterMap(expr) => {
                 quote! { .filter_map(#expr) }
             }
-            ProcessExpr::Find(expr) => {
+            Self::Find(expr) => {
                 quote! { .find(#expr) }
             }
-            ProcessExpr::FindMap(expr) => {
+            Self::FindMap(expr) => {
                 quote! { .find_map(#expr) }
             }
-            ProcessExpr::Flatten => {
+            Self::Flatten => {
                 quote! { .flatten() }
             }
-            ProcessExpr::Fold((init, expr)) => {
+            Self::Fold((init, expr)) => {
                 quote! { .fold(#init, #expr) }
             }
-            ProcessExpr::Partition(expr) => {
+            Self::Partition(expr) => {
                 quote! { .partition(#expr) }
             }
-            ProcessExpr::TryFold((init, expr)) => {
+            Self::TryFold((init, expr)) => {
                 quote! { .try_fold(#init, #expr) }
             }
-            ProcessExpr::Unzip(type_spec) => type_spec
+            Self::Unzip(type_spec) => type_spec
                 .as_ref()
                 .map(|type_spec| quote! { .unzip::<#( #type_spec ),*>() })
                 .unwrap_or_else(|| quote! { .unzip() }),
-            ProcessExpr::Zip(expr) => {
+            Self::Zip(expr) => {
                 quote! { .zip(#expr) }
             }
-            ProcessExpr::UNWRAP => {
+            Self::UNWRAP => {
                 quote! {}
             }
         };
@@ -491,195 +491,195 @@ impl ToTokens for ProcessExpr {
     #[cfg(feature = "full")]
     fn to_tokens(&self, output: &mut TokenStream) {
         let tokens = match self {
-            ProcessExpr::AndThen(expr) => {
+            Self::AndThen(expr) => {
                 quote! { .and_then(#expr) }
             }
-            ProcessExpr::Map(expr) => {
+            Self::Map(expr) => {
                 quote! { .map(#expr) }
             }
-            ProcessExpr::Dot(expr) => {
+            Self::Dot(expr) => {
                 quote! { .#expr }
             }
-            ProcessExpr::Filter(expr) => {
+            Self::Filter(expr) => {
                 quote! { .filter(#expr) }
             }
-            ProcessExpr::Then(expr) => {
+            Self::Then(expr) => {
                 quote! {{ let __handler = #expr; __handler }}
             }
             //
             // Not used for now because returning closure requires bound lifetimes
             //
-            ProcessExpr::Inspect(_) => unimplemented!(),
-            ProcessExpr::All(expr) => {
+            Self::Inspect(_) => unimplemented!(),
+            Self::All(expr) => {
                 quote! { .all(#expr) }
             }
-            ProcessExpr::Any(expr) => {
+            Self::Any(expr) => {
                 quote! { .any(#expr) }
             }
-            ProcessExpr::ByRef => {
+            Self::ByRef => {
                 quote! { .by_ref() }
             }
-            ProcessExpr::Chain(expr) => {
+            Self::Chain(expr) => {
                 quote! { .chain(#expr) }
             }
-            ProcessExpr::Cloned => {
+            Self::Cloned => {
                 quote! { .cloned() }
             }
-            ProcessExpr::Cmp(expr) => {
+            Self::Cmp(expr) => {
                 quote! { .cmp(#expr) }
             }
-            ProcessExpr::Collect(type_spec) => {
+            Self::Collect(type_spec) => {
                 quote! { .collect::<#type_spec>() }
             }
-            ProcessExpr::Copied => {
+            Self::Copied => {
                 quote! { .copied() }
             }
-            ProcessExpr::Count => {
+            Self::Count => {
                 quote! { .count() }
             }
-            ProcessExpr::Cycle => {
+            Self::Cycle => {
                 quote! { .cycle() }
             }
-            ProcessExpr::Enumerate => {
+            Self::Enumerate => {
                 quote! { .enumerate() }
             }
-            ProcessExpr::Eq(expr) => {
+            Self::Eq(expr) => {
                 quote! { .eq(#expr) }
             }
-            ProcessExpr::FilterMap(expr) => {
+            Self::FilterMap(expr) => {
                 quote! { .filter_map(#expr) }
             }
-            ProcessExpr::Find(expr) => {
+            Self::Find(expr) => {
                 quote! { .find(#expr) }
             }
-            ProcessExpr::FindMap(expr) => {
+            Self::FindMap(expr) => {
                 quote! { .find_map(#expr) }
             }
-            ProcessExpr::FlatMap(expr) => {
+            Self::FlatMap(expr) => {
                 quote! { .flat_map(#expr) }
             }
-            ProcessExpr::Flatten => {
+            Self::Flatten => {
                 quote! { .flatten() }
             }
-            ProcessExpr::Fold((init, expr)) => {
+            Self::Fold((init, expr)) => {
                 quote! { .fold(#init, #expr) }
             }
-            ProcessExpr::ForEach(expr) => {
+            Self::ForEach(expr) => {
                 quote! { .for_each(#expr) }
             }
-            ProcessExpr::Fuse => {
+            Self::Fuse => {
                 quote! { .fuse() }
             }
-            ProcessExpr::Ge(expr) => {
+            Self::Ge(expr) => {
                 quote! { .ge(#expr) }
             }
-            ProcessExpr::Gt(expr) => {
+            Self::Gt(expr) => {
                 quote! { .gt(#expr) }
             }
-            ProcessExpr::IsSorted => {
+            Self::IsSorted => {
                 quote! { .is_sorted() }
             }
-            ProcessExpr::IsSortedBy(expr) => {
+            Self::IsSortedBy(expr) => {
                 quote! { .is_sorted_by(#expr) }
             }
-            ProcessExpr::IsSortedByKey(expr) => {
+            Self::IsSortedByKey(expr) => {
                 quote! { .is_sorted_by_key(#expr) }
             }
-            ProcessExpr::IsPartitioned => {
+            Self::IsPartitioned => {
                 quote! { .is_partitioned() }
             }
-            ProcessExpr::Last => {
+            Self::Last => {
                 quote! { .last() }
             }
-            ProcessExpr::Le(expr) => {
+            Self::Le(expr) => {
                 quote! { .le(#expr) }
             }
-            ProcessExpr::Lt(expr) => {
+            Self::Lt(expr) => {
                 quote! { .lt(#expr) }
             }
-            ProcessExpr::Max => {
+            Self::Max => {
                 quote! { .max() }
             }
-            ProcessExpr::MaxBy(expr) => {
+            Self::MaxBy(expr) => {
                 quote! { .max_by(#expr) }
             }
-            ProcessExpr::MaxByKey(expr) => {
+            Self::MaxByKey(expr) => {
                 quote! { .max_by_key(#expr) }
             }
-            ProcessExpr::Min => {
+            Self::Min => {
                 quote! { .min() }
             }
-            ProcessExpr::MinBy(expr) => {
+            Self::MinBy(expr) => {
                 quote! { .min_by(#expr) }
             }
-            ProcessExpr::MinByKey(expr) => {
+            Self::MinByKey(expr) => {
                 quote! { .min_by_key(#expr) }
             }
-            ProcessExpr::Ne(expr) => {
+            Self::Ne(expr) => {
                 quote! { .ne(#expr) }
             }
-            ProcessExpr::Nth(expr) => {
+            Self::Nth(expr) => {
                 quote! { .nth(#expr) }
             }
-            ProcessExpr::PartialCmp(expr) => {
+            Self::PartialCmp(expr) => {
                 quote! { .partial_cmp(#expr) }
             }
-            ProcessExpr::Partition(expr) => {
+            Self::Partition(expr) => {
                 quote! { .partition(#expr) }
             }
-            ProcessExpr::PartitionInPlace(expr) => {
+            Self::PartitionInPlace(expr) => {
                 quote! { .partition_in_place(#expr) }
             }
-            ProcessExpr::Peekable => {
+            Self::Peekable => {
                 quote! { .peekable() }
             }
-            ProcessExpr::Position(expr) => {
+            Self::Position(expr) => {
                 quote! { .position(#expr) }
             }
-            ProcessExpr::Product => {
+            Self::Product => {
                 quote! { .product() }
             }
-            ProcessExpr::Rev => {
+            Self::Rev => {
                 quote! { .rev() }
             }
-            ProcessExpr::Rposition(expr) => {
+            Self::Rposition(expr) => {
                 quote! { .rposition(#expr) }
             }
-            ProcessExpr::Scan(expr) => {
+            Self::Scan(expr) => {
                 quote! { .scan(#expr) }
             }
-            ProcessExpr::SizeHint => {
+            Self::SizeHint => {
                 quote! { .size_hint() }
             }
-            ProcessExpr::Skip(expr) => {
+            Self::Skip(expr) => {
                 quote! { .skip(#expr) }
             }
-            ProcessExpr::SkipWhile(expr) => {
+            Self::SkipWhile(expr) => {
                 quote! { .skip_while(#expr) }
             }
-            ProcessExpr::StepBy(expr) => {
+            Self::StepBy(expr) => {
                 quote! { .step_by(#expr) }
             }
-            ProcessExpr::Sum => {
+            Self::Sum => {
                 quote! { .sum() }
             }
-            ProcessExpr::Take(expr) => {
+            Self::Take(expr) => {
                 quote! { .take(#expr) }
             }
-            ProcessExpr::TakeWhile(expr) => {
+            Self::TakeWhile(expr) => {
                 quote! { .take_while(#expr) }
             }
-            ProcessExpr::TryFold((init, expr)) => {
+            Self::TryFold((init, expr)) => {
                 quote! { .try_fold(#init, #expr) }
             }
-            ProcessExpr::TryForEach(expr) => {
+            Self::TryForEach(expr) => {
                 quote! { .try_for_each(#expr) }
             }
-            ProcessExpr::Unzip(type_spec) => type_spec
+            Self::Unzip(type_spec) => type_spec
                 .as_ref()
                 .map(|type_spec| quote! { .unzip::<#( #type_spec ),*>() })
                 .unwrap_or_else(|| quote! { .unzip() }),
-            ProcessExpr::Zip(expr) => {
+            Self::Zip(expr) => {
                 quote! { .zip(#expr) }
             }
         };

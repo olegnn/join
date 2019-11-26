@@ -132,7 +132,7 @@ impl<'a> JoinGenerator<'a> {
                 let (depths, branch_pats): (Vec<usize>, Vec<Option<&PatIdent>>) =
                     depths_and_paths.into_iter().unzip();
 
-                JoinGenerator {
+                Self {
                     futures_crate_path,
                     config,
                     //
@@ -144,6 +144,10 @@ impl<'a> JoinGenerator<'a> {
                     depths,
                     chains,
                     branch_count,
+                    //
+                    // In case of `try` `async` `::futures::try_join!` macro will be used, so we don't need to
+                    // transpose results.
+                    //
                     transpose: is_try && !is_async,
                 }
             })

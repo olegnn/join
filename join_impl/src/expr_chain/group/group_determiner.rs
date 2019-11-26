@@ -165,7 +165,7 @@ impl GroupDeterminer {
         validate_parsed: bool,
         length: usize,
     ) -> Self {
-        GroupDeterminer {
+        Self {
             group_type,
             check_input_fn: FnPointer {
                 raw: check_input_fn,
@@ -205,7 +205,7 @@ impl GroupDeterminer {
         validate_parsed: bool,
         length: usize,
     ) -> Self {
-        GroupDeterminer {
+        Self {
             group_type: group_type.into(),
             check_input_fn: FnPointer {
                 fun: check_input_fn,

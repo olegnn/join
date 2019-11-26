@@ -241,7 +241,7 @@ mod tests {
                 DEFERRED_DETERMINER,
                 WRAP_DETERMINER,
             );
-            ActionExprChain::new(input, &gen)
+            Self::new(input, &gen)
                 .transpose()
                 .ok_or(input.error("Empty!"))?
         }

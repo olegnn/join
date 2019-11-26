@@ -28,7 +28,7 @@ pub trait Join {
     type Chain: Chain;
 
     ///
-    /// `join!` macro handler.
+    /// Optional `join!` macro handler.
     ///
     type Handler;
 
