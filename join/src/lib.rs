@@ -111,6 +111,18 @@
 //!
 //! ## Combinators
 //!
+//! - Then: **`->`**
+//! ```rust
+//! # use join::try_join;
+//! # fn main() {
+//! # let value = Some(1u8);
+//! # let expr = |v: Option<u8>| Some(v.unwrap() + 1);
+//! # let result =
+//! try_join! { value -> expr }; // => expr(value)
+//! # assert_eq!(result, Some(2));
+//! # }
+//! ```
+//!
 //! - Map: **`|>`**
 //! ```rust
 //! # use join::try_join;
@@ -129,18 +141,6 @@
 //! # let expr = |v| Some(v + 1);
 //! # let result =
 //! try_join! { value => expr }; // => value.and_then(expr)
-//! # assert_eq!(result, Some(2));
-//! # }
-//! ```
-//!
-//! - Then: **`->`**
-//! ```rust
-//! # use join::try_join;
-//! # fn main() {
-//! # let value = Some(1u8);
-//! # let expr = |v: Option<u8>| Some(v.unwrap() + 1);
-//! # let result =
-//! try_join! { value -> expr }; // => expr(value)
 //! # assert_eq!(result, Some(2));
 //! # }
 //! ```

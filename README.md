@@ -79,6 +79,11 @@ assert_eq!(join_async_spawn!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3
 
 ## Combinators
 
+- Then: **`->`**
+```rust no_run
+join! { value -> expr }; // => expr(value)
+```
+
 - Map: **`|>`**
 ```rust no_run
 join! { value |> expr }; // => value.map(expr)
@@ -87,11 +92,6 @@ join! { value |> expr }; // => value.map(expr)
 - AndThen: **`=>`**
 ```rust no_run
 join! { value => expr }; // => value.and_then(expr)
-```
-
-- Then: **`->`**
-```rust no_run
-join! { value -> expr }; // => expr(value)
 ```
 
 - Filter: **`?>`**
