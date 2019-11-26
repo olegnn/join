@@ -2,7 +2,7 @@
 //! `Unit` module describes one unit of expression parsing which contains currently parsed `T`
 //! and optional next `ActionGroup`
 //!
-use super::super::group::ActionGroup;
+use super::group::ActionGroup;
 
 ///
 /// `Unit` defines one unit of expression parsing.

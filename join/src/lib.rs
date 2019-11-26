@@ -42,7 +42,10 @@
 //! ```rust
 //! # use join::*;
 //! # fn main() {
-//! assert_eq!(try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
+//! assert_eq!(
+//!     try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), 
+//!     Ok::<_,u8>((1, "2", 3.0))
+//! );
 //! # }
 //! ```
 //! - [`try_join_async!`](macro.try_join_async.html) - combines futures, transposes tuple of `Result`s into `Result` of tuple.
@@ -51,14 +54,20 @@
 //! # use futures::future::*;
 //! # #[tokio::main]
 //! # async fn main() {
-//! assert_eq!(try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
+//! assert_eq!(
+//!     try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, 
+//!     Ok::<_,u8>((1, "2", 3.0))
+//! );
 //! # }
 //! ```
 //! - [`try_join_spawn!`](macro.try_join_spawn.html) - spawns [`std::thread`](https://doc.rust-lang.org/std/thread/) per each branch and joins results, transposes tuple of `Result`s into `Result` of tuple.
 //! ```rust
 //! # use join::*;
 //! # fn main() {
-//! assert_eq!(try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
+//! assert_eq!(
+//!     try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), 
+//!     Ok::<_,u8>((1, "2", 3.0))
+//! );
 //! # }
 //! ```
 //! - [`try_spawn!`](macro.try_spawn.html) - alias for [`try_join_spawn!`](macro.try_join_spawn.html).
@@ -70,7 +79,10 @@
 //! # use futures::future::*;
 //! # #[tokio::main]
 //! # async fn main() {
-//! assert_eq!(try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
+//! assert_eq!(
+//!     try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, 
+//!     Ok::<_,u8>((1, "2", 3.0))
+//! );
 //! # }
 //! ```
 //! - [`try_async_spawn!`](macro.try_async_spawn.html) - alias for [`try_join_async_spawn!`](macro.try_join_async_spawn.html).
@@ -78,7 +90,9 @@
 //! ```rust
 //! # use join::*;
 //! # fn main() {
-//! assert_eq!(join!(1, "2", 3.0), (1, "2", 3.0));
+//! assert_eq!(
+//!     join!(1, "2", 3.0), (1, "2", 3.0)
+//! );
 //! # }
 //! ```
 //! - [`join_async!`](macro.join_async.html) - combines futures.
@@ -87,14 +101,18 @@
 //! # use futures::future::*;
 //! # #[tokio::main]
 //! # async fn main() {
-//! assert_eq!(join_async!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0));
+//! assert_eq!(
+//!     join_async!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0)
+//! );
 //! # }
 //! ```
 //! - [`join_spawn!`](macro.join_spawn.html) - spawns [`std::thread`](https://doc.rust-lang.org/std/thread/) per each branch.
 //! ```rust
 //! # use join::*;
 //! # fn main() {
-//! assert_eq!(join_spawn!(1, "2", 3.0), (1, "2", 3.0));
+//! assert_eq!(
+//!     join_spawn!(1, "2", 3.0), (1, "2", 3.0)
+//! );
 //! # }
 //! ```
 //! - [`spawn!`](macro.spawn.html) - alias for [`join_spawn!`](macro.join_spawn.html).
@@ -104,7 +122,9 @@
 //! # use futures::future::*;
 //! # #[tokio::main]
 //! # async fn main() {
-//! assert_eq!(join_async_spawn!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0));
+//! assert_eq!(
+//!     join_async_spawn!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0)
+//! );
 //! # }
 //! ```
 //! - [`async_spawn!`](macro.async_spawn.html) - alias for [`join_async_spawn!`](macro.join_async_spawn.html).

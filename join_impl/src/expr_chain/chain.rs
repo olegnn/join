@@ -3,10 +3,6 @@
 //!
 use syn::PatIdent;
 
-mod unit;
-
-pub use unit::{TransformParsed, Unit, UnitResult};
-
 ///
 /// `Chain` trait describes any chain with members of type `Member` and optional `PatIdent`.
 ///

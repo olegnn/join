@@ -1,3 +1,7 @@
+# [0.1.0-beta.2]
+
+Fixed docs. Restructured implementation.
+
 # [0.1.0-beta.1]
 
 Updated docs. Small refactoring.

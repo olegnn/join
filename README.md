@@ -42,38 +42,58 @@
 
 - `try_join!` - combines `Result`s/`Option`s, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
 ```rust
-assert_eq!(try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
+assert_eq!(
+    try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), 
+    Ok::<_,u8>((1, "2", 3.0))
+);
 ```
 - `try_join_async!` - combines futures, transposes tuple of `Result`s into `Result` of tuple.
 ```rust
-assert_eq!(try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
+assert_eq!(
+    try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, 
+    Ok::<_,u8>((1, "2", 3.0))
+);
 ```
 - `try_join_spawn!` - spawns `std::thread` per each branch and joins results, transposes tuple of `Result`s into `Result` of tuple.
 ```rust
-assert_eq!(try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
+assert_eq!(
+    try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), 
+    Ok::<_,u8>((1, "2", 3.0))
+);
 ```
 - `try_spawn!` - alias for `try_join_spawn!`.
 - `try_join_async_spawn!` - spawns tokio task using `tokio::spawn` per each branch, transposes tuple of `Result`s into `Result` of tuple.
 ```rust
-assert_eq!(try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
+assert_eq!(
+    try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, 
+    Ok::<_,u8>((1, "2", 3.0))
+);
 ```
 - `try_async_spawn!` - alias for `try_join_async_spawn!`.
 - `join!` - combines values.
 ```rust
-assert_eq!(join!(1, "2", 3.0), (1, "2", 3.0));
+assert_eq!(
+    join!(1, "2", 3.0), (1, "2", 3.0)
+);
 ```
 - `join_async!` - combines futures.
 ```rust
-assert_eq!(join_async!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0));
+assert_eq!(
+    join_async!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0)
+);
 ```
 - `join_spawn!` - spawns `std::thread` per each branch.
 ```rust
-assert_eq!(join_spawn!(1, "2", 3.0), (1, "2", 3.0));
+assert_eq!(
+    join_spawn!(1, "2", 3.0), (1, "2", 3.0)
+);
 ```
 - `spawn!` - alias for `join_spawn!`.
 - `join_async_spawn!` -  spawns tokio task using `tokio::spawn` per each branch.
 ```rust
-assert_eq!(join_async_spawn!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0));
+assert_eq!(
+    join_async_spawn!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0)
+);
 ```
 - `async_spawn!` - alias for `join_async_spawn!`.
 
