@@ -38,14 +38,14 @@
 //!
 //! ## Macros
 //!
-//! - [`try_join!`](macro.join.html) - combines results/options, transposes tuple of results/options in result/option of tuple.
+//! - [`try_join!`](macro.join.html) - combines `Result`s/`Option`s, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
 //! ```rust
 //! # use join::*;
 //! # fn main() {
 //! assert_eq!(try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
 //! # }
 //! ```
-//! - [`try_join_async!`](macro.try_join_async.html) - combines futures, transposes tuple of results in result of tuple.
+//! - [`try_join_async!`](macro.try_join_async.html) - combines futures, transposes tuple of `Result`s into `Result` of tuple.
 //! ```rust
 //! # use join::*;
 //! # use futures::future::*;
@@ -54,7 +54,7 @@
 //! assert_eq!(try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
 //! # }
 //! ```
-//! - [`try_join_spawn!`](macro.try_join_spawn.html) - spawns [`std::thread`](https://doc.rust-lang.org/std/thread/) per each branch and joins results, transposes tuple of results in result of tuple.
+//! - [`try_join_spawn!`](macro.try_join_spawn.html) - spawns [`std::thread`](https://doc.rust-lang.org/std/thread/) per each branch and joins results, transposes tuple of `Result`s into `Result` of tuple.
 //! ```rust
 //! # use join::*;
 //! # fn main() {
@@ -62,7 +62,9 @@
 //! # }
 //! ```
 //! - [`try_spawn!`](macro.try_spawn.html) - alias for [`try_join_spawn!`](macro.try_join_spawn.html).
-//! - [`try_join_async_spawn!`](macro.try_join_async_spawn.html) - spawns futures into default `tokio` executor using [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each branch, transposes tuple of results in result of tuple.
+//! - [`try_join_async_spawn!`](macro.try_join_async_spawn.html) - spawns futures into default `tokio` executor using
+//! [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each branch, transposes tuple of
+//! `Result`s into `Result` of tuple.
 //! ```rust
 //! # use join::*;
 //! # use futures::future::*;
@@ -704,22 +706,18 @@
 //!             !> |err| format_err!("Error retrieving pages to calculate links: {:#?}", err)
 //!             => >>>
 //!                 ..into_iter()
-//!                 .max_by_key(|(_, link_count)| link_count.clone())
+//!                 .max_by_key(|(_, link_count)| *link_count)
 //!                 .ok_or(format_err!("Failed to find max link count"))
 //!                 -> ready
 //!             // It waits for input in stdin before log max links count
-//!             ~?? |result| {
-//!                 result
-//!                     .as_ref()
-//!                     .map(
-//!                         |(url, count)| {
-//!                             let split = url.to_owned().split('/').collect::<Vec<_>>();
-//!                             let domain_name = split.get(2).unwrap_or(&url);
-//!                             println!("Max `https://` link count found on `{}`: {}", domain_name, count)
-//!                         }
-//!                     )
-//!                     .unwrap_or(());
-//!             },
+//!             ~?? >>>
+//!                 ..as_ref()
+//!                 |> |(url, count)| {
+//!                     let split = url.to_owned().split('/').collect::<Vec<_>>();
+//!                     let domain_name = split.get(2).unwrap_or(&url);
+//!                     println!("Max `https://` link count found on `{}`: {}", domain_name, count)
+//!                 }
+//!                 ..unwrap_or(()),
 //!         // Concurrently it makes request to the site which generates random number
 //!         get_url_to_get_random_number()
 //!             -> ok
@@ -748,12 +746,10 @@
 //!                     }
 //!             }
 //!             // It waits for input in stdin before log random value
-//!             ~?? |random| {
-//!                 random
-//!                     .as_ref()
-//!                     .map(|number| println!("Random: {}", number))
-//!                     .unwrap_or(());
-//!             },
+//!             ~?? >>>
+//!                 ..as_ref()
+//!                 |> |number| println!("Random: {}", number)
+//!                 ..unwrap_or(()),
 //!         // Concurrently it reads value from stdin
 //!         read_number_from_stdin(),
 //!         // Finally, when we will have all results, we can decide, who is winner
@@ -970,7 +966,7 @@
 //!
 //! In runtime thread's name will be constructed from name of parent thread and join_%branch_index%.
 //!
-//! Example code with many branches:
+//! Example with several branches:
 //!
 //! ```rust
 //! extern crate join;
@@ -1109,8 +1105,10 @@ extern crate proc_macro_nested;
 use proc_macro_hack::proc_macro_hack;
 
 ///
-/// Use to combine results.
+/// Use to combine results. It transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple or single `Result`/`Option` in
+/// case of 1 branch.
 ///
+/// # Example:
 /// ```rust
 /// extern crate join;
 ///
@@ -1132,8 +1130,10 @@ use proc_macro_hack::proc_macro_hack;
 pub use join_export::try_join;
 
 ///
-/// Use to combine futures.
+/// Use to combine futures. It transposes tuple of `Result`s into `Result` of tuple or single `Result` in
+/// case of 1 branch.
 ///
+/// # Example:
 /// ```rust
 /// #![recursion_limit="256"]
 ///
@@ -1160,8 +1160,10 @@ pub use join_export::try_join;
 pub use join_export::try_join_async;
 
 ///
-/// Use to spawn [`::std::thread`](https://doc.rust-lang.org/std/thread/) per each step of each branch.
+/// Use to spawn [`::std::thread`](https://doc.rust-lang.org/std/thread/) per each step of each branch. It transposes
+/// tuple of `Result`s/`Option`s into `Result`/`Option` of tuple or single `Result`/`Option` in case of 1 branch.
 ///
+/// # Example:
 /// ```rust
 /// extern crate join;
 ///
@@ -1197,6 +1199,8 @@ pub use join_export::try_spawn;
 
 ///
 /// Use to spawn [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each step of each branch.
+/// It transposes tuple of `Result`s into `Result` of tuple or single `Result` in case of 1 branch.
+///
 /// ```rust
 /// #![recursion_limit="512"]
 ///
@@ -1244,6 +1248,7 @@ pub use join_export::try_async_spawn;
 ///
 /// Use to combine sync values. It produces tuple of values or single value in case of 1 branch.
 ///
+/// # Example:
 /// ```rust
 /// extern crate join;
 ///
@@ -1261,6 +1266,7 @@ pub use join_export::join;
 ///
 /// Use to combine futures. It produces tuple of values or single value in case of 1 branch.
 ///
+/// # Example:
 /// ```rust
 /// #![recursion_limit="256"]
 ///
@@ -1283,7 +1289,9 @@ pub use join_export::join_async;
 
 ///
 /// Use to spawn [`::std::thread`](https://doc.rust-lang.org/std/thread/) per each step of each branch.
+/// It produces tuple of values or single value in case of 1 branch.
 ///
+/// # Example:
 /// ```rust
 /// extern crate join;
 ///
@@ -1305,6 +1313,9 @@ pub use join_export::spawn;
 
 ///
 /// Use to spawn futures using [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each step of each branch.
+/// It produces tuple of values or single value in case of 1 branch.
+///
+/// # Example:
 /// ```rust
 /// #![recursion_limit="256"]
 ///

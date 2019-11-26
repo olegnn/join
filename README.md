@@ -40,20 +40,20 @@
 
 ## Macros
 
-- `try_join!` - combines results/options, transposes tuple of results/options in result/option of tuple.
+- `try_join!` - combines `Result`s/`Option`s, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
 ```rust
 assert_eq!(try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
 ```
-- `try_join_async!` - combines futures, transposes tuple of results in result of tuple.
+- `try_join_async!` - combines futures, transposes tuple of `Result`s into `Result` of tuple.
 ```rust
 assert_eq!(try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
 ```
-- `try_join_spawn!` - spawns `std::thread` per each branch and joins results, transposes tuple of results in result of tuple.
+- `try_join_spawn!` - spawns `std::thread` per each branch and joins results, transposes tuple of `Result`s into `Result` of tuple.
 ```rust
 assert_eq!(try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), Ok::<_,u8>((1, "2", 3.0)));
 ```
 - `try_spawn!` - alias for `try_join_spawn!`.
-- `try_join_async_spawn!` - spawns tokio task using `tokio::spawn` per each branch, transposes tuple of results in result of tuple.
+- `try_join_async_spawn!` - spawns tokio task using `tokio::spawn` per each branch, transposes tuple of `Result`s into `Result` of tuple.
 ```rust
 assert_eq!(try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, Ok::<_,u8>((1, "2", 3.0)));
 ```
@@ -432,7 +432,7 @@ reqwest = "0.10.0-alpha.1"
 </p>
 </details>
 
-```rust no_run
+```rust
 #![recursion_limit="1024"]
 
 use join::try_join_async;
@@ -482,22 +482,18 @@ async fn main() {
             !> |err| format_err!("Error retrieving pages to calculate links: {:#?}", err)
             => >>>
                 ..into_iter()
-                .max_by_key(|(_, link_count)| link_count.clone())
+                .max_by_key(|(_, link_count)| *link_count)
                 .ok_or(format_err!("Failed to find max link count"))
                 -> ready
             // It waits for input in stdin before log max links count
-            ~?? |result| {
-                result
-                    .as_ref()
-                    .map(
-                        |(url, count)| {
-                            let split = url.to_owned().split('/').collect::<Vec<_>>();
-                            let domain_name = split.get(2).unwrap_or(&url);
-                            println!("Max `https://` link count found on `{}`: {}", domain_name, count)
-                        }
-                    )
-                    .unwrap_or(());
-            },
+            ~?? >>>
+                ..as_ref()
+                |> |(url, count)| {
+                    let split = url.to_owned().split('/').collect::<Vec<_>>();
+                    let domain_name = split.get(2).unwrap_or(&url);
+                    println!("Max `https://` link count found on `{}`: {}", domain_name, count)
+                }
+                ..unwrap_or(()),
         // Concurrently it makes request to the site which generates random number
         get_url_to_get_random_number()
             -> ok
@@ -526,12 +522,10 @@ async fn main() {
                     }
             }
             // It waits for input in stdin before log random value
-            ~?? |random| {
-                random
-                    .as_ref()
-                    .map(|number| println!("Random: {}", number))
-                    .unwrap_or(());
-            },
+            ~?? >>>
+                ..as_ref()
+                |> |number| println!("Random: {}", number)
+                ..unwrap_or(()),
         // Concurrently it reads value from stdin
         read_number_from_stdin(),
         // Finally, when we will have all results, we can decide, who is winner
@@ -591,7 +585,7 @@ async fn read_number_from_stdin() -> Result<u16, Error> {
     
         let result = try_join_async! {
             next
-                |> >>> 
+                |> >>>
                     ..ok_or(format_err!("Unexpected end of input"))
                     => >>> !> |err| format_err!("Failed to apply codec: {:#?}", err)
                     <<<
@@ -745,7 +739,7 @@ fn main() {
 
 In runtime thread's name will be constructed from name of parent thread and join_%branch_index%.
 
-Example code with many branches:
+Example with several branches:
 
 ```rust
 extern crate join;

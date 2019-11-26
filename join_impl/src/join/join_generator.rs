@@ -209,9 +209,6 @@ impl<'a> JoinGenerator<'a> {
 
         match handler {
             Some(Handler::Then(_)) => {
-                //
-                // Doesn't unwrap results because handler accepts `Result`s (`Option`s).
-                //
                 let call_handler =
                     self.extract_results_tuple(results_var, &result_vars, handler_name, None);
                 quote! {
@@ -685,10 +682,12 @@ impl<'a> JoinGenerator<'a> {
     }
 
     ///
-    /// Generates token stream which transposes tuple of results in result of tuple.
+    /// Generates token stream which transposes tuple of `Result`s into `Result` of tuple.
     /// Optional `return_vars` may be specified to return something other than `result_vars`.
     ///
     /// (Result<A, Error>, Result<B, Error>, Result<C, Error>) => Result<(A, B, C), Error>
+    ///
+    /// # Example:
     ///
     /// ```
     /// fn main() {

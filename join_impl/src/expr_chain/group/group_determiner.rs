@@ -21,7 +21,7 @@ unsafe impl std::marker::Send for FnPointer {}
 unsafe impl std::marker::Sync for FnPointer {}
 
 ///
-/// `GroupDeterminer` is used to determine any `ActionGroup` or separator (for ex. `,`) in `ParseStream`
+/// `GroupDeterminer` is used to determine any `CommandGroup` or separator (for ex. `,`) in `ParseStream`
 ///
 #[derive(Clone)]
 pub struct GroupDeterminer {
@@ -35,7 +35,7 @@ pub struct GroupDeterminer {
 /// Creates `GroupDeterminer` for given `CommandGroup`s with provided tokens.
 ///
 #[macro_export]
-macro_rules! define_instant_and_deferred_determiners {
+macro_rules! define_group_determiners {
     ($($group_type: ident => $($token: expr),+ => $length: expr),+) => {{
         [
             $crate::define_determiner_with_no_group!(Token![,] => 0),
@@ -103,8 +103,9 @@ macro_rules! define_tokens_checker {
 }
 
 ///
-/// Creates `GroupDeterminer` with given (`ActionGroup` => tokens; length; Check parsed tokens? bool)
-/// Example:
+/// Creates `GroupDeterminer` with given (`CommandGroup` => tokens => length => ?Check parsed tokens? (optional bool))
+///
+/// # Example:
 /// ```
 /// use join_impl::expr_chain::group::CommandGroup;
 /// use join_impl::define_group_determiner;
@@ -136,7 +137,8 @@ macro_rules! define_group_determiner {
 impl GroupDeterminer {
     ///
     /// Constructs new `GroupDeterminer` using `const fn` (can be used to create const or static item).
-    /// Example:
+    ///
+    /// # Example:
     /// ```
     /// extern crate join_impl;
     /// extern crate syn;
@@ -175,7 +177,8 @@ impl GroupDeterminer {
 
     ///
     /// Constructs new `GroupDeterminer`.
-    /// Example:
+    ///
+    /// # Example:
     /// ```
     /// extern crate join_impl;
     /// extern crate syn;

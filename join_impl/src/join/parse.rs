@@ -23,7 +23,7 @@ mod keywords {
 ///
 /// Default `GroupDeterminer`'s definitions.
 ///
-pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::define_instant_and_deferred_determiners! {
+pub const DEFAULT_GROUP_DETERMINERS: &[GroupDeterminer] = &crate::define_group_determiners! {
     UNWRAP => Token![<], Token![<], Token![<] => 3,
     Collect => Token![=], Token![>], syn::token::Bracket => 3,
     Map => Token![|], Token![>] => 2,

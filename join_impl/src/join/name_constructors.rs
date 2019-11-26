@@ -87,6 +87,8 @@ pub fn construct_expr_wrapper_name(
 /// Constructs thread builder fn name. This function will generate thread builder with specified name.
 /// This name will be displayed as result of thread::current().name().unwrap() or
 /// in case of thread's panic.
+///
+/// # Example:
 /// ```
 /// extern crate join;
 ///
@@ -104,7 +106,7 @@ pub fn construct_expr_wrapper_name(
 /// ```
 /// In runtime thread's name will be constructed from name of parent thread and join_%branch_index%.
 ///
-/// Example code with many branches.
+/// # Example with several branches:
 /// ```
 /// extern crate join;
 ///
