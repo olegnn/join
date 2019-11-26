@@ -3,7 +3,7 @@
 **Macros** which provide useful shortcut combinators, combine sync/async chains, support single and multi thread (sync/async) step by step execution of branches, transform tuple of results to result of tuple.
 
 - `join!` macros will just return final values. Use it if you are working with iterators/streams etc.
-- `try_join!` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options. If one of branches produces `None`/`Err`  at the end of step , next steps execution will be aborted. In case of `async` macro you can only provide `Result`s because `::futures::try_join` doesn't support `Option`s.
+- `try_join!` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options. If one of branches produces `None`/`Err`  at the end of step, next steps execution will be aborted. In case of `async` macro you can only provide `Result`s because `::futures::try_join` doesn't support `Option`s.
 
 [![Docs][docs-badge]][docs-url]
 [![Crates.io][crates-badge]][crates-url]
