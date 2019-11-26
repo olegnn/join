@@ -20,6 +20,9 @@ pub struct ActionGroup {
 }
 
 impl ActionGroup {
+    ///
+    /// Creates new `ActionGroup` with provided configuration.
+    ///
     pub fn new(group: CommandGroup, apply_type: ApplyType, move_type: MoveType) -> Self {
         Self {
             group,

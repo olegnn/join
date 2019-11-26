@@ -533,7 +533,7 @@
 //! These blocks will be placed before actual step expressions.
 //!
 //! ## Demos
-//! 
+//!
 //! ### Sync demo
 //!
 //! Using this macro you can write things like
@@ -636,12 +636,12 @@
 //! ```
 //!
 //! ### Futures demo
-//! 
+//!
 //! And like this
-//! 
+//!
 //! <details><summary>Cargo.toml</summary>
 //! <p>
-//! 
+//!
 //! ```toml
 //! [dependencies]
 //! futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
@@ -650,7 +650,7 @@
 //! futures-timer = "1.0.2"
 //! reqwest = "0.10.0-alpha.1"
 //! ```
-//! 
+//!
 //! </p>
 //! </details>
 //!
@@ -803,7 +803,7 @@
 //!         |value|
 //!             move |error|
 //!                 format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
-//! 
+//!
 //!     # return Ok(25);
 //!
 //!     let mut reader = codec::FramedRead::new(io::BufReader::new(io::stdin()), codec::LinesCodec::new());
@@ -815,7 +815,7 @@
 //!     
 //!         let result = try_join_async! {
 //!             next
-//!                 |> >>> 
+//!                 |> >>>
 //!                     ..ok_or(format_err!("Unexpected end of input"))
 //!                     => >>> !> |err| format_err!("Failed to apply codec: {:#?}", err)
 //!                     <<<

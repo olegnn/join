@@ -11,7 +11,7 @@ use super::*;
 use quote::ToTokens;
 
 ///
-/// Defines public `ExprChain` struct.
+/// Chain with members of type `Member` and optional `PatIdent` pat.
 ///
 pub struct ExprChain<Member: Sized> {
     members: Vec<Member>,

@@ -263,7 +263,7 @@ mod tests {
         }
 
         let first_comma_determiner = GroupDeterminer::new_const(
-            None, // Because comma is not an action group
+            None, // Because comma is not a command group
             check_comma as *const (),
             false,
             1,
