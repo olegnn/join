@@ -2,7 +2,7 @@
 
 # `join!`
 
-**Macros** which provide useful shortcut combinators, combine sync/async chains, support single and multi thread (sync/async) step by step execution of branches, transform tuple of results in result of tuple.
+**Macros** which provide useful shortcut combinators, combine sync/async chains, support single and multi thread (sync/async) step by step execution of branches, transform tuple of results to result of tuple.
 
 - `join!` macros will just return final values. Use it if you are working with iterators/streams etc.
 - `try_join!` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options. If one of branches produces `None`/`Err`  at the end of step , next steps execution will be aborted. In case of `async` macro you can only provide `Result`s because `::futures::try_join` doesn't support `Option`s.
@@ -30,6 +30,8 @@
 - [Let pattern](#let-pattern)
 - [Block captures](#block-captures)
 - [Demos](#demos)
+    - [Sync](#sync-demo)
+    - [Async](#futures-demo)
 - [Single thread examples](#single-thread-combinations)
     - [Sync](#sync-branches)
     - [Async](#futures)
@@ -312,6 +314,8 @@ These blocks will be placed before actual step expressions.
 
 ## Demos
 
+### Sync demo 
+
 Using this macro you can write things like
 
 ```rust
@@ -346,7 +350,8 @@ fn main() {
             // Extract sqrt from every element
             |> get_sqrt
             -> Some
-            ~=> >>> // Add index in order to compare with the values of branch_0 (call `enumerate`)
+            ~=> >>> 
+                // Add index in order to compare with the values of branch_0 (call `enumerate`)
                 |n>
                 |> {
                     // Get data from branch 0 by cloning arc
@@ -410,7 +415,24 @@ where
 }
 ```
 
+### Futures demo
+
 And like this
+
+<details><summary>Cargo.toml</summary>
+<p>
+
+```toml
+[dependencies]
+futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
+tokio = "0.2.0-alpha.6"
+failure = "0.1.6"
+futures-timer = "1.0.2"
+reqwest = "0.10.0-alpha.1"
+```
+
+</p>
+</details>
 
 ```rust no_run
 #![recursion_limit="1024"]
@@ -460,13 +482,11 @@ async fn main() {
             |> Ok
             => try_join_all
             !> |err| format_err!("Error retrieving pages to calculate links: {:#?}", err)
-            => |results|
-                ok(
-                    results
-                        .into_iter()
-                        .max_by_key(|(_, link_count)| link_count.clone())
-                        .unwrap()
-                )
+            => >>>
+                ..into_iter()
+                .max_by_key(|(_, link_count)| link_count.clone())
+                .ok_or(format_err!("Failed to find max link count"))
+                -> ready
             // It waits for input in stdin before log max links count
             ~?? |result| {
                 result
@@ -564,19 +584,19 @@ async fn read_number_from_stdin() -> Result<u16, Error> {
             move |error|
                 format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
 
-    let mut result;
     let mut reader = codec::FramedRead::new(io::BufReader::new(io::stdin()), codec::LinesCodec::new());
 
-    while {
+    loop {
         println!("Please, enter number (`u16`)");
 
         let next = reader.next();
     
-        result = try_join_async! {
+        let result = try_join_async! {
             next
-                |> |value| value.ok_or(format_err!("Unexpected end of input"))
-                => >>>
-                    !> |err| format_err!("Failed to apply codec: {:?}", err) -> ready
+                |> >>> 
+                    ..ok_or(format_err!("Unexpected end of input"))
+                    => >>> !> |err| format_err!("Failed to apply codec: {:#?}", err)
+                    <<<
                 <<<
                 => |value|
                     ready(
@@ -587,10 +607,10 @@ async fn read_number_from_stdin() -> Result<u16, Error> {
                 !> |error| { eprintln!("Error: {:#?}", error); error}
         }.await;
 
-        result.is_err()
-    } {}
-
-    result
+        if result.is_ok() {
+            break result
+        }
+    }
 }
 ```
 
@@ -856,6 +876,7 @@ fn main() {
         action_1() ~=> |_| Err("5".into()) <| Ok(2),
         map => |a, b, c, d| a + b + c + d
     }.expect("Failed to calculate sum");
+    
     println!("Calculated: {}", sum);
 }
 ```

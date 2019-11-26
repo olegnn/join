@@ -1,3 +1,7 @@
+# [0.1.0-beta.1]
+
+Updated docs. Small refactoring.
+
 # [0.1.0-alpha.17]
 
 Optimized steps: branches which are not active during step are excluded from code. Fixed `join_spawn!` last step behaviour. 
