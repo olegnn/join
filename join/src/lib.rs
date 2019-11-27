@@ -43,7 +43,7 @@
 //! # use join::*;
 //! # fn main() {
 //! assert_eq!(
-//!     try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), 
+//!     try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)),
 //!     Ok::<_,u8>((1, "2", 3.0))
 //! );
 //! # }
@@ -55,7 +55,7 @@
 //! # #[tokio::main]
 //! # async fn main() {
 //! assert_eq!(
-//!     try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, 
+//!     try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await,
 //!     Ok::<_,u8>((1, "2", 3.0))
 //! );
 //! # }
@@ -65,7 +65,7 @@
 //! # use join::*;
 //! # fn main() {
 //! assert_eq!(
-//!     try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), 
+//!     try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)),
 //!     Ok::<_,u8>((1, "2", 3.0))
 //! );
 //! # }
@@ -80,7 +80,7 @@
 //! # #[tokio::main]
 //! # async fn main() {
 //! assert_eq!(
-//!     try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, 
+//!     try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await,
 //!     Ok::<_,u8>((1, "2", 3.0))
 //! );
 //! # }
@@ -660,10 +660,10 @@
 //! ### Futures demo
 //!
 //! *Pay attention: this demo uses `tokio = "0.2.0-alpha.6"`*, however `join!` macros are compatible with the latest `tokio`.
-//! 
+//!
 //! <details><summary>Cargo.toml</summary>
 //! <p>
-//! 
+//!
 //! ```toml
 //! [dependencies]
 //! futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
@@ -672,10 +672,10 @@
 //! futures-timer = "1.0.2"
 //! reqwest = "0.10.0-alpha.2"
 //! ```
-//! 
+//!
 //! </p>
 //! </details>
-//! 
+//!
 //! And like this:
 //!
 //! ```rust

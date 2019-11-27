@@ -1,3 +1,7 @@
+# [0.1.0-beta.3]
+
+Use combinators instead of `async` fn to spawn tokio tasks and send value. Updated docs.
+
 # [0.1.0-beta.2]
 
 Fixed docs. Restructured implementation.

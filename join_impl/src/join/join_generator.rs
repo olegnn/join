@@ -1084,22 +1084,23 @@ impl<'a> ToTokens for JoinGenerator<'a> {
                     let spawn_tokio_fn_name = construct_spawn_tokio_fn_name();
                     let value_name = construct_internal_value_name();
 
-                    Some(quote! {
-                        async fn #spawn_tokio_fn_name<T, F>(__future: F) -> T
-                        where
-                            F: #futures_crate_path::future::Future<Output = T> + Send + Sync + 'static,
-                            T: Send + Sync + 'static,
-                        {
-                            let (__tx, __rx) = #futures_crate_path::channel::oneshot::channel();
+                    Some(
+                        quote! {
+                            fn #spawn_tokio_fn_name<T, F>(__future: F) -> impl #futures_crate_path::future::Future<Output=T>
+                            where
+                                F: #futures_crate_path::future::Future<Output = T> + Send + 'static,
+                                T: Send + 'static,
+                            {
+                                let (__tx, __rx) = #futures_crate_path::channel::oneshot::channel();
 
-                            ::tokio::spawn(async move {
-                                let #value_name = __future.await;
-                                __tx.send(#value_name).map(|_| ()).unwrap_or_else(|_| ());
-                            });
+                                ::tokio::spawn(
+                                    __future.map(|#value_name| __tx.send(#value_name).map(|_| ()).unwrap_or(()))
+                                );
 
-                            __rx.await.unwrap()
+                                __rx.map(|#value_name| #value_name.unwrap())
+                            }
                         }
-                    })
+                    )
                 } else {
                     None
                 };
