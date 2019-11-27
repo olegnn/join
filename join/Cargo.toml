@@ -30,5 +30,5 @@ futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=[
 tokio = "0.2.0-alpha.6"
 failure = "0.1.6"
 futures-timer = "1.0.2"
-reqwest = "0.10.0-alpha.1"
+reqwest = "0.10.0-alpha.2"
 rand = "0.7.2"

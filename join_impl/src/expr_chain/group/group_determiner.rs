@@ -151,7 +151,7 @@ impl GroupDeterminer {
     ///
     /// fn main() {
     ///     let first_comma_determiner = GroupDeterminer::new_const(
-    ///         None, // Because comma is not an action group
+    ///         None, // Because comma is not a command group
     ///         check_input as *const (),
     ///         false,
     ///         1
@@ -191,7 +191,7 @@ impl GroupDeterminer {
     ///
     /// fn main() {
     ///     let first_comma_determiner = GroupDeterminer::new(
-    ///         None, // Because comma is not an action group
+    ///         None, // Because comma is not a command group
     ///         check_input,
     ///         false,
     ///         1

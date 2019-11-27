@@ -435,7 +435,7 @@ where
 
 ### Futures demo
 
-And like this
+*Pay attention: this demo uses `tokio = "0.2.0-alpha.6"`*, however `join!` macros are compatible with the latest `tokio`.
 
 <details><summary>Cargo.toml</summary>
 <p>
@@ -446,11 +446,13 @@ futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=[
 tokio = "0.2.0-alpha.6"
 failure = "0.1.6"
 futures-timer = "1.0.2"
-reqwest = "0.10.0-alpha.1"
+reqwest = "0.10.0-alpha.2"
 ```
 
 </p>
 </details>
+
+And like this:
 
 ```rust
 #![recursion_limit="1024"]
