@@ -29,6 +29,6 @@ join_export = { path = "../join_export", version = "0.1.0-beta.3" }
 futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
 tokio = "0.2.0-alpha.6"
 failure = "0.1.6"
-futures-timer = "1.0.2"
+futures-timer = "0.4.0"
 reqwest = "0.10.0-alpha.2"
 rand = "0.7.2"

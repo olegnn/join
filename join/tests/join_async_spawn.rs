@@ -332,7 +332,7 @@ mod join_async_spawn_tests {
             let _ = join_async_spawn! {
                 ok((values.clone(), 1u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(1)).await;
+                    Delay::new(Duration::from_secs(1)).await.unwrap();;
                     {
                         let mut values = values.lock().await;
                         values.sort();
@@ -342,7 +342,7 @@ mod join_async_spawn_tests {
                     Ok::<_, BoxedError>((values, value + 1))
                 } ~=> |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(1)).await;
+                    Delay::new(Duration::from_secs(1)).await.unwrap();;
                     let mut values = values.lock().await;
                     values.sort();
                     assert_eq!(values[..], [2, 3, 4]);
@@ -350,7 +350,7 @@ mod join_async_spawn_tests {
                 },
                 ok((values.clone(), 2u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(2)).await;
+                    Delay::new(Duration::from_secs(2)).await.unwrap();;
                     {
                         let mut values = values.lock().await;
                         values.sort();
@@ -360,7 +360,7 @@ mod join_async_spawn_tests {
                     Ok::<_, BoxedError>((values, value + 1))
                 } ~=> |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(2)).await;
+                    Delay::new(Duration::from_secs(2)).await.unwrap();;
                     let mut values = values.lock().await;
                     values.sort();
                     assert_eq!(values[..], [2, 3, 4]);
@@ -368,7 +368,7 @@ mod join_async_spawn_tests {
                 },
                 ok((values.clone(), 3u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(3)).await;
+                    Delay::new(Duration::from_secs(3)).await.unwrap();;
                     {
                         let mut values = values.lock().await;
                         values.sort();
@@ -378,7 +378,7 @@ mod join_async_spawn_tests {
                     Ok::<_, BoxedError>((values, value + 1))
                 } ~=> |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(3)).await;
+                    Delay::new(Duration::from_secs(3)).await.unwrap();;
                     let mut values = values.lock().await;
                     values.sort();
                     assert_eq!(values[..], [2, 3, 4]);

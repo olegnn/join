@@ -56,7 +56,7 @@ assert_eq!(
     Ok::<_,u8>((1, "2", 3.0))
 );
 ```
-- `try_join_spawn!` - spawns `std::thread` per each branch and joins results, transposes tuple of `Result`s into `Result` of tuple.
+- `try_join_spawn!` - spawns `std::thread` per each branch and joins results, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
 ```rust
 assert_eq!(
     try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), 
@@ -447,7 +447,7 @@ where
 futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
 tokio = "0.2.0-alpha.6"
 failure = "0.1.6"
-futures-timer = "1.0.2"
+futures-timer = "0.4.0"
 reqwest = "0.10.0-alpha.2"
 ```
 

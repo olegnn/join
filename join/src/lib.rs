@@ -60,7 +60,7 @@
 //! );
 //! # }
 //! ```
-//! - [`try_join_spawn!`](macro.try_join_spawn.html) - spawns [`std::thread`](https://doc.rust-lang.org/std/thread/) per each branch and joins results, transposes tuple of `Result`s into `Result` of tuple.
+//! - [`try_join_spawn!`](macro.try_join_spawn.html) - spawns [`std::thread`](https://doc.rust-lang.org/std/thread/) per each branch and joins results, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
 //! ```rust
 //! # use join::*;
 //! # fn main() {
@@ -669,7 +669,7 @@
 //! futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
 //! tokio = "0.2.0-alpha.6"
 //! failure = "0.1.6"
-//! futures-timer = "1.0.2"
+//! futures-timer = "0.4.0"
 //! reqwest = "0.10.0-alpha.2"
 //! ```
 //!
@@ -1241,13 +1241,13 @@ pub use join_export::try_spawn;
 ///     let product = try_join_async_spawn! {
 ///         ok::<_,u8>(2u16) |> |v| Ok::<_,u8>(v.unwrap() + 2u16) => |v| async move {
 ///             println!("Hello from parallel world!");
-///             Delay::new(Duration::from_secs(1)).await;
+///             Delay::new(Duration::from_secs(1)).await.unwrap();
 ///             println!("I'm done.");
 ///             Ok(v)
 ///         },
 ///         ok::<_,u8>(3u16) => |v| async move {
 ///             println!("Hello from parallel world again!");
-///             Delay::new(Duration::from_secs(2)).await;
+///             Delay::new(Duration::from_secs(2)).await.unwrap();
 ///             println!("Me too.");
 ///             Ok(v)
 ///         },
