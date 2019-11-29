@@ -283,6 +283,7 @@ mod join_async_tests {
             assert_eq!(product.await.unwrap(), 840);
         });
     }
+
     #[test]
     fn it_checks_concurrent_branches_execution() {
         block_on(async {
@@ -354,6 +355,17 @@ mod join_async_tests {
             }
             .await
             .unwrap();
+        });
+    }
+
+    #[test]
+    fn it_works_with_custom_joiner() {
+        block_on(async {
+            let values = join_async! {
+                ready(2), ready(3)
+            }
+            .await;
+            assert_eq!(values, (2, 3));
         });
     }
 

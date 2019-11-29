@@ -46,6 +46,18 @@ pub trait Join {
     /// Returns `Handler` if exists.
     ///
     fn get_handler(&self) -> Option<&Self::Handler>;
+
+    ///
+    /// Returns custom joiner if exists.
+    ///
+    fn get_joiner(&self) -> Option<&TokenStream>;
+
+    ///
+    /// Returns transpose results configuration if specified.
+    ///
+    fn get_transpose_results_option(&self) -> Option<bool>;
+
+    fn get_lazy_branches_option(&self) -> Option<bool>;
 }
 
 ///
@@ -53,6 +65,9 @@ pub trait Join {
 ///
 pub struct JoinDefault {
     pub futures_crate_path: Option<Path>,
+    pub custom_joiner: Option<TokenStream>,
+    pub transpose_results: Option<bool>,
+    pub lazy_branches: Option<bool>,
     pub branches: Vec<ActionExprChain>,
     pub handler: Option<Handler>,
 }
@@ -71,6 +86,18 @@ impl Join for JoinDefault {
 
     fn get_handler(&self) -> Option<&Self::Handler> {
         self.handler.as_ref()
+    }
+
+    fn get_joiner(&self) -> Option<&TokenStream> {
+        self.custom_joiner.as_ref()
+    }
+
+    fn get_transpose_results_option(&self) -> Option<bool> {
+        self.transpose_results.as_ref().map(|v| *v)
+    }
+
+    fn get_lazy_branches_option(&self) -> Option<bool> {
+        self.lazy_branches.as_ref().map(|v| *v)
     }
 }
 
@@ -93,6 +120,9 @@ pub fn generate_join<T: Join<Chain = ActionExprChain, Handler = Handler>>(
         } else {
             None
         },
+        join.get_joiner(),
+        join.get_transpose_results_option(),
+        join.get_lazy_branches_option(),
         config,
     )
     .unwrap()

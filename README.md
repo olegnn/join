@@ -27,6 +27,7 @@
 - [Handler](#handler)
 - [Let pattern](#let-pattern)
 - [Block captures](#block-captures)
+- [Custom configuration](#custom-configuration)
 - [Demos](#demos)
     - [Sync](#sync-demo)
     - [Async](#futures-demo)
@@ -280,22 +281,78 @@ assert_eq!(join! { Some(1), Some(2), Some(3), then => |a: Option<u8>, b: Option<
 
 or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned.
 
-## Custom futures crate path
+## Custom configuration
 
-You can specify custom path (`futures_crate_path`) at the beginning of macro call
+You can specify any params at the beginning of macro call.
+
+`futures_crate_path` - specifies custom crate path for `futures` crate. which will be used for all `futures`-related items, used by `async` `join!` macros. Only valid for `async` macros.
+`custom_joiner` - specifies custom joiner *function* or *macro*, which will join active branches in step if their count is greater than 1.
+`transpose_results` - specifies should macro transpose tuple of `Result`s/`Option`s into `Result`/`Option` of tuple or not. Useful when provided joiner already returns `Result` of tuple and ther's no need to transpose it.
+`lazy_branches` - wrap every branch into `move || {}` when pass values to joiner. By default true for `try_join_spawn!` and `join_spawn` macros because they use `thread::spawn` call. When active branch count is greater that 1.
 
 ```rust
+#![recursion_limit="256"]
+
 use join::try_join_async;
 use futures::future::ok;
+
+macro_rules! custom_futures_joiner {
+    ($($futures: expr),+) => {
+        ::futures::try_join!($($futures),*);
+    }
+}
 
 #[tokio::main]
 async fn main() {
     let value = try_join_async! {
         futures_crate_path(::futures)
-        ok::<_,u8>(2u16)
+        custom_joiner(custom_futures_joiner!)
+        transpose_results(false)
+        ok::<_,u8>(2u16), ok::<_,u8>(3u16),
+        map => |a, b| a + b
     }.await.unwrap();
     
-    println!("{}", value);
+    assert_eq!(value, 5);
+}
+```
+
+*Rayon demo*
+
+```rust
+#![recursion_limit="256"]
+
+use join::{try_join, join};
+
+fn fib(num: u8) -> usize {
+    let mut prev = 0;
+    let mut cur = if num > 0 { 1 } else { 0 };
+    for _ in 1..num as usize {
+        let tmp = cur;
+        cur = prev + cur;
+        prev = tmp;
+    }
+    cur
+} 
+
+fn main() {
+    let pool = rayon::ThreadPoolBuilder::new().build().unwrap();
+    let calculated = pool.install(|| 
+        try_join! {
+            custom_joiner(rayon::join)
+            || Some(fib(50)),
+            || Some(
+                join! {
+                    custom_joiner(rayon::join)
+                    lazy_branches(true)
+                    fib(20) -> |v| v + 25,
+                    fib(30) -> |v| vec![v; 10].into_iter() |n> |> |(index, value)| value + index ..sum::<usize>(),
+                    then => |a, b| a + b
+                }
+            ),
+            map => |a, b| a * b
+        }
+    );
+    assert_eq!(calculated.unwrap(), 104808819944395875);
 }
 ```
 
@@ -433,6 +490,66 @@ where
 }
 ```
 
+```rust
+#![recursion_limit="256"]
+
+extern crate rand;
+extern crate join;
+
+use rand::prelude::*;
+use join::try_join;
+
+fn main() {
+    let mut rng = rand::thread_rng();
+
+    let result = try_join! {
+        (0..10)
+            // .map(|index| { let value ... })
+            |> |index| { let value = rng.gen_range(0, index + 5); if rng.gen_range(0f32, 2f32) > 1f32 { Ok(value) } else { Err(value) }}
+            // .filter(|result| ...)
+            ?> |result| match result { Ok(_) => true, Err(value) => *value > 2 }
+            // .map(|v| v.map(|value| value + 1))
+            |> >>> |> |value| value + 1
+            <<<
+            // .fold(0i32, |acc, cur| {...})
+            ?^@ 0i32, |acc, cur| {
+                cur.map(|cur| acc + cur).or_else(|cur| Ok(acc - cur))
+            }
+            // .and_then(|value| if ...)
+            => |value| if value > 0 { Ok(value as u8) } else { Err(0) }
+            // Wait for all branches to be successful and then calculate fib
+            ~|> fib,
+        (0..6)
+            // .map(|index| { let value ... })
+            |> |index| { let value = rng.gen_range(0, index + 5); if rng.gen_range(0f32, 2f32) > 1f32 { Some(value) } else { None }}
+            // .filter_map(|v| v)
+            ?|> >>>
+            <<<
+            ..sum::<u16>()
+            // Return `Ok` only if value is less than 20
+            -> |value| if value < 20 { Ok(value as u8) } else { Err(0) }
+            // Wait for all branches to be successful and then calculate fib
+            ~|> fib,
+        // In case of success, multilpy fibs
+        map => |v_1, v_2| v_1 * v_2
+    };
+
+    result.map(|value| println!("Result: {}", value)).unwrap_or_else(|err| println!("Error: {:#?}", err));
+}
+
+fn fib(num: u8) -> usize {
+    println!("CALLLED FIB!");
+    let mut prev = 0;
+    let mut cur = if num > 0 { 1 } else { 0 };
+    for _ in 1..num as usize {
+        let tmp = cur;
+        cur = prev + cur;
+        prev = tmp;
+    }
+    cur
+}
+```
+
 ### Futures demo
 
 *Pay attention: this demo uses `tokio = "0.2.0-alpha.6"`*, however `join!` macros are compatible with the latest `tokio`.
@@ -445,7 +562,7 @@ where
 futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
 tokio = "0.2.0-alpha.6"
 failure = "0.1.6"
-futures-timer = "0.4.0"
+futures-timer = "1.0.2"
 reqwest = "0.10.0-alpha.2"
 ```
 

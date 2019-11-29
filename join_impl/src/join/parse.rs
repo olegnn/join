@@ -10,13 +10,16 @@ use super::super::handler::Handler;
 use super::JoinDefault;
 use syn::parenthesized;
 use syn::parse::{Parse, ParseStream};
-use syn::Token;
+use syn::{LitBool, Token};
 
 #[cfg(feature = "full")]
 use std::sync::Arc;
 
 mod keywords {
     syn::custom_keyword!(futures_crate_path);
+    syn::custom_keyword!(transpose_results);
+    syn::custom_keyword!(lazy_branches);
+    syn::custom_keyword!(custom_joiner);
     syn::custom_keyword!(n);
 }
 
@@ -77,6 +80,9 @@ impl Parse for JoinDefault {
             branches: Vec::new(),
             handler: None,
             futures_crate_path: None,
+            custom_joiner: None,
+            transpose_results: None,
+            lazy_branches: None,
         };
 
         #[cfg(not(feature = "static"))]
@@ -93,11 +99,46 @@ impl Parse for JoinDefault {
             WRAP_DETERMINER,
         );
 
-        if input.peek(keywords::futures_crate_path) {
-            input.parse::<keywords::futures_crate_path>()?;
-            let content;
-            parenthesized!(content in input);
-            join.futures_crate_path = Some(content.parse()?);
+        for _ in 0..4 {
+            if input.peek(keywords::futures_crate_path) {
+                input.parse::<keywords::futures_crate_path>()?;
+                let content;
+                parenthesized!(content in input);
+                if join.futures_crate_path.is_some() {
+                    return Err(input.error("futures_crate_path specified twice"));
+                }
+                join.futures_crate_path = Some(content.parse()?);
+            }
+
+            if input.peek(keywords::custom_joiner) {
+                input.parse::<keywords::custom_joiner>()?;
+                let content;
+                parenthesized!(content in input);
+                if join.custom_joiner.is_some() {
+                    return Err(input.error("custom_joiner specified twice"));
+                }
+                join.custom_joiner = Some(content.parse()?);
+            }
+
+            if input.peek(keywords::transpose_results) {
+                input.parse::<keywords::transpose_results>()?;
+                let content;
+                parenthesized!(content in input);
+                if join.transpose_results.is_some() {
+                    return Err(input.error("transpose_results specified twice"));
+                }
+                join.transpose_results = Some(content.parse::<LitBool>()?.value);
+            }
+
+            if input.peek(keywords::lazy_branches) {
+                input.parse::<keywords::lazy_branches>()?;
+                let content;
+                parenthesized!(content in input);
+                if join.lazy_branches.is_some() {
+                    return Err(input.error("lazy_branches specified twice"));
+                }
+                join.lazy_branches = Some(content.parse::<LitBool>()?.value);
+            }
         }
 
         while !input.is_empty() {

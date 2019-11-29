@@ -50,6 +50,10 @@ pub struct JoinGenerator<'a> {
     ///
     config: Config,
     ///
+    /// Provided custom joiner function.
+    ///
+    custom_joiner: Option<&'a TokenStream>,
+    ///
     /// Contains all branches depths. Used to calculate max length and determine if we reached branch's end.
     ///
     depths: Vec<usize>,
@@ -61,6 +65,10 @@ pub struct JoinGenerator<'a> {
     /// Optional final handler.
     ///
     handler: Option<&'a Handler>,
+    ///
+    /// Wrap branches into closure `move || {...}`
+    ///
+    lazy_branches: bool,
     ///
     /// Max step count of all branches.
     ///
@@ -82,13 +90,18 @@ impl<'a> JoinGenerator<'a> {
         branches: &'a [ActionExprChain],
         handler: Option<&'a Handler>,
         futures_crate_path: Option<&'a Path>,
+        custom_joiner: Option<&'a TokenStream>,
+        custom_transpose_results: Option<bool>,
+        lazy_branches: Option<bool>,
         config: Config,
     ) -> Result<Self, &'static str>
     where
         Self: Sized,
     {
         let Config {
-            is_async, is_try, ..
+            is_async,
+            is_try,
+            is_spawn,
         } = config;
 
         let branch_count = branches.len();
@@ -134,6 +147,8 @@ impl<'a> JoinGenerator<'a> {
 
                 Self {
                     futures_crate_path,
+                    custom_joiner,
+                    lazy_branches: lazy_branches.unwrap_or(is_spawn && !is_async),
                     config,
                     //
                     // Max step count is max depth of branches.
@@ -148,7 +163,7 @@ impl<'a> JoinGenerator<'a> {
                     // In case of `try` `async` `::futures::try_join!` macro will be used, so we don't need to
                     // transpose results.
                     //
-                    transpose: is_try && !is_async,
+                    transpose: custom_transpose_results.unwrap_or(is_try && !is_async),
                 }
             })
         }
@@ -330,18 +345,27 @@ impl<'a> JoinGenerator<'a> {
                         .map(|(def_stream, chain)| {
                             (
                                 def_stream,
-                                if is_spawn {
-                                    if is_async {
-                                        let spawn_tokio_fn_name = construct_spawn_tokio_fn_name();
-                                        quote! {
-                                            { #spawn_tokio_fn_name(Box::pin(#chain)) }
+                                if self.get_active_step_branch_count(step_number) > 1 {
+                                    let chain = if self.lazy_branches {
+                                        quote! { move || #chain }
+                                    } else {
+                                        chain
+                                    };
+                                    if is_spawn {
+                                        if is_async {
+                                            let spawn_tokio_fn_name = construct_spawn_tokio_fn_name();
+                                            quote! {
+                                                { #spawn_tokio_fn_name(Box::pin(#chain)) }
+                                            }
+                                        } else {
+                                            let thread_builder_name =
+                                                construct_thread_builder_name(branch_index);
+                                            quote! {
+                                                { #thread_builder_name.spawn(#chain).unwrap() }
+                                            }
                                         }
                                     } else {
-                                        let thread_builder_name =
-                                            construct_thread_builder_name(branch_index);
-                                        quote! {
-                                            { #thread_builder_name.spawn(move || #chain ).unwrap() }
-                                        }
+                                        chain
                                     }
                                 } else {
                                     chain
@@ -352,21 +376,31 @@ impl<'a> JoinGenerator<'a> {
             )
             .unzip();
 
-        if is_async {
-            let futures_crate_path = self.futures_crate_path;
-            let await_results = if self.get_active_step_branch_count(step_number) > 1 {
-                if is_try {
-                    quote! { #futures_crate_path::try_join!(#( #step_streams ),*) }
+        let joiner = if self.get_active_step_branch_count(step_number) > 1 {
+            self.custom_joiner.map(Clone::clone).or_else(|| {
+                if is_async {
+                    let futures_crate_path = self.futures_crate_path;
+                    if is_try {
+                        Some(quote! { #futures_crate_path::try_join! })
+                    } else {
+                        Some(quote! { #futures_crate_path::join! })
+                    }
                 } else {
-                    quote! { #futures_crate_path::join!(#( #step_streams ),*) }
+                    None
                 }
-            } else {
-                quote! { #( #step_streams )*.await }
-            };
+            })
+        } else {
+            None
+        };
+
+        if is_async {
+            let join_results = joiner
+                .map(|joiner| quote! { #joiner(#( #step_streams ),*) })
+                .unwrap_or_else(|| quote! { #( #step_streams )*.await });
 
             quote! {
                 #( #def_streams )*
-                let #step_results_name = #await_results;
+                let #step_results_name = #join_results;
             }
         } else {
             //
@@ -380,7 +414,7 @@ impl<'a> JoinGenerator<'a> {
             quote! {
                 #thread_builders
                 #( #def_streams )*
-                let #step_results_name = (#( #step_streams ),*);
+                let #step_results_name = #joiner(#( #step_streams ),*);
                 #spawn_joiners
             }
         }
@@ -486,7 +520,7 @@ impl<'a> JoinGenerator<'a> {
                     }
                 }
             }
-        } else if transpose {
+        } else if transpose && is_try {
             let transposer = self.generate_results_transposer(&result_vars, None);
 
             quote! {
@@ -649,7 +683,7 @@ impl<'a> JoinGenerator<'a> {
             is_async, is_spawn, ..
         } = self.config;
 
-        if is_async || !is_spawn {
+        if is_async || !is_spawn || self.get_active_step_branch_count(step_number) < 2 {
             None
         } else {
             let thread_builders = (0..self.branch_count).filter_map(|branch_index| {

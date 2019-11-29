@@ -429,7 +429,7 @@ mod join_async_spawn_tests {
     fn it_cant_work_without_tokio() {
         assert!(
             ::std::panic::catch_unwind(|| ::futures::executor::block_on(async {
-                let failure = try_join_async_spawn! { ::futures::future::ready(Ok::<_,u8>(2u16)) };
+                let failure = try_join_async_spawn! { ok::<_,u8>(2u16), ok::<_,u8>(1u16) };
                 failure.await
             }))
             .is_err()

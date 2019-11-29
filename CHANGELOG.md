@@ -1,3 +1,7 @@
+# [0.1.0-beta.4]
+
+Added `custom_joiner`, `transpose_results`, `lazy_branches` custom configuration options.
+
 # [0.1.0-beta.3]
 
 Use combinators instead of `async` fn to spawn tokio tasks and send value. Updated docs.
