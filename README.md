@@ -528,7 +528,7 @@ fn main() {
             // .map(|v| v.map(|value| value + 1))
             |> >>> |> |value| value + 1
             <<<
-            // .fold(0i32, |acc, cur| {...})
+            // .try_fold(0i32, |acc, cur| {...})
             ?^@ 0i32, |acc, cur| {
                 cur.map(|cur| acc + cur).or_else(|cur| Ok(acc - cur))
             }
