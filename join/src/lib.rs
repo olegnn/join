@@ -619,14 +619,14 @@
 //!
 //! ```rust
 //! #![recursion_limit = "256"]
-//!
+//! 
 //! use rand::prelude::*;
 //! use std::sync::Arc;
 //! use join::try_join_spawn;
-//!
+//! 
 //! // Problem: generate vecs filled by random numbers in parallel, make some operations on them in parallel,
 //! // find max of each vec in parallel and find final max of 3 vecs
-//!
+//! 
 //! // Solution:
 //! fn main() {
 //!     // Branches will be executed in parallel, each in its own thread
@@ -634,40 +634,46 @@
 //!         let branch_0 =
 //!             generate_random_vec(1000, 10000000u64)
 //!                 .into_iter()
-//!                 // Multiply every element by itself
+//!                 // .map(power2) (Multiply every element by itself)
 //!                 |> power2
-//!                 // Filter even values
+//!                 // .filter(is_even) (Filter even values)
 //!                 ?> is_even
-//!                 // Collect values into `Vec<_>`
+//!                 // .collect::<Vec<_>>() (Collect values into `Vec<_>`)
 //!                 =>[] Vec<_>
+//!                 // Arc::new(Some(...))
 //!                 // Use `Arc` to share data with branch 1
 //!                 -> Arc::new -> Some
 //!                 // Find max and clone its value
+//!                 // .and_then(|v| v.iter().max().map(Clone::clone))
 //!                 ~=> >>> ..iter().max() |> Clone::clone,
 //!         generate_random_vec(10000, 100000000000000f64)
 //!             .into_iter()
-//!             // Extract sqrt from every element
+//!             // .map(get_sqrt) (Extract sqrt from every element)
 //!             |> get_sqrt
+//!             // Some(...)
 //!             -> Some
-//!             ~=> >>>
-//!                 // Add index in order to compare with the values of branch_0 (call `enumerate`)
+//!             // .and_then(|v| v...)
+//!             ~=> >>> 
+//!                 // .enumerate() (Add index in order to compare with the values of branch_0)
 //!                 |n>
+//!                 // .map(...)
 //!                 |> {
-//!                      // Get data from branch 0 by cloning arc
-//!                      let branch_0 = branch_0.as_ref().unwrap().clone();
-//!                      let len = branch_0.len();
-//!                      // Compare every element of branch 1 with element of branch_0
-//!                      // with the same index and take min
-//!                      move |(index, value)|
-//!                          if index < len && value as u64 > branch_0[index] {
-//!                              branch_0[index]
-//!                          } else {
-//!                              value as u64
-//!                          }
-//!                  }..max(),
+//!                     // Get data from branch 0 by cloning arc
+//!                     let branch_0 = branch_0.as_ref().unwrap().clone();
+//!                     let len = branch_0.len();
+//!                     // Compare every element of branch 1 with element of branch_0
+//!                     // with the same index and take min
+//!                     move |(index, value)|
+//!                         if index < len && value as u64 > branch_0[index] {
+//!                             branch_0[index]
+//!                         } else {
+//!                             value as u64
+//!                         }
+//!                 }..max(),
 //!         generate_random_vec(100000, 100000u32)
 //!             .into_iter()
 //!             -> Some
+//!             // .and_then(|v| v.max())
 //!             ~=> >>> ..max(),
 //!         and_then => |max0, max1, max2|
 //!             // Find final max
@@ -676,7 +682,7 @@
 //!     .unwrap();
 //!     println!("Max: {}", max);
 //! }
-//!
+//! 
 //! fn generate_random_vec<T>(size: usize, max: T) -> Vec<T>
 //! where
 //!     T: From<u8>
@@ -689,14 +695,14 @@
 //!         .map(|_| rng.gen_range(T::from(0u8), max))
 //!         .collect()
 //! }
-//!
+//! 
 //! fn is_even<T>(value: &T) -> bool
 //! where
 //!     T: std::ops::Rem<Output = T> + std::cmp::PartialEq + From<u8> + Copy
 //! {
 //!     *value % 2u8.into() == 0u8.into()
 //! }
-//!
+//! 
 //! fn get_sqrt<T>(value: T) -> T
 //! where
 //!     T: Into<f64>,
@@ -705,7 +711,7 @@
 //!     let value_f64: f64 = value.into();
 //!     value_f64.sqrt().into()
 //! }
-//!
+//! 
 //! fn power2<T>(value: T) -> T
 //! where
 //!     T: std::ops::Mul<Output = T> + Copy,
@@ -730,7 +736,7 @@
 //!     let result = try_join! {
 //!         (0..10)
 //!             // .map(|index| { let value ... })
-//!             |> |index| { let value = rng.gen_range(0, index + 5); if rng.gen_range(0f32, 2f32) > 1f32 { Ok(value) } else { Err(value) }}
+//!             |> |index| { let value = rng.gen_range(0, index + 5); if rng.gen_range(0f32, 2.0) > 1.0 { Ok(value) } else { Err(value) }}
 //!             // .filter(|result| ...)
 //!             ?> |result| match result { Ok(_) => true, Err(value) => *value > 2 }
 //!             // .map(|v| v.map(|value| value + 1))
@@ -746,7 +752,7 @@
 //!             ~|> fib,
 //!         (0..6)
 //!             // .map(|index| { let value ... })
-//!             |> |index| { let value = rng.gen_range(0, index + 5); if rng.gen_range(0f32, 2f32) > 1f32 { Some(value) } else { None }}
+//!             |> |index| { let value = rng.gen_range(0, index + 5); if rng.gen_range(0f32, 2.0) > 1.0 { Some(value) } else { None }}
 //!             // .filter_map(|v| v)
 //!             ?|> >>>
 //!             <<<

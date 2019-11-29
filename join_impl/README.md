@@ -412,24 +412,29 @@ fn main() {
         let branch_0 =
             generate_random_vec(1000, 10000000u64)
                 .into_iter()
-                // Multiply every element by itself
+                // .map(power2) (Multiply every element by itself)
                 |> power2
-                // Filter even values
+                // .filter(is_even) (Filter even values)
                 ?> is_even
-                // Collect values into `Vec<_>`
+                // .collect::<Vec<_>>() (Collect values into `Vec<_>`)
                 =>[] Vec<_>
+                // Arc::new(Some(...))
                 // Use `Arc` to share data with branch 1
                 -> Arc::new -> Some
                 // Find max and clone its value
+                // .and_then(|v| v.iter().max().map(Clone::clone))
                 ~=> >>> ..iter().max() |> Clone::clone,
         generate_random_vec(10000, 100000000000000f64)
             .into_iter()
-            // Extract sqrt from every element
+            // .map(get_sqrt) (Extract sqrt from every element)
             |> get_sqrt
+            // Some(...)
             -> Some
+            // .and_then(|v| v...)
             ~=> >>> 
-                // Add index in order to compare with the values of branch_0 (call `enumerate`)
+                // .enumerate() (Add index in order to compare with the values of branch_0)
                 |n>
+                // .map(...)
                 |> {
                     // Get data from branch 0 by cloning arc
                     let branch_0 = branch_0.as_ref().unwrap().clone();
@@ -446,6 +451,7 @@ fn main() {
         generate_random_vec(100000, 100000u32)
             .into_iter()
             -> Some
+            // .and_then(|v| v.max())
             ~=> >>> ..max(),
         and_then => |max0, max1, max2|
             // Find final max
@@ -507,7 +513,7 @@ fn main() {
     let result = try_join! {
         (0..10)
             // .map(|index| { let value ... })
-            |> |index| { let value = rng.gen_range(0, index + 5); if rng.gen_range(0f32, 2f32) > 1f32 { Ok(value) } else { Err(value) }}
+            |> |index| { let value = rng.gen_range(0, index + 5); if rng.gen_range(0f32, 2.0) > 1.0 { Ok(value) } else { Err(value) }}
             // .filter(|result| ...)
             ?> |result| match result { Ok(_) => true, Err(value) => *value > 2 }
             // .map(|v| v.map(|value| value + 1))
@@ -523,7 +529,7 @@ fn main() {
             ~|> fib,
         (0..6)
             // .map(|index| { let value ... })
-            |> |index| { let value = rng.gen_range(0, index + 5); if rng.gen_range(0f32, 2f32) > 1f32 { Some(value) } else { None }}
+            |> |index| { let value = rng.gen_range(0, index + 5); if rng.gen_range(0f32, 2.0) > 1.0 { Some(value) } else { None }}
             // .filter_map(|v| v)
             ?|> >>>
             <<<
@@ -616,19 +622,25 @@ async fn main() {
                             => |body| ok((url, body.matches("https://").collect::<Vec<_>>().len()))
                     }
             }
-            // Collect values into `Vec<_>`
+            // .collect::<Vec<_>>() (Collect values into `Vec<_>`)
             =>[] Vec<_>
+            // .map(Ok)
             |> Ok
+            // .and_then(try_join_all)
             => try_join_all
+            // .map_err(|err| ...)
             !> |err| format_err!("Error retrieving pages to calculate links: {:#?}", err)
+            // .and_then(|v| v.into_iter()...)
             => >>>
                 ..into_iter()
                 .max_by_key(|(_, link_count)| *link_count)
                 .ok_or(format_err!("Failed to find max link count"))
+                // Wrap previous result into `ready(...)`
                 -> ready
             // It waits for input in stdin before log max links count
             ~?? >>>
                 ..as_ref()
+                // .map(|number| ...)
                 |> |(url, count)| {
                     let split = url.to_owned().split('/').collect::<Vec<_>>();
                     let domain_name = split.get(2).unwrap_or(&url);
@@ -637,7 +649,9 @@ async fn main() {
                 ..unwrap_or(()),
         // Concurrently it makes request to the site which generates random number
         get_url_to_get_random_number()
+            // Wrap previous result into `ok(...)`
             -> ok
+            // .and_then(...)
             => {
                 // If pass block statement instead of fn, it will be placed before current step,
                 // so it will allow us to capture some variables from context
@@ -663,8 +677,10 @@ async fn main() {
                     }
             }
             // It waits for input in stdin before log random value
+            // .inspect(|v| v.as_ref()...)
             ~?? >>>
                 ..as_ref()
+                // .map(|number| ...)
                 |> |number| println!("Random: {}", number)
                 ..unwrap_or(()),
         // Concurrently it reads value from stdin
@@ -726,17 +742,21 @@ async fn read_number_from_stdin() -> Result<u16, Error> {
     
         let result = try_join_async! {
             next
+                // .map(|v| v.ok_or()...)
                 |> >>>
                     ..ok_or(format_err!("Unexpected end of input"))
+                    // .and_then(|v| v.map_err(|err| ...))
                     => >>> !> |err| format_err!("Failed to apply codec: {:#?}", err)
                     <<<
                 <<<
+                // .and_then(|value| ready(...))
                 => |value|
                     ready(
                         value
                             .parse()
                             .map_err(map_parse_error(value))
                     )
+                // .map_err(|error| ...)
                 !> |error| { eprintln!("Error: {:#?}", error); error}
         }.await;
 
