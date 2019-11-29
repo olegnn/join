@@ -42,11 +42,10 @@
 
 ## Features
 
-- Speed. Macros will produce well-optimized code (they don't use inactive branches during steps, don't clone resuls/options, don't allocate any memory on heap [except wrapping futures into `Box::pin`]) - you can check it with `cargo expand`.
+- Speed. Macros produce well-optimized code (it doesn't use inactive branches during steps, doesn't clone results/options or any other values, doesn't allocate any memory on heap [except wrapping futures into `Box::pin`]) - you can check it with `cargo expand`.
 - Steps allow to write code which depends on results of branches in previous iteration.
-- Less code to express the same flow.
 - One-line chains which can't be created using pure `Rust` without macros.
-- Shortcut combinators = less parentheses.
+- Briefness. Less code to express the same flow. Shortcut combinators = less parentheses.
 - `async` *macros* produce futures, so they can be used in non-`async` functions.
 - Configurability - there're many options which can be configured independently to fully change macro behaviour.
 
