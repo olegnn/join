@@ -5,7 +5,7 @@
 **Macros** which provide useful shortcut combinators, combine sync/async chains, support single and multi thread (sync/async) step by step execution of branches, transform tuple of results to result of tuple.
 
 - `join!` macros will just return final values. Use it if you are working with iterators/streams etc.
-- `try_join!` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options. If one of branches produces `None`/`Err`  at the end of step, next steps execution will be aborted. In case of `async` macro you can only provide `Result`s because `::futures::try_join` doesn't support `Option`s.
+- `try_join!` macros will transpose tuple of `Option`s/`Result`s in `Option`/`Result` of tuple. Use it when you are dealing with results or options. If one of branches produces `None`/`Err` at the end of step, next steps execution will be aborted. In case of `async` macro you can only provide `Result`s because `::futures::try_join` doesn't support `Option`s.
 
 [![Docs][docs-badge]][docs-url]
 [![Crates.io][crates-badge]][crates-url]
@@ -23,6 +23,7 @@
 
 **Use [these docs](https://docs.rs/join) for development, they are more convenient.**
 
+- [Features](#features)
 - [Macros](#macros)
 - [Combinators](#combinators)
 - [Nested combinators](#nested-combinators)
@@ -40,6 +41,16 @@
     - [Sync](#sync-threads)
     - [Async](#future-tasks)
 - [Detailed steps example](#detailed-steps-example)
+
+## Features
+
+- Speed. Macros will produce well-optimized code (they don't use inactive branches during steps, don't clone resuls/options, don't allocate any memory on heap [except wrapping futures into `Box::pin`]) - you can check it with `cargo expand`.
+- Steps allows you to write code which depends on results of branches in previous iteration.
+- Less code to express the same flow.
+- One-line chains which can't be created using pure `Rust` without macros.
+- Shortcut combinators = less parentheses.
+- `async` *macros* produce futures, so they can be used in non-`async` functions.
+- Configurability - there're many options which can be configured independently to fully change macro behaviour.
 
 ## Macros
 
