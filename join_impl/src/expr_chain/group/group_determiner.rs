@@ -8,17 +8,17 @@ use syn::parse::{Parse, ParseStream};
 
 use super::CommandGroup;
 
-pub type DetermineGroupPredicate = fn(ParseStream) -> bool;
+pub type CheckStreamFn = fn(ParseStream) -> bool;
 
 #[derive(Clone, Copy)]
-union FnPointer {
-    fun: DetermineGroupPredicate,
+union CheckStreamFnPointer {
+    fun: CheckStreamFn,
     raw: *const (),
 }
 
-unsafe impl std::marker::Send for FnPointer {}
+unsafe impl std::marker::Send for CheckStreamFnPointer {}
 
-unsafe impl std::marker::Sync for FnPointer {}
+unsafe impl std::marker::Sync for CheckStreamFnPointer {}
 
 ///
 /// `GroupDeterminer` is used to determine any `CommandGroup` or separator (for ex. `,`) in `ParseStream`
@@ -26,9 +26,9 @@ unsafe impl std::marker::Sync for FnPointer {}
 #[derive(Clone)]
 pub struct GroupDeterminer {
     group_type: Option<CommandGroup>,
-    check_input_fn: FnPointer,
+    check_input_fn: CheckStreamFnPointer,
     validate_parsed: bool,
-    length: usize,
+    length: u8,
 }
 
 ///
@@ -163,11 +163,11 @@ impl GroupDeterminer {
         group_type: Option<CommandGroup>,
         check_input_fn: *const (),
         validate_parsed: bool,
-        length: usize,
+        length: u8,
     ) -> Self {
         Self {
             group_type,
-            check_input_fn: FnPointer {
+            check_input_fn: CheckStreamFnPointer {
                 raw: check_input_fn,
             },
             validate_parsed,
@@ -201,13 +201,13 @@ impl GroupDeterminer {
     ///
     pub fn new(
         group_type: impl Into<Option<CommandGroup>>,
-        check_input_fn: DetermineGroupPredicate,
+        check_input_fn: CheckStreamFn,
         validate_parsed: bool,
-        length: usize,
+        length: u8,
     ) -> Self {
         Self {
             group_type: group_type.into(),
-            check_input_fn: FnPointer {
+            check_input_fn: CheckStreamFnPointer {
                 fun: check_input_fn,
             },
             validate_parsed,
@@ -242,14 +242,16 @@ impl GroupDeterminer {
     /// Used to parse `length` tokens of type `TokenTree` from input `ParseStream`.
     ///
     pub fn erase_input<'b>(&self, input: ParseStream<'b>) -> syn::Result<ParseStream<'b>> {
-        (0..self.length()).try_for_each(|_| input.parse::<TokenTree>().map(|_| ()))?;
+        for _ in 0..self.length() {
+            input.parse::<TokenTree>()?;
+        }
         Ok(input)
     }
 
     ///
     /// Returns value of `length` field.
     ///
-    pub fn length(&self) -> usize {
+    pub fn length(&self) -> u8 {
         self.length
     }
 }

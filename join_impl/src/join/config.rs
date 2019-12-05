@@ -15,7 +15,7 @@ pub struct Config {
     ///
     pub is_try: bool,
     ///
-    /// Spawn `std::thread` for sync or `tokio::spawn` for futures.
+    /// Spawn branches using `std::thread::spawn` for sync or `tokio::spawn` for futures.
     ///
     pub is_spawn: bool,
 }

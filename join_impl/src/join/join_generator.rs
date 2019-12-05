@@ -18,8 +18,22 @@ use super::config::Config;
 
 struct ActionExprPos<'a> {
     pub expr: &'a ActionExpr,
-    pub branch_index: usize,
-    pub expr_index: usize,
+    pub branch_index: u16,
+    pub expr_index: u16,
+}
+
+impl<'a> ActionExprPos<'a> {
+    fn new(
+        expr: &'a ActionExpr,
+        branch_index: impl Into<usize>,
+        expr_index: impl Into<usize>,
+    ) -> Self {
+        Self {
+            expr,
+            branch_index: branch_index.into() as u16, // Because branch index can't be greater than 65535
+            expr_index: expr_index.into() as u16, // Because expr index can't be greater than 65535
+        }
+    }
 }
 
 struct StepAcc<'a> {
@@ -34,7 +48,7 @@ pub struct JoinGenerator<'a> {
     ///
     /// Total branch count.
     ///
-    branch_count: usize,
+    branch_count: u16,
     ///
     /// Provided result names for branches.
     ///
@@ -56,7 +70,7 @@ pub struct JoinGenerator<'a> {
     ///
     /// Contains all branches depths. Used to calculate max length and determine if we reached branch's end.
     ///
-    depths: Vec<usize>,
+    depths: Vec<u16>,
     ///
     /// Provided futures crate path.
     ///
@@ -72,7 +86,7 @@ pub struct JoinGenerator<'a> {
     ///
     /// Max step count of all branches.
     ///
-    max_step_count: usize,
+    max_step_count: u16,
     ///
     /// Transform tuple of `Result`'s (`Option`s) into `Result`/`Option` of tuple.
     ///
@@ -104,7 +118,7 @@ impl<'a> JoinGenerator<'a> {
             is_spawn,
         } = config;
 
-        let branch_count = branches.len();
+        let branch_count = branches.len() as u16;
 
         if !is_try
             && (handler.map(Handler::is_map).unwrap_or(false)
@@ -142,7 +156,7 @@ impl<'a> JoinGenerator<'a> {
                     })
                     .unzip();
 
-                let (depths, branch_pats): (Vec<usize>, Vec<Option<&PatIdent>>) =
+                let (depths, branch_pats): (Vec<u16>, Vec<Option<&PatIdent>>) =
                     depths_and_paths.into_iter().unzip();
 
                 Self {
@@ -274,7 +288,7 @@ impl<'a> JoinGenerator<'a> {
     ///
     pub fn generate_step<TVar: ToTokens, TName: ToTokens>(
         &self,
-        step_number: impl Into<usize>,
+        step_number: impl Into<u16>,
         result_vars: &[TVar],
         step_results_name: &TName,
     ) -> TokenStream {
@@ -287,7 +301,7 @@ impl<'a> JoinGenerator<'a> {
 
         let (def_streams, step_streams): (Vec<_>, Vec<_>) = self.chains
             .iter()
-            .map(|chain| chain.get(step_number))
+            .map(|chain| chain.get(step_number as usize))
             .enumerate()
             .filter_map(
                 |(branch_index, chain_step_actions)| 
@@ -302,11 +316,11 @@ impl<'a> JoinGenerator<'a> {
                              (expr_index, &action_expr)| {
                                 acc.map(|step_acc|
                                     self.process_step_action_expr(
-                                        ActionExprPos { 
-                                            expr: action_expr, 
+                                        ActionExprPos::new( 
+                                            action_expr, 
                                             branch_index,
                                             expr_index 
-                                        },
+                                        ),
                                         step_acc
                                     )    
                                 )
@@ -322,11 +336,11 @@ impl<'a> JoinGenerator<'a> {
 
                                     Some(
                                         self.process_step_action_expr(
-                                            ActionExprPos { 
-                                                expr: action_expr, 
+                                            ActionExprPos::new( 
+                                                action_expr, 
                                                 branch_index,
                                                 expr_index 
-                                            },
+                                            ),
                                             step_acc
                                         )
                                     )
@@ -427,7 +441,7 @@ impl<'a> JoinGenerator<'a> {
     ///
     pub fn join_steps<TPat: ToTokens + Clone, TVar: ToTokens + Clone, TName: ToTokens>(
         &self,
-        step_number: impl Into<usize>,
+        step_number: impl Into<u16>,
         step_stream: TokenStream,
         next_step_stream: impl Into<Option<TokenStream>>,
         result_pats: &[TPat],
@@ -456,7 +470,7 @@ impl<'a> JoinGenerator<'a> {
                     .iter()
                     .enumerate()
                     .filter_map(|(index, result_var)| {
-                        if self.is_branch_active_in_step(step_number, index) {
+                        if self.is_branch_active_in_step(step_number, index as u16) {
                             (
                                 quote! { #result_var.as_ref().map(|_| true).unwrap_or(false) },
                                 quote! {
@@ -534,7 +548,7 @@ impl<'a> JoinGenerator<'a> {
                     .iter()
                     .enumerate()
                     .filter_map(|(index, result_var)| {
-                        if !self.is_branch_active_in_step(step_number, index) {
+                        if !self.is_branch_active_in_step(step_number, index as u16) {
                             Some(result_var.clone())
                         } else {
                             None
@@ -630,7 +644,7 @@ impl<'a> JoinGenerator<'a> {
     ///
     /// Returns count of active branches for given step.
     ///
-    pub fn get_active_step_branch_count(&self, step_number: impl Into<usize>) -> u16 {
+    pub fn get_active_step_branch_count(&self, step_number: impl Into<u16>) -> u16 {
         let step_number = step_number.into();
         self.depths
             .iter()
@@ -643,10 +657,10 @@ impl<'a> JoinGenerator<'a> {
     ///
     pub fn is_branch_active_in_step(
         &self,
-        step_number: impl Into<usize>,
-        branch_index: impl Into<usize>,
+        step_number: impl Into<u16>,
+        branch_index: impl Into<u16>,
     ) -> bool {
-        self.depths[branch_index.into()] > step_number.into()
+        self.depths[branch_index.into() as usize] > step_number.into()
     }
 
     ///
@@ -656,7 +670,7 @@ impl<'a> JoinGenerator<'a> {
     fn generate_indexed_step_results_name<TName: ToTokens>(
         &self,
         step_results_name: &TName,
-        step_number: impl Into<usize>,
+        step_number: impl Into<u16>,
         index: impl Into<usize>,
     ) -> TokenStream {
         let step_number = step_number.into();
@@ -675,7 +689,7 @@ impl<'a> JoinGenerator<'a> {
     ///
     fn generate_thread_builders_and_spawn_joiners<TName: ToTokens>(
         &self,
-        step_number: impl Into<usize>,
+        step_number: impl Into<u16>,
         step_results_name: &TName,
     ) -> Option<(TokenStream, TokenStream)> {
         let step_number = step_number.into();
@@ -729,9 +743,9 @@ impl<'a> JoinGenerator<'a> {
     ///
     /// ```
     /// fn main() {
-    ///     let result0 = Ok::<_,u8>(0);
-    ///     let result1 = Ok::<_,u8>(1);
-    ///     let result2 = Ok::<_,u8>(2);
+    ///     let result0 = Ok::<_,()>(0);
+    ///     let result1 = Ok::<_,()>(1);
+    ///     let result2 = Ok::<_,()>(2);
     ///     let final_result = result0.and_then(|value0| result1.and_then(|value1| result2.map(|value2| (value0, value1, value2))));
     /// }
     /// ```
@@ -793,7 +807,7 @@ impl<'a> JoinGenerator<'a> {
     fn separate_block_expr<ExprType: InnerExpr>(
         &self,
         inner_expr: &ExprType,
-        branch_index: impl Into<usize>,
+        branch_index: impl Into<u16>,
         expr_index: impl Into<usize>,
     ) -> (Option<TokenStream>, Option<ExprType>) {
         let branch_index = branch_index.into();
@@ -854,7 +868,7 @@ impl<'a> JoinGenerator<'a> {
         results_var: &'b TRes,
         result_vars: &'b [TVar],
         handler: impl Into<Option<&'b Ident>>,
-        step_number: impl Into<Option<usize>>,
+        step_number: impl Into<Option<u16>>,
     ) -> TokenStream {
         let handler = handler.into();
         let step_number = step_number.into();
@@ -891,7 +905,7 @@ impl<'a> JoinGenerator<'a> {
             def_stream: previous_def_stream,
             mut step_streams,
         }: StepAcc<'c>,
-        action_expr_with_indices: impl Into<Option<ActionExprPos<'b>>>,
+        action_expr_pos: impl Into<Option<ActionExprPos<'b>>>,
     ) -> StepAcc<'c> {
         let (previous_step_stream, _) = step_streams.pop().expect(
             "join: Unexpected error on attempt to get last step stream. This's a bug, please report it.",
@@ -923,11 +937,8 @@ impl<'a> JoinGenerator<'a> {
             replaced_action_expr_position,
         );
 
-        let (def_stream, step_stream) = self.generate_def_and_step_streams(
-            def_stream,
-            step_stream,
-            action_expr_with_indices.into(),
-        );
+        let (def_stream, step_stream) =
+            self.generate_def_and_step_streams(def_stream, step_stream, action_expr_pos.into());
 
         step_streams.push((step_stream, None));
 
@@ -944,7 +955,7 @@ impl<'a> JoinGenerator<'a> {
         &self,
         previous_def_stream: impl Into<Option<TokenStream>>,
         previous_step_stream: TokenStream,
-        action_expr_with_indices: impl Into<Option<ActionExprPos<'b>>>,
+        action_expr_pos: impl Into<Option<ActionExprPos<'b>>>,
     ) -> (Option<TokenStream>, TokenStream) {
         let previous_def_stream = previous_def_stream.into();
 
@@ -952,7 +963,7 @@ impl<'a> JoinGenerator<'a> {
             expr: action_expr,
             branch_index,
             expr_index,
-        }) = action_expr_with_indices.into()
+        }) = action_expr_pos.into()
         {
             match action_expr {
                 ActionExpr::Process(Action {
@@ -1013,14 +1024,14 @@ impl<'a> JoinGenerator<'a> {
     ///
     fn process_step_action_expr<'b>(
         &self,
-        action_expr_with_indices: impl Into<Option<ActionExprPos<'b>>>,
+        action_expr_pos: impl Into<Option<ActionExprPos<'b>>>,
         step_acc: StepAcc<'b>,
     ) -> StepAcc<'b> {
         let ActionExprPos {
             expr: action_expr,
             branch_index,
             expr_index,
-        } = action_expr_with_indices.into().expect("join: Unexpected `None` `ActionExprPos` in `process_step_action_expr`. This's a bug, please report it.");
+        } = action_expr_pos.into().expect("join: Unexpected `None` `ActionExprPos` in `process_step_action_expr`. This's a bug, please report it.");
 
         match action_expr.get_move_type() {
             MoveType::Unwrap => self.wrap_last_step_stream(
@@ -1034,11 +1045,11 @@ impl<'a> JoinGenerator<'a> {
                 } = step_acc;
 
                 step_streams.last_mut().expect("join: Unexpected 0 length of step streams. This's a bug, please report it.").1 =
-                    ActionExprPos {
-                        expr: action_expr,
+                    ActionExprPos::new(
+                        action_expr,
                         branch_index,
                         expr_index,
-                    }.into();
+                    ).into();
                 step_streams.push((construct_internal_value_name().into_token_stream(), None));
 
                 StepAcc {
@@ -1057,11 +1068,7 @@ impl<'a> JoinGenerator<'a> {
                 let (def_stream, step_stream) = self.generate_def_and_step_streams(
                     previous_def_stream,
                     previous_step_stream,
-                    ActionExprPos {
-                        expr: action_expr,
-                        branch_index,
-                        expr_index,
-                    },
+                    ActionExprPos::new(action_expr, branch_index, expr_index),
                 );
 
                 step_streams.push((step_stream, None));

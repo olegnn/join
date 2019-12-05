@@ -93,11 +93,11 @@ impl Join for JoinDefault {
     }
 
     fn get_transpose_results_option(&self) -> Option<bool> {
-        self.transpose_results.as_ref().map(|v| *v)
+        self.transpose_results.as_ref().copied()
     }
 
     fn get_lazy_branches_option(&self) -> Option<bool> {
-        self.lazy_branches.as_ref().map(|v| *v)
+        self.lazy_branches.as_ref().copied()
     }
 }
 

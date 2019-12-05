@@ -1,7 +1,7 @@
 //!
 //! `Handler` defines handler function of 3 possible types: `map`, `and_then` and `then`.
 //! `map` and `and_then` will be evaluted in case of all successful results and `then` will be evaluated in any case,
-//! which allows user to define its own handlers for every error.
+//! which allows user to define its own handler for every error.
 //!
 
 use syn::parse::ParseStream;

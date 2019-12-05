@@ -39,14 +39,14 @@
 //! - [Detailed steps example](#detailed-steps-example)
 //!
 //! ## Features
-//! 
-//! - Speed. Macros produce well-optimized code (it doesn't use inactive branches during steps, doesn't clone results/options or any other values, doesn't allocate any memory on heap [except wrapping futures into `Box::pin`]) - you can check it with `cargo expand`.
+//!
+//! - Performance. Macros produce well-optimized code (it doesn't use inactive branches during steps, doesn't clone results/options or any other values, doesn't allocate any memory on heap [except wrapping futures into `Box::pin`]) - you can check it with `cargo expand`.
 //! - Steps allow to write code which depends on results of branches in previous iteration.
 //! - One-line chains which can't be created using pure `Rust` without macros.
 //! - Briefness. Less code to express the same flow. Shortcut combinators = less parentheses.
 //! - `async` *macros* produce futures, so they can be used in non-`async` functions.
-//! - Configurability - there're many options which can be configured independently to fully change macro behaviour.
-//! 
+//! - Configurability. There're many options which can be configured independently to fully change macro behaviour.
+//!
 //! ## Macros
 //!
 //! - [`try_join!`](macro.join.html) - combines `Result`s/`Option`s, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
@@ -54,8 +54,8 @@
 //! # use join::*;
 //! # fn main() {
 //! assert_eq!(
-//!     try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)),
-//!     Ok::<_,u8>((1, "2", 3.0))
+//!     try_join!(Ok::<_,()>(1), Ok::<_,()>("2"), Ok::<_,()>(3.0)),
+//!     Ok::<_,()>((1, "2", 3.0))
 //! );
 //! # }
 //! ```
@@ -66,8 +66,8 @@
 //! # #[tokio::main]
 //! # async fn main() {
 //! assert_eq!(
-//!     try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await,
-//!     Ok::<_,u8>((1, "2", 3.0))
+//!     try_join_async!(ok::<_,()>(1), ok::<_,()>("2"), ok::<_,()>(3.0)).await,
+//!     Ok::<_,()>((1, "2", 3.0))
 //! );
 //! # }
 //! ```
@@ -76,8 +76,8 @@
 //! # use join::*;
 //! # fn main() {
 //! assert_eq!(
-//!     try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)),
-//!     Ok::<_,u8>((1, "2", 3.0))
+//!     try_join_spawn!(Ok::<_,()>(1), Ok::<_,()>("2"), Ok::<_,()>(3.0)),
+//!     Ok::<_,()>((1, "2", 3.0))
 //! );
 //! # }
 //! ```
@@ -88,11 +88,11 @@
 //! ```rust
 //! # use join::*;
 //! # use futures::future::*;
-//! # #[tokio::main]
+//! #[tokio::main]
 //! # async fn main() {
 //! assert_eq!(
-//!     try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await,
-//!     Ok::<_,u8>((1, "2", 3.0))
+//!     try_join_async_spawn!(ok::<_,()>(1), ok::<_,()>("2"), ok::<_,()>(3.0)).await,
+//!     Ok::<_,()>((1, "2", 3.0))
 //! );
 //! # }
 //! ```
@@ -342,7 +342,7 @@
 //! # fn main() {
 //! # let mut value = vec![1u8, 2u8].into_iter();
 //! # let init_expr = 0;
-//! # let fn_expr = |a, b| Ok::<_,u8>(a + b);
+//! # let fn_expr = |a, b| Ok::<_,()>(a + b);
 //! # let result =
 //! join! { value ?^@ init_expr, fn_expr }; // => value.try_fold(init_expr, fn_expr)
 //! # assert_eq!(result, Ok(3));
@@ -393,14 +393,14 @@
 //! # use futures::executor::block_on;
 //! # fn expr<T: std::fmt::Debug>(v: &T) { println!("{:?}", v); }
 //! # fn main() {
-//! # let value = Ok::<_,u8>(1u8);
+//! # let value = Ok::<_,()>(1u8);
 //! # let result =
 //! try_join! { value ?? expr }; // => (|value| { (expr)(&value); value })(value) // for sync
-//! # assert_eq!(result, Ok::<_,u8>(1u8));
-//! # let value = ::futures::future::ok::<_,u8>(1u8);
+//! # assert_eq!(result, Ok::<_,()>(1u8));
+//! # let value = ::futures::future::ok::<_,()>(1u8);
 //! # let result =
 //! try_join_async! { value ?? expr }; // => value.inspect(expr) for async
-//! # block_on(async { assert_eq!(result.await, Ok::<_,u8>(1u8)); });
+//! # block_on(async { assert_eq!(result.await, Ok::<_,()>(1u8)); });
 //! # }
 //! ```
 //!
@@ -423,7 +423,7 @@
 //! Use to create nested constructions like
 //! ```rust
 //! # fn main() {
-//! # let a = Ok::<_,u8>(Ok::<_,u8>(Ok::<_,u8>(4)));
+//! # let a = Ok::<_,()>(Ok::<_,()>(Ok::<_,()>(4)));
 //! # let value =
 //! a.and_then(
 //!     // >>>
@@ -458,7 +458,7 @@
 //! Use to move out of nested constructions
 //! ```rust
 //! # fn main() {
-//! # let a = Ok::<_,u8>(Ok::<_,u8>(Ok::<_,u8>(4)));
+//! # let a = Ok::<_,()>(Ok::<_,()>(Ok::<_,()>(4)));
 //! # let value =
 //! a.and_then(
 //!     // >>>
@@ -507,7 +507,7 @@
 //! assert_eq!(join! { Some(1), Some(2), Some(3), then => |a: Option<u8>, b: Option<u8>, c: Option<u8>| Some(a.unwrap() + b.unwrap() + c.unwrap()) }, Some(6));
 //! # }
 //! ```
-//! or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned.
+//! or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned for `try` macros and `(result0, result1, ..)` for not `try` macros.
 //!
 //! ## Custom configuration
 //!
@@ -515,8 +515,8 @@
 //!
 //! - `futures_crate_path` - specifies custom crate path for `futures` crate. which will be used for all `futures`-related items, used by `async` `join!` macros. Only valid for `async` macros.
 //! - `custom_joiner` - specifies custom joiner *function* or *macro*, which will join active branches in step if their count is greater than 1.
-//! - `transpose_results` - specifies should macro transpose tuple of `Result`s/`Option`s into `Result`/`Option` of tuple or not. Useful when provided joiner already returns `Result` of tuple and ther's no need to transpose it.
-//! - `lazy_branches` - wrap every branch into `move || {}` when pass values to joiner. By default true for `try_join_spawn!` and `join_spawn` macros because they use `thread::spawn` call. When active branch count is greater that 1.
+//! - `transpose_results` - specifies should macro transpose tuple of `Result`s/`Option`s into `Result`/`Option` of tuple or not. Useful when provided joiner already returns `Result` of tuple and there's no need to transpose it.
+//! - `lazy_branches` - wrap every branch into `move || {}` when pass values to joiner. By default true for `try_join_spawn!` and `join_spawn` macros because they use `thread::spawn` call. Only if active branch count > 1.
 //!
 //! ```rust
 //! #![recursion_limit="256"]
@@ -536,7 +536,7 @@
 //!         futures_crate_path(::futures)
 //!         custom_joiner(custom_futures_joiner!)
 //!         transpose_results(false)
-//!         ok::<_,u8>(2u16), ok::<_,u8>(3u16),
+//!         ok::<_,()>(2u16), ok::<_,()>(3u16),
 //!         map => |a, b| a + b
 //!     }.await.unwrap();
 //!     
@@ -591,11 +591,14 @@
 //! ```rust
 //! # use join::*;
 //! # fn main() {
-//! assert_eq!(try_join! {
-//!     let mut branch_0 = Ok::<_,u8>(1) ~|> |v| v + 1,
-//!     let branch_1 = Ok::<_,u8>(2) ~|> { let value_0 = branch_0.as_ref().unwrap(); move |v| v + value_0 },
-//!     map => |b_0, b_1| b_0 * b_1
-//! }.unwrap(), 6);
+//! assert_eq!(
+//!     try_join! {
+//!         let mut branch_0 = Ok::<_,()>(1) ~|> |v| v + 1,
+//!         let branch_1 = Ok::<_,()>(2) ~|> { let value_0 = branch_0.as_ref().unwrap(); move |v| v + value_0 },
+//!         map => |b_0, b_1| b_0 * b_1
+//!     }.unwrap(),
+//!     6
+//! );
 //! # }
 //! ```
 //!
@@ -629,14 +632,14 @@
 //!
 //! ```rust
 //! #![recursion_limit = "256"]
-//! 
+//!
 //! use rand::prelude::*;
 //! use std::sync::Arc;
 //! use join::try_join_spawn;
-//! 
+//!
 //! // Problem: generate vecs filled by random numbers in parallel, make some operations on them in parallel,
 //! // find max of each vec in parallel and find final max of 3 vecs
-//! 
+//!
 //! // Solution:
 //! fn main() {
 //!     // Branches will be executed in parallel, each in its own thread
@@ -663,7 +666,7 @@
 //!             // Some(...)
 //!             -> Some
 //!             // .and_then(|v| v...)
-//!             ~=> >>> 
+//!             ~=> >>>
 //!                 // .enumerate() (Add index in order to compare with the values of branch_0)
 //!                 |n>
 //!                 // .map(...)
@@ -692,7 +695,7 @@
 //!     .unwrap();
 //!     println!("Max: {}", max);
 //! }
-//! 
+//!
 //! fn generate_random_vec<T>(size: usize, max: T) -> Vec<T>
 //! where
 //!     T: From<u8>
@@ -705,14 +708,14 @@
 //!         .map(|_| rng.gen_range(T::from(0u8), max))
 //!         .collect()
 //! }
-//! 
+//!
 //! fn is_even<T>(value: &T) -> bool
 //! where
 //!     T: std::ops::Rem<Output = T> + std::cmp::PartialEq + From<u8> + Copy
 //! {
 //!     *value % 2u8.into() == 0u8.into()
 //! }
-//! 
+//!
 //! fn get_sqrt<T>(value: T) -> T
 //! where
 //!     T: Into<f64>,
@@ -721,7 +724,7 @@
 //!     let value_f64: f64 = value.into();
 //!     value_f64.sqrt().into()
 //! }
-//! 
+//!
 //! fn power2<T>(value: T) -> T
 //! where
 //!     T: std::ops::Mul<Output = T> + Copy,
@@ -729,20 +732,20 @@
 //!     value * value
 //! }
 //! ```
-//! 
-//! 
+//!
+//!
 //! ```rust
 //! #![recursion_limit="256"]
-//! 
+//!
 //! extern crate rand;
 //! extern crate join;
-//! 
+//!
 //! use rand::prelude::*;
 //! use join::try_join;
-//! 
+//!
 //! fn main() {
 //!     let mut rng = rand::thread_rng();
-//! 
+//!
 //!     let result = try_join! {
 //!         (0..10)
 //!             // .map(|index| { let value ... })
@@ -774,12 +777,12 @@
 //!         // In case of success, multilpy fibs
 //!         map => |v_1, v_2| v_1 * v_2
 //!     };
-//! 
+//!
 //!     result.map(|value| println!("Result: {}", value)).unwrap_or_else(|err| println!("Error: {:#?}", err));
 //! }
-//! 
+//!
 //! fn fib(num: u8) -> usize {
-//!     println!("CALLLED FIB!");
+//!     println!("CALLED FIB!");
 //!     let mut prev = 0;
 //!     let mut cur = if num > 0 { 1 } else { 0 };
 //!     for _ in 1..num as usize {
@@ -881,10 +884,7 @@
 //!                 // If pass block statement instead of fn, it will be placed before current step,
 //!                 // so it will allow us to capture some variables from context
 //!                 let ref client = client;
-//!                 let map_parse_error =
-//!                     |value|
-//!                         move |err|
-//!                             format_err!("Failed to parse random number: {:#?}, value: {}", err, value);
+//!                 let map_parse_error = |error, value| format_err!("Failed to parse random number: {:#?}, value: {}", error, value);
 //!                 move |url|
 //!                     try_join_async! {
 //!                         client
@@ -897,7 +897,7 @@
 //!                                 ready(
 //!                                     value
 //!                                         .parse::<u16>()
-//!                                         .map_err(map_parse_error(value))
+//!                                         .map_err(|err| map_parse_error(err, value))
 //!                                 )
 //!                     }
 //!             }
@@ -907,7 +907,7 @@
 //!                 |> |number| println!("Random: {}", number)
 //!                 ..unwrap_or(()),
 //!         // Concurrently it reads value from stdin
-//!         read_number_from_stdin(),
+//!         read_number_from_stdin() |> Ok,
 //!         // Finally, when we will have all results, we can decide, who is winner
 //!         map => |(_url, link_count), random_number, number_from_stdin| {
 //!             let random_diff = (link_count as i32 - random_number as i32).abs();
@@ -947,16 +947,13 @@
 //!     "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
 //! }
 //!
-//! async fn read_number_from_stdin() -> Result<u16, Error> {
+//! async fn read_number_from_stdin() -> u16 {
 //!     use tokio::*;
 //!     use futures::stream::StreamExt;
 //!     
-//!     let map_parse_error =
-//!         |value|
-//!             move |error|
-//!                 format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
+//!     let map_parse_error = |error, value| format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
 //!
-//!     # return Ok(25);
+//!     # return 25;
 //!
 //!     let mut reader = codec::FramedRead::new(io::BufReader::new(io::stdin()), codec::LinesCodec::new());
 //!
@@ -976,13 +973,13 @@
 //!                     ready(
 //!                         value
 //!                             .parse()
-//!                             .map_err(map_parse_error(value))
+//!                             .map_err(|err| map_parse_error(err, value))
 //!                     )
 //!                 !> |error| { eprintln!("Error: {:#?}", error); error}
 //!         }.await;
 //!
-//!         if result.is_ok() {
-//!             break result
+//!         if let Ok(value) = result {
+//!             break value
 //!         }
 //!     }
 //! }
@@ -1272,9 +1269,9 @@ use proc_macro_hack::proc_macro_hack;
 ///
 /// fn main() {
 ///     let product = try_join! {
-///         Ok::<_,u8>(2) |> |v| v + 2,
-///         Ok::<_,u8>(3),
-///         Ok::<_,u8>(4),
+///         Ok::<_,()>(2) |> |v| v + 2,
+///         Ok::<_,()>(3),
+///         Ok::<_,()>(4),
 ///         map => |a, b, c| a * b * c
 ///     }.unwrap();
 ///
@@ -1302,9 +1299,9 @@ pub use join_export::try_join;
 /// #[tokio::main]
 /// async fn main() {
 ///     let product = try_join_async! {
-///         ok::<_,u8>(2u16) => |v| ok::<_,u8>(v + 2u16),
-///         ok::<_,u8>(3u16),
-///         ok::<_,u8>(4u16),
+///         ok::<_,()>(2u16) => |v| ok::<_,()>(v + 2u16),
+///         ok::<_,()>(3u16),
+///         ok::<_,()>(4u16),
 ///         map => |a, b, c| a * b * c
 ///     }.await.unwrap();
 ///
@@ -1327,17 +1324,17 @@ pub use join_export::try_join_async;
 ///
 /// fn main() {
 ///     let product = try_join_spawn! {
-///         Ok::<_,u8>(2) |> |v| v + 2 ?? |_| {
+///         Ok::<_,()>(2) |> |v| v + 2 ?? |_| {
 ///             println!("Hello from parallel world!");
 ///             ::std::thread::sleep(::std::time::Duration::from_secs(1));
 ///             println!("I'm done.");
 ///         },
-///         Ok::<_,u8>(3) ?? |_| {
+///         Ok::<_,()>(3) ?? |_| {
 ///             println!("Hello from parallel world again!");
 ///             ::std::thread::sleep(::std::time::Duration::from_secs(2));
 ///             println!("Me too.");
 ///         },
-///         Ok::<_,u8>(4),
+///         Ok::<_,()>(4),
 ///         map => |a, b, c| a * b * c
 ///     }.unwrap();
 ///
@@ -1373,19 +1370,19 @@ pub use join_export::try_spawn;
 /// #[tokio::main]
 /// async fn main() {
 ///     let product = try_join_async_spawn! {
-///         ok::<_,u8>(2u16) |> |v| Ok::<_,u8>(v.unwrap() + 2u16) => |v| async move {
+///         ok::<_,()>(2u16) |> |v| Ok::<_,()>(v.unwrap() + 2u16) => |v| async move {
 ///             println!("Hello from parallel world!");
 ///             Delay::new(Duration::from_secs(1)).await.unwrap();
 ///             println!("I'm done.");
 ///             Ok(v)
 ///         },
-///         ok::<_,u8>(3u16) => |v| async move {
+///         ok::<_,()>(3u16) => |v| async move {
 ///             println!("Hello from parallel world again!");
 ///             Delay::new(Duration::from_secs(2)).await.unwrap();
 ///             println!("Me too.");
 ///             Ok(v)
 ///         },
-///         ok::<_,u8>(4u16),
+///         ok::<_,()>(4u16),
 ///         map => |a, b, c| a * b * c
 ///     }.await.unwrap();
 ///

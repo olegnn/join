@@ -1,3 +1,7 @@
+# [0.1.0-beta.5]
+
+Updated docs + internal improvements.
+
 # [0.1.0-beta.4]
 
 Added `custom_joiner`, `transpose_results`, `lazy_branches` custom configuration options.

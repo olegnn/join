@@ -42,42 +42,42 @@
 
 ## Features
 
-- Speed. Macros produce well-optimized code (it doesn't use inactive branches during steps, doesn't clone results/options or any other values, doesn't allocate any memory on heap [except wrapping futures into `Box::pin`]) - you can check it with `cargo expand`.
+- Performance. Macros produce well-optimized code (it doesn't use inactive branches during steps, doesn't clone results/options or any other values, doesn't allocate any memory on heap [except wrapping futures into `Box::pin`]) - you can check it with `cargo expand`.
 - Steps allow to write code which depends on results of branches in previous iteration.
 - One-line chains which can't be created using pure `Rust` without macros.
 - Briefness. Less code to express the same flow. Shortcut combinators = less parentheses.
 - `async` *macros* produce futures, so they can be used in non-`async` functions.
-- Configurability - there're many options which can be configured independently to fully change macro behaviour.
+- Configurability. There're many options which can be configured independently to fully change macro behaviour.
 
 ## Macros
 
 - `try_join!` - combines `Result`s/`Option`s, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
 ```rust
 assert_eq!(
-    try_join!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), 
-    Ok::<_,u8>((1, "2", 3.0))
+    try_join!(Ok::<_,()>(1), Ok::<_,()>("2"), Ok::<_,()>(3.0)), 
+    Ok::<_,()>((1, "2", 3.0))
 );
 ```
 - `try_join_async!` - combines futures, transposes tuple of `Result`s into `Result` of tuple.
 ```rust
 assert_eq!(
-    try_join_async!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, 
-    Ok::<_,u8>((1, "2", 3.0))
+    try_join_async!(ok::<_,()>(1), ok::<_,()>("2"), ok::<_,()>(3.0)).await, 
+    Ok::<_,()>((1, "2", 3.0))
 );
 ```
 - `try_join_spawn!` - spawns `std::thread` per each branch and joins results, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
 ```rust
 assert_eq!(
-    try_join_spawn!(Ok::<_,u8>(1), Ok::<_,u8>("2"), Ok::<_,u8>(3.0)), 
-    Ok::<_,u8>((1, "2", 3.0))
+    try_join_spawn!(Ok::<_,()>(1), Ok::<_,()>("2"), Ok::<_,()>(3.0)), 
+    Ok::<_,()>((1, "2", 3.0))
 );
 ```
 - `try_spawn!` - alias for `try_join_spawn!`.
 - `try_join_async_spawn!` - spawns tokio task using `tokio::spawn` per each branch, transposes tuple of `Result`s into `Result` of tuple.
 ```rust
 assert_eq!(
-    try_join_async_spawn!(ok::<_,u8>(1), ok::<_,u8>("2"), ok::<_,u8>(3.0)).await, 
-    Ok::<_,u8>((1, "2", 3.0))
+    try_join_async_spawn!(ok::<_,()>(1), ok::<_,()>("2"), ok::<_,()>(3.0)).await, 
+    Ok::<_,()>((1, "2", 3.0))
 );
 ```
 - `try_async_spawn!` - alias for `try_join_async_spawn!`.
@@ -289,7 +289,7 @@ assert_eq!(try_join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Some(a +
 assert_eq!(join! { Some(1), Some(2), Some(3), then => |a: Option<u8>, b: Option<u8>, c: Option<u8>| Some(a.unwrap() + b.unwrap() + c.unwrap()) }, Some(6));
 ```
 
-or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned.
+or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned for `try` macros and `(result0, result1, ..)` for not `try` macros.
 
 ## Custom configuration
 
@@ -297,8 +297,8 @@ You can specify any params at the beginning of macro call.
 
 - `futures_crate_path` - specifies custom crate path for `futures` crate. which will be used for all `futures`-related items, used by `async` `join!` macros. Only valid for `async` macros.
 - `custom_joiner` - specifies custom joiner *function* or *macro*, which will join active branches in step if their count is greater than 1.
-- `transpose_results` - specifies should macro transpose tuple of `Result`s/`Option`s into `Result`/`Option` of tuple or not. Useful when provided joiner already returns `Result` of tuple and ther's no need to transpose it.
-- `lazy_branches` - wrap every branch into `move || {}` when pass values to joiner. By default true for `try_join_spawn!` and `join_spawn` macros because they use `thread::spawn` call. When active branch count is greater that 1.
+- `transpose_results` - specifies should macro transpose tuple of `Result`s/`Option`s into `Result`/`Option` of tuple or not. Useful when provided joiner already returns `Result` of tuple and there's no need to transpose it.
+- `lazy_branches` - wrap every branch into `move || {}` when pass values to joiner. By default true for `try_join_spawn!` and `join_spawn` macros because they use `thread::spawn` call. Only if active branch count > 1.
 
 ```rust
 #![recursion_limit="256"]
@@ -318,7 +318,7 @@ async fn main() {
         futures_crate_path(::futures)
         custom_joiner(custom_futures_joiner!)
         transpose_results(false)
-        ok::<_,u8>(2u16), ok::<_,u8>(3u16),
+        ok::<_,()>(2u16), ok::<_,()>(3u16),
         map => |a, b| a + b
     }.await.unwrap();
     
@@ -371,11 +371,14 @@ fn main() {
 You can specify `let` pattern for each branch in order to share result with other branches, or in case if you need to have `mut` value between steps.
 
 ```rust
-assert_eq!(try_join! {
-    let mut branch_0 = Ok::<_,u8>(1) ~|> |v| v + 1,
-    let branch_1 = Ok::<_,u8>(2) ~|> { let value_0 = branch_0.as_ref().unwrap(); move |v| v + value_0 },
-    map => |b_0, b_1| b_0 * b_1
-}.unwrap(), 6);
+assert_eq!(
+    try_join! {
+        let mut branch_0 = Ok::<_,()>(1) ~|> |v| v + 1,
+        let branch_1 = Ok::<_,()>(2) ~|> { let value_0 = branch_0.as_ref().unwrap(); move |v| v + value_0 },
+        map => |b_0, b_1| b_0 * b_1
+    }.unwrap(), 
+    6
+);
 ```
 
 ## Block captures
@@ -554,7 +557,7 @@ fn main() {
 }
 
 fn fib(num: u8) -> usize {
-    println!("CALLLED FIB!");
+    println!("CALLED FIB!");
     let mut prev = 0;
     let mut cur = if num > 0 { 1 } else { 0 };
     for _ in 1..num as usize {
@@ -664,10 +667,7 @@ async fn main() {
                 // If pass block statement instead of fn, it will be placed before current step,
                 // so it will allow us to capture some variables from context
                 let ref client = client;
-                let map_parse_error =
-                    |value|
-                        move |err|
-                            format_err!("Failed to parse random number: {:#?}, value: {}", err, value);
+                let map_parse_error = |error, value| format_err!("Failed to parse random number: {:#?}, value: {}", error, value);
                 move |url|
                     try_join_async! {
                         client
@@ -680,7 +680,7 @@ async fn main() {
                                 ready(
                                     value
                                         .parse::<u16>()
-                                        .map_err(map_parse_error(value))
+                                        .map_err(|err| map_parse_error(err, value))
                                 )
                     }
             }
@@ -692,7 +692,7 @@ async fn main() {
                 |> |number| println!("Random: {}", number)
                 ..unwrap_or(()),
         // Concurrently it reads value from stdin
-        read_number_from_stdin(),
+        read_number_from_stdin() |> Ok,
         // Finally, when we will have all results, we can decide, who is winner
         map => |(_url, link_count), random_number, number_from_stdin| {
             let random_diff = (link_count as i32 - random_number as i32).abs();
@@ -732,14 +732,11 @@ fn get_url_to_get_random_number() -> &'static str {
     "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
 }
 
-async fn read_number_from_stdin() -> Result<u16, Error> {
+async fn read_number_from_stdin() -> u16 {
     use tokio::*;
     use futures::stream::StreamExt;
     
-    let map_parse_error =
-        |value|
-            move |error|
-                format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
+let map_parse_error = |error, value| format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
 
     let mut reader = codec::FramedRead::new(io::BufReader::new(io::stdin()), codec::LinesCodec::new());
 
@@ -762,14 +759,14 @@ async fn read_number_from_stdin() -> Result<u16, Error> {
                     ready(
                         value
                             .parse()
-                            .map_err(map_parse_error(value))
+                            .map_err(|err| map_parse_error(err, value))
                     )
                 // .map_err(|error| ...)
                 !> |error| { eprintln!("Error: {:#?}", error); error}
         }.await;
 
-        if result.is_ok() {
-            break result
+        if let Ok(value) = result {
+            break value
         }
     }
 }

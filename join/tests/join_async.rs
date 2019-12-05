@@ -220,7 +220,7 @@ mod join_async_tests {
                 ok(2u16),
                 ok(3u16),
                 get_ok_four(),
-                then => |a: Result<u16>, b: Result<u16>, c: Result<u16>| ok::<_,u8>(a.unwrap() + b.unwrap() + c.unwrap())
+                then => |a: Result<u16>, b: Result<u16>, c: Result<u16>| ok::<_,()>(a.unwrap() + b.unwrap() + c.unwrap())
             };
 
             assert_eq!(ok_value.await.unwrap(), 9u16);
@@ -374,7 +374,7 @@ mod join_async_tests {
         block_on(async {
             let values = try_join_async! {
                 futures_crate_path(::futures)
-                ok::<_,u8>(2), ok::<_,u8>(3)
+                ok::<_,()>(2), ok::<_,()>(3)
             }
             .await;
             assert_eq!(values.unwrap(), (2, 3));
@@ -384,7 +384,7 @@ mod join_async_tests {
     #[test]
     fn it_produces_single_value() {
         block_on(async {
-            let value = try_join_async! { ready(Ok::<_,u8>(1)) }.await;
+            let value = try_join_async! { ready(Ok::<_,()>(1)) }.await;
             assert_eq!(value.unwrap(), 1);
         });
     }
@@ -407,7 +407,7 @@ mod join_async_tests {
         let refer = &mut arr;
         block_on(Box::pin(async move {
             let _ = try_join_async! {
-                ok::<_,u8>(refer) ~=> >>> ..into_iter().for_each(|v| { *v += 1; }) -> ok,
+                ok::<_,()>(refer) ~=> >>> ..into_iter().for_each(|v| { *v += 1; }) -> ok,
             }
             .await;
         }));
@@ -417,7 +417,7 @@ mod join_async_tests {
     #[test]
     fn it_tests_multi_step_single_branch() {
         block_on(async {
-            let values = try_join_async! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ok ~=> >>> ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,u8> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
+            let values = try_join_async! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ok ~=> >>> ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,()> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
             assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
         });
     }
@@ -491,14 +491,14 @@ mod join_async_tests {
         block_on(async {
             let value = try_join_async! {
                 try_join_async! {
-                    ok::<_,u8>(2u32),
-                    ok::<_,u8>(3u32),
-                    ok::<_,u8>(4u32),
+                    ok::<_,()>(2u32),
+                    ok::<_,()>(3u32),
+                    ok::<_,()>(4u32),
                     try_join_async! {
-                        ok::<_,u8>(6u32),
+                        ok::<_,()>(6u32),
                         join_async! {
-                            ok::<_,u8>(8u32),
-                            ok::<_,u8>(9) ~=> |v| ok(v + 1)
+                            ok::<_,()>(8u32),
+                            ok::<_,()>(9) ~=> |v| ok(v + 1)
                         } |> |v| v.1,
                         map => |a, b| b - a // 4
                     },
@@ -506,9 +506,9 @@ mod join_async_tests {
                 },
                 try_join_async!{
                     try_join_async! {
-                        ok::<_,u8>(21u32),
-                        ok::<_,u8>(22u32),
-                        ok::<_,u8>(23u32),
+                        ok::<_,()>(21u32),
+                        ok::<_,()>(22u32),
+                        ok::<_,()>(23u32),
                         map => |a, b, c| a * b * c // 10626
                     },
                     ok(2u32),
@@ -525,13 +525,11 @@ mod join_async_tests {
 
     #[test]
     fn it_tests_readme_demo_async_behaviour_and_requires_internet_connection() {
-        use ::failure::{format_err, Error};
+        use ::failure::{format_err};
         use ::futures::future::try_join_all;
         use ::futures::stream::{iter, Stream};
         use ::reqwest::Client;
         use join::try_join;
-
-        type Result<T, E> = std::result::Result<T, E>;
 
         fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
             iter(
@@ -547,7 +545,7 @@ mod join_async_tests {
             "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
         }
 
-        async fn read_number_from_stdin() -> Result<usize, Error> {
+        async fn read_number_from_stdin() -> u16 {
             let mut input = iter(vec!["100"]);
             let result = try_join_async! {
                 input
@@ -560,7 +558,7 @@ mod join_async_tests {
                                 .map_err(|e| format_err!("Failed to parse input from stdin: {:?}, input: {}", e, value))
                         )
             };
-            result.await
+            result.await.unwrap()
         }
 
         let rt = ::tokio::runtime::Runtime::new().unwrap();
@@ -642,7 +640,7 @@ mod join_async_tests {
                                     => |value|  
                                         ready(
                                             value
-                                                .parse::<usize>()
+                                                .parse::<u16>()
                                                 .map_err(map_parsing_error(value))
                                         )
 
@@ -658,7 +656,7 @@ mod join_async_tests {
                             .unwrap_or(()); 
                     },
                 // Concurrently it reads value from stdin
-                println!("Please, enter number") -> |_| read_number_from_stdin(),
+                println!("Please, enter number") -> |_| read_number_from_stdin() |> Ok,
                 // Finally, when we will have all results, we can decide, who is winner
                 map => |(_url, link_count), random_number, number_from_stdin| {
                     let random_diff = (link_count as i32 - random_number as i32).abs();
