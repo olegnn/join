@@ -1,6 +1,6 @@
 [package]
 name = "join"
-version = "0.1.0-beta.6"
+version = "0.1.0-beta.7"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 license = "MIT"
 description = """

@@ -49,7 +49,7 @@
 //!
 //! ## Macros
 //!
-//! - [`try_join!`](macro.join.html) - combines `Result`s/`Option`s, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
+//! - [`try_join!`](macro.try_join.html) - combines `Result`s/`Option`s, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
 //! ```rust
 //! # use join::*;
 //! # fn main() {

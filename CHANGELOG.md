@@ -1,3 +1,7 @@
+# [0.1.0-beta.7]
+
+Fixed incorrect docs link.
+
 # [0.1.0-beta.6]
 
 Updated Cargo.toml of `join` package.
