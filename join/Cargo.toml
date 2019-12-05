@@ -1,6 +1,6 @@
 [package]
 name = "join"
-version = "0.1.0-beta.5"
+version = "0.1.0-beta.6"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 license = "MIT"
 description = """
@@ -12,12 +12,12 @@ edition = "2018"
 repository = "https://github.com/olegnn/join"
 documentation = "https://docs.rs/join"
 readme = "README.md"
+categories = ["asynchronous", "rust-patterns", "concurrency"]
 
 [lib]
 name = "join"
 
 [features]
-std = []
 full = ["join_export/full"]
 
 [dependencies]
