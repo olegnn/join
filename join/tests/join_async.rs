@@ -525,7 +525,7 @@ mod join_async_tests {
 
     #[test]
     fn it_tests_readme_demo_async_behaviour_and_requires_internet_connection() {
-        use ::failure::{format_err};
+        use ::failure::format_err;
         use ::futures::future::try_join_all;
         use ::futures::stream::{iter, Stream};
         use ::reqwest::Client;
