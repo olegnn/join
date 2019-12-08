@@ -6,7 +6,7 @@
 
 use syn::parse::ParseStream;
 use syn::Token;
-use syn::{self, Expr};
+use syn::Expr;
 
 ///
 /// map => expr,

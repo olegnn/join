@@ -104,6 +104,7 @@ impl<'a> ActionExprChainGenerator<'a> {
                     } else {
                         return Err(input.error("Incorrect `let` pattern"));
                     }
+                    
                     action_expr = action_expr
                         .replace_inner(vec![*let_expr.expr.clone()])
                         .expect("join: Failed to replace initial expr. This's a bug, please report it.");
@@ -117,7 +118,7 @@ impl<'a> ActionExprChainGenerator<'a> {
                     .into_token_stream()
                     .is_empty()
                 {
-                    return Err(input.error("Chain first member can't be empty"));
+                    return Err(input.error("Chain first expr can't be empty"));
                 }
             }
 

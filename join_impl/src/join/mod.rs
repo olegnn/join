@@ -57,6 +57,9 @@ pub trait Join {
     ///
     fn get_transpose_results_option(&self) -> Option<bool>;
 
+    ///
+    /// Returns lazy branches configuration if provided.
+    ///
     fn get_lazy_branches_option(&self) -> Option<bool>;
 }
 

@@ -39,7 +39,7 @@ pub fn is_block_expr(expr: &Expr) -> bool {
 /// Parses input `ParseStream` until one of provided `GroupDeterminer`'s check will be valid or it reaches end.
 ///
 pub fn parse_until<'a, T: Parse>(
-    input: ParseStream,
+    input: ParseStream<'_>,
     group_determiners: impl Iterator<Item = &'a GroupDeterminer> + Clone,
     deferred_determiner: &'a GroupDeterminer,
     wrap_determiner: &'a GroupDeterminer,

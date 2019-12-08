@@ -25,22 +25,19 @@ pub type UnitResult<T> = syn::Result<Unit<T>>;
 
 ///
 /// Trait which provides functionality to apply given `transform` function to change
-/// result from `Self` (`<T>`) to `To` (`<R>`) where `transform`: `F: FnOnce(T) -> R`.
+/// result from `Self` (`<T>`) to `O` (`<R>`) where `transform`: `F: FnOnce(T) -> R`.
 ///
-pub trait TransformParsed<T, R> {
-    type To;
+pub trait TransformParsed<T, R, O> {
     ///
-    /// Transforms `Self` to `To` using `transform` function.
+    /// Transforms `Self` to `O` using `transform` function.
     ///
-    fn transform_parsed<F>(self, transform: F) -> Self::To
+    fn transform_parsed<F>(self, transform: F) -> O
     where
         F: FnOnce(T) -> R;
 }
 
-impl<T, R> TransformParsed<T, R> for UnitResult<T> {
-    type To = UnitResult<R>;
-
-    fn transform_parsed<F>(self, transform: F) -> Self::To
+impl<T, R> TransformParsed<T, R, UnitResult<R>> for UnitResult<T> {
+    fn transform_parsed<F>(self, transform: F) -> UnitResult<R>
     where
         F: FnOnce(T) -> R,
     {

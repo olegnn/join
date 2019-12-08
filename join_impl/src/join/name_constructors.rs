@@ -6,69 +6,69 @@ use proc_macro2::{Ident, Span};
 use quote::format_ident;
 
 ///
-/// Constructs name for variable with given index. For internal usage.
+/// Constructs name for variable with given index.
 ///
 pub fn construct_var_name(index: impl Into<usize>) -> Ident {
     format_ident!("__value_{}", index.into() as u16)
 }
 ///
-/// Constructs step result name using given index. For internal usage.
+/// Constructs step result name using given index.
 ///
 pub fn construct_step_results_name(index: impl Into<usize>) -> Ident {
     format_ident!("__step_{}_results", index.into() as u16)
 }
 
 ///
-/// Constructs result name with given index. For internal usage.
+/// Constructs result name with given index.
 ///
 pub fn construct_result_name(index: impl Into<usize>) -> Ident {
     format_ident!("__result_{}", index.into() as u16)
 }
 
 ///
-/// Constructs thread builder name with given index. For internal usage.
+/// Constructs thread builder name with given index.
 ///
 pub fn construct_thread_builder_name(index: impl Into<usize>) -> Ident {
     format_ident!("__join_thread_builder_{}", index.into() as u16)
 }
 
 ///
-/// Constructs inspect function name. For internal usage.
+/// Constructs inspect function name.
 ///
 pub fn construct_inspect_fn_name() -> Ident {
     Ident::new("__inspect", Span::call_site())
 }
 
 ///
-/// Constructs `tokio::spawn` wrapper function name. For internal usage.
+/// Constructs `tokio::spawn` wrapper function name.
 ///
 pub fn construct_spawn_tokio_fn_name() -> Ident {
     Ident::new("__spawn_tokio", Span::call_site())
 }
 
 ///
-/// Constructs results name. For internal usage.
+/// Constructs results name.
 ///
 pub fn construct_results_name() -> Ident {
     Ident::new("__results", Span::call_site())
 }
 
 ///
-/// Constructs handler name. For internal usage.
+/// Constructs handler name.
 ///
 pub fn construct_handler_name() -> Ident {
     Ident::new("__handler", Span::call_site())
 }
 
 ///
-/// Constructs internal value name with no index. For internal usage.
+/// Constructs internal value name with no index.
 ///
 pub fn construct_internal_value_name() -> Ident {
     Ident::new("__value", Span::call_site())
 }
 
 ///
-/// Constructs result wrapper in order to be used when expression is block. For internal usage.
+/// Constructs result wrapper in order to be used when expression is block.
 ///
 pub fn construct_expr_wrapper_name(
     index: impl Into<usize>,

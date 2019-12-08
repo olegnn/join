@@ -11,7 +11,7 @@ pub struct Config {
     ///
     pub is_async: bool,
     ///
-    /// Transpose final values into one `Result`/`Option`.
+    /// Transpose final values into one `Result`/`Option` and check results at the end of step.
     ///
     pub is_try: bool,
     ///
