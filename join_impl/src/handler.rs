@@ -5,8 +5,8 @@
 //!
 
 use syn::parse::ParseStream;
-use syn::Token;
 use syn::Expr;
+use syn::Token;
 
 ///
 /// map => expr,

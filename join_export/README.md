@@ -288,7 +288,16 @@ assert_eq!(try_join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Some(a +
 - `then` => **Only valid for not `try` macros.** Will be executed in any case, act as `handler(result0, result1, ..)`
 
 ```rust
-assert_eq!(join! { Some(1), Some(2), Some(3), then => |a: Option<u8>, b: Option<u8>, c: Option<u8>| Some(a.unwrap() + b.unwrap() + c.unwrap()) }, Some(6));
+assert_eq!(
+    join! { 
+        Some(1),
+        Some(2),
+        Some(3),
+        then => |a: Option<u8>, b: Option<u8>, c: Option<u8>| 
+            Some(a.unwrap() + b.unwrap() + c.unwrap()) 
+    },
+    Some(6)
+);
 ```
 
 or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned for `try` macros and `(result0, result1, ..)` for not `try` macros.
@@ -297,10 +306,10 @@ or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(resu
 
 You can specify any params at the beginning of macro call.
 
-- `futures_crate_path` - specifies custom crate path for `futures` crate. which will be used for all `futures`-related items, used by `async` `join!` macros. Only valid for `async` macros.
+- `futures_crate_path` - specifies custom crate path for `futures` crate, which will be used for all `futures`-related items, used by `async` `join!` macros. Only valid for `async` macros.
 - `custom_joiner` - specifies custom joiner *function* or *macro*, which will join active branches in step if their count is greater than 1.
 - `transpose_results` - specifies should macro transpose tuple of `Result`s/`Option`s into `Result`/`Option` of tuple or not. Useful when provided joiner already returns `Result` of tuple and there's no need to transpose it.
-- `lazy_branches` - wrap every branch into `move || {}` when pass values to joiner. By default true for `try_join_spawn!` and `join_spawn` macros because they use `thread::spawn` call. Only if active branch count > 1.
+- `lazy_branches` - wrap every branch into `move || {}` when pass values to joiner. By default `true` for `try_join_spawn!`, `try_spawn!` and `join_spawn!` , `spawn!` macros because they use `thread::spawn` call. Only if active branch count > 1.
 
 ```rust
 #![recursion_limit="256"]
