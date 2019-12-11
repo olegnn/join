@@ -1,9 +1,9 @@
 //!
-//! Defines `Join` trait and `JoinGenerator` type to generate output of the `join!` macro based on input and given config.
+//! Defines `Join` trait and `Join` type to generate output of the `join!` macro based on input and given config.
 //!
 
 pub mod config;
-pub mod join_generator;
+pub mod join_output;
 pub mod name_constructors;
 pub mod parse;
 
@@ -15,13 +15,13 @@ use syn::Path;
 
 use super::expr_chain::{ActionExprChain, Chain};
 use super::handler::Handler;
-use join_generator::JoinGenerator;
+use join_output::Join;
 use syn::parse_quote;
 
 ///
 /// Result of parsing `join!` macro input in trait form.
 ///
-pub trait Join {
+pub trait JoinInput {
     ///
     /// Object with implementation of `Chain` trait used to generate macro output.
     ///
@@ -66,7 +66,7 @@ pub trait Join {
 ///
 /// Default struct which represents result of parsing `join!` macro input.
 ///
-pub struct JoinDefault {
+pub struct JoinInputDefault {
     pub futures_crate_path: Option<Path>,
     pub custom_joiner: Option<TokenStream>,
     pub transpose_results: Option<bool>,
@@ -75,7 +75,7 @@ pub struct JoinDefault {
     pub handler: Option<Handler>,
 }
 
-impl Join for JoinDefault {
+impl JoinInput for JoinInputDefault {
     type Chain = ActionExprChain;
     type Handler = Handler;
 
@@ -107,13 +107,13 @@ impl Join for JoinDefault {
 ///
 /// Generates output of the `join!` macro based on parsed input and given config.
 ///
-pub fn generate_join<T: Join<Chain = ActionExprChain, Handler = Handler>>(
+pub fn generate_join<T: JoinInput<Chain = ActionExprChain, Handler = Handler>>(
     join: &T,
     config: Config,
 ) -> TokenStream {
     let default_futures_crate_path = parse_quote! { ::futures };
 
-    JoinGenerator::new(
+    Join::new(
         join.get_branches(),
         join.get_handler(),
         if let Some(futures_crate_path) = join.get_futures_crate_path() {

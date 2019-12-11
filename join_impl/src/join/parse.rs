@@ -7,7 +7,7 @@
 use super::super::expr_chain::group::GroupDeterminer;
 use super::super::expr_chain::{ActionExprChain, ActionExprChainGenerator};
 use super::super::handler::Handler;
-use super::JoinDefault;
+use super::JoinInputDefault;
 use syn::parenthesized;
 use syn::parse::{Parse, ParseStream};
 use syn::{LitBool, Token};
@@ -74,7 +74,7 @@ pub const WRAP_DETERMINER: &GroupDeterminer = &crate::define_determiner_with_no_
     pub static ref DEFAULT_GROUP_DETERMINERS_STATIC: Arc<&'static [GroupDeterminer]> = Arc::new(DEFAULT_GROUP_DETERMINERS);
 }
 
-impl Parse for JoinDefault {
+impl Parse for JoinInputDefault {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let mut join = Self {
             branches: Vec::new(),

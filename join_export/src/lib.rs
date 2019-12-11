@@ -9,15 +9,15 @@ extern crate syn;
 use proc_macro::TokenStream;
 use proc_macro_hack::proc_macro_hack;
 
-use join_impl::{generate_join, Config, JoinDefault};
+use join_impl::{generate_join, Config, JoinInputDefault};
 
-fn join_impl(join: JoinDefault, config: Config) -> TokenStream {
+fn join_impl(join: JoinInputDefault, config: Config) -> TokenStream {
     TokenStream::from(generate_join(&join, config))
 }
 
 #[proc_macro_hack]
 pub fn join(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -31,7 +31,7 @@ pub fn join(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn join_async(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -45,7 +45,7 @@ pub fn join_async(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn join_spawn(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -59,7 +59,7 @@ pub fn join_spawn(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn spawn(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -73,7 +73,7 @@ pub fn spawn(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn join_async_spawn(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -87,7 +87,7 @@ pub fn join_async_spawn(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn async_spawn(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -101,7 +101,7 @@ pub fn async_spawn(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn try_join(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -115,7 +115,7 @@ pub fn try_join(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn try_join_async(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -129,7 +129,7 @@ pub fn try_join_async(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn try_join_spawn(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -143,7 +143,7 @@ pub fn try_join_spawn(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn try_spawn(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -157,7 +157,7 @@ pub fn try_spawn(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn try_join_async_spawn(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,
@@ -171,7 +171,7 @@ pub fn try_join_async_spawn(input: TokenStream) -> TokenStream {
 
 #[proc_macro_hack]
 pub fn try_async_spawn(input: TokenStream) -> TokenStream {
-    let parsed = syn::parse_macro_input!(input as JoinDefault);
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
 
     join_impl(
         parsed,

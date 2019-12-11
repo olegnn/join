@@ -274,55 +274,6 @@ fn parse_single_or_empty_unit<ParseUnit: Parse, ResultExpr>(
         .transform_parsed(to_expr)
 }
 
-fn parse_n_or_empty_unit<ParseUnit: Parse, ResultExpr>(
-    to_expr: fn(Option<Vec<ParseUnit>>) -> ResultExpr,
-    action_expr_chain_gen: &ActionExprChainGenerator,
-    input: ParseStream<'_>,
-    unit_count: usize,
-) -> UnitResult<ResultExpr> {
-    action_expr_chain_gen
-        .parse_unit::<Empty>(&input.fork(), true)
-        .and_then(|_| action_expr_chain_gen.parse_unit::<Empty>(&input, true))
-        .transform_parsed(to_none)
-        .or_else(|_| {
-            (0..unit_count)
-                .map(|index| {
-                    action_expr_chain_gen
-                        .parse_unit::<ParseUnit>(input, false)
-                        .and_then(|unit| {
-                            if index + 1 < unit_count {
-                                input.parse::<Token![,]>().and_then(|_| {
-                                    if unit.next_group_type.is_none() {
-                                        Ok(unit)
-                                    } else {
-                                        Err(input.error(&format!(
-                                            "Expected {} units, found group identifier!",
-                                            unit_count
-                                        )))
-                                    }
-                                })
-                            } else {
-                                Ok(unit)
-                            }
-                        })
-                })
-                .try_fold(
-                    Unit {
-                        parsed: Some(Vec::with_capacity(unit_count)),
-                        next_group_type: None,
-                    },
-                    |mut acc, unit| {
-                        unit.map(|unit| {
-                            acc.parsed.as_mut().unwrap().push(unit.parsed);
-                            acc.next_group_type = unit.next_group_type;
-                            acc
-                        })
-                    },
-                )
-        })
-        .transform_parsed(to_expr)
-}
-
 fn parse_double_unit<ParseUnit: Parse, ParseUnit2: Parse, ResultExpr>(
     to_expr: fn((ParseUnit, ParseUnit2)) -> ResultExpr,
     action_expr_chain_gen: &ActionExprChainGenerator,
@@ -371,15 +322,108 @@ macro_rules! from_single_or_empty_unit {
     };
 }
 
-macro_rules! from_four_or_empty_unit {
-    ($create_expr: path, $action_expr_chain_gen: expr, $input: expr) => {
+macro_rules! iter_to_tuple {
+    (1, $value: expr) => {{ let value = $value; value.next().expect("join: Unexpected None when constructing tuple from Iterator. This's a bug, please report it") }};
+    (2, $value: expr) => {{ let mut value = $value; (iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value)) }};
+    (3, $value: expr) => {{ let mut value = $value; (iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value)) }};
+    (4, $value: expr) => {{ let mut value = $value; (iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value)) }};
+    (5, $value: expr) => {{ let mut value = $value; (iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value)) }};
+    (6, $value: expr) => {{ let mut value = $value; (iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value)) }};
+    (7, $value: expr) => {{ let mut value = $value; (iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value)) }};
+    (8, $value: expr) => {{ let mut value = $value; (iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value)) }};
+    (9, $value: expr) => {{ let mut value = $value; (iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value), iter_to_tuple!(1, &mut value)) }};
+}
+
+macro_rules! define_args {
+    (1, $type: ty) => {
+        ($type)
+    };
+    (2, $type: ty) => {
+        ($type, $type)
+    };
+    (3, $type: ty) => {
+        ($type, $type, $type)
+    };
+    (4, $type: ty) => {
+        ($type, $type, $type, $type)
+    };
+    (5, $type: ty) => {
+        ($type, $type, $type, $type, $type)
+    };
+    (6, $type: ty) => {
+        ($type, $type, $type, $type, $type, $type)
+    };
+    (7, $type: ty) => {
+        ($type, $type, $type, $type, $type, $type, $type)
+    };
+    (8, $type: ty) => {
+        ($type, $type, $type, $type, $type, $type, $type, $type)
+    };
+    (9, $type: ty) => {
+        (
+            $type, $type, $type, $type, $type, $type, $type, $type, $type,
+        )
+    };
+}
+
+macro_rules! from_n_or_empty_unit {
+    ($create_expr: path, $action_expr_chain_gen: expr, $input: expr, $unit_count: tt) => {{
+        fn parse_n_or_empty_unit<ParseUnit: Parse, ResultExpr>(
+            to_expr: fn(Option<define_args!($unit_count, ParseUnit)>) -> ResultExpr,
+            action_expr_chain_gen: &ActionExprChainGenerator,
+            input: ParseStream<'_>
+        ) -> UnitResult<ResultExpr> {
+            let unit_count = $unit_count;
+            action_expr_chain_gen
+                .parse_unit::<Empty>(&input.fork(), true)
+                .and_then(|_| action_expr_chain_gen.parse_unit::<Empty>(&input, true))
+                .transform_parsed(to_none)
+                .or_else(|_| {
+                    (0..unit_count)
+                        .map(|index| {
+                            action_expr_chain_gen
+                                .parse_unit::<ParseUnit>(input, false)
+                                .and_then(|unit| {
+                                    if index + 1 < unit_count {
+                                        input.parse::<Token![,]>().and_then(|_| {
+                                            if unit.next_group_type.is_none() {
+                                                Ok(unit)
+                                            } else {
+                                                Err(input.error(&format!(
+                                                    "Expected {} units, found group identifier!",
+                                                    unit_count
+                                                )))
+                                            }
+                                        })
+                                    } else {
+                                        Ok(unit)
+                                    }
+                                })
+                        })
+                        .try_fold(
+                            Unit {
+                                parsed: Some(Vec::with_capacity(unit_count)),
+                                next_group_type: None,
+                            },
+                            |mut acc, unit| {
+                                unit.map(|unit| {
+                                    acc.parsed.as_mut().unwrap().push(unit.parsed);
+                                    acc.next_group_type = unit.next_group_type;
+                                    acc
+                                })
+                            },
+                        )
+                })
+                .transform_parsed(|parsed| parsed.map(|parsed_vec| iter_to_tuple!($unit_count, parsed_vec.into_iter())))
+                .transform_parsed(to_expr)
+        }
+
         Some(parse_n_or_empty_unit(
             $create_expr,
             $action_expr_chain_gen,
-            $input,
-            4,
+            $input
         ))
-    };
+    }};
 }
 
 macro_rules! from_double_unit {
@@ -526,7 +570,7 @@ impl CommandGroup {
             }
             Self::TryFold => from_double_unit!(ProcessExpr::TryFold, action_expr_chain_gen, input),
             Self::Unzip => {
-                from_four_or_empty_unit!(ProcessExpr::Unzip, action_expr_chain_gen, input)
+                from_n_or_empty_unit!(ProcessExpr::Unzip, action_expr_chain_gen, input, 4)
             }
             Self::Zip => from_single_unit!(ProcessExpr::Zip, action_expr_chain_gen, input),
             Self::UNWRAP => from_empty_unit!(ProcessExpr::UNWRAP, action_expr_chain_gen, input),
@@ -638,7 +682,7 @@ impl CommandGroup {
                 from_single_unit!(ProcessExpr::TryForEach, action_expr_chain_gen, input)
             }
             Self::Unzip => {
-                from_four_or_empty_unit!(ProcessExpr::Unzip, action_expr_chain_gen, input)
+                from_n_or_empty_unit!(ProcessExpr::Unzip, action_expr_chain_gen, input, 4)
             }
             Self::Zip => from_single_unit!(ProcessExpr::Zip, action_expr_chain_gen, input),
             _ => None,

@@ -82,7 +82,7 @@ pub enum ProcessExpr {
     ///
     ///	.unzip::<A, B, FromA, FromB>()
     ///
-    Unzip(Option<Vec<Type>>),
+    Unzip(Option<(Type, Type, Type, Type)>),
     ///
     ///	.zip(Expr)
     ///
@@ -410,7 +410,7 @@ pub enum ProcessExpr {
     ///
     ///	.unzip::<A, B, FromA, FromB>()
     ///
-    Unzip(Option<Vec<Type>>),
+    Unzip(Option<(Type, Type, Type, Type)>),
     ///
     ///	.zip(Expr)
     ///
@@ -476,7 +476,7 @@ impl ToTokens for ProcessExpr {
             }
             Self::Unzip(type_spec) => type_spec
                 .as_ref()
-                .map(|type_spec| quote! { .unzip::<#( #type_spec ),*>() })
+                .map(|(a, b, c, d)| quote! { .unzip::<#a, #b, #c, #d>() })
                 .unwrap_or_else(|| quote! { .unzip() }),
             Self::Zip(expr) => {
                 quote! { .zip(#expr) }
@@ -677,7 +677,7 @@ impl ToTokens for ProcessExpr {
             }
             Self::Unzip(type_spec) => type_spec
                 .as_ref()
-                .map(|type_spec| quote! { .unzip::<#( #type_spec ),*>() })
+                .map(|(a, b, c, d)| quote! { .unzip::<#a, #b, #c, #d>() })
                 .unwrap_or_else(|| quote! { .unzip() }),
             Self::Zip(expr) => {
                 quote! { .zip(#expr) }
@@ -1014,7 +1014,7 @@ mod tests {
                     }
                     ProcessExpr::Unzip(type_spec) => type_spec
                         .as_ref()
-                        .map(|type_spec| quote! { .unzip::<#( #type_spec ),*>() })
+                        .map(|(a, b, c, d)| quote! { .unzip::<#a, #b, #c, #d>() })
                         .unwrap_or_else(|| quote! { .unzip() }),
                     ProcessExpr::Zip(expr) => {
                         quote! { .zip(#expr) }
