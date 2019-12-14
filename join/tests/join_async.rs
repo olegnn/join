@@ -453,9 +453,9 @@ mod join_async_tests {
                 join_async! {
                     { let values = values.clone(); values.into_iter() } >^> { let other_values = other_values.clone(); other_values.into_iter() } <-> u8, u8, Vec<_>, Vec<_> -> ready
                 }.await,
-                {  
+                {
                     let values = vec![0, 1u8, 2, 3, 4, 5, 6];
-                    let other_values = vec![4u8, 5, 6, 7, 8, 9, 10]; 
+                    let other_values = vec![4u8, 5, 6, 7, 8, 9, 10];
                     (values, other_values)
                 }
             );
@@ -577,11 +577,11 @@ mod join_async_tests {
             }
 
             let client = Client::new();
-            
+
             let task = try_join_async! {
                 // This programs makes requests to several sites 
                 // and calculates count of links starting from `https://`
-                get_urls_to_calculate_link_count() 
+                get_urls_to_calculate_link_count()
                     |> {
                         // If pass block statement instead of fn, it will be placed before current step, 
                         // so it will us allow to capture some variables from context
@@ -601,7 +601,7 @@ mod join_async_tests {
                     |> Ok
                     => try_join_all
                     !> |err| format_err!("Error retrieving pages to calculate links: {:#?}", err)
-                    => |results| 
+                    => |results|
                         ok(
                             results
                                 .into_iter()
@@ -609,14 +609,14 @@ mod join_async_tests {
                                 .unwrap()
                         )
                     // It waits for input in stdin before log max links count
-                    ~?? |result| { 
+                    ~?? |result| {
                         result
                             .as_ref()
                             .map(
-                                |(url, count)| 
+                                |(url, count)|
                                     println!("Max link count found on `{}`: {}", url, count)
                             )
-                            .unwrap_or(()); 
+                            .unwrap_or(());
                     },
                 // Concurrently it makes request to the site which generates random number
                 get_url_to_get_random_number()
@@ -625,9 +625,9 @@ mod join_async_tests {
                         // If pass block statement instead of fn, it will be placed before current step,
                         // so it will allow us to capture some variables from context
                         let client = client.clone();
-                        let map_parsing_error = 
-                            |value| 
-                                move |err| 
+                        let map_parsing_error =
+                            |value|
+                                move |err|
                                     format_err!("Failed to parse random number: {:#?}, value: {}", err, value);
                         move |url| {
                             try_join_async! {
@@ -637,14 +637,12 @@ mod join_async_tests {
                                     => |value| value.text()
                                     !> |err| format_err!("Error retrieving random number: {:#?}", err)
                                     => |value| ok(value[..value.len() - 1].to_owned()) // remove \n from `154\n`
-                                    => |value|  
+                                    => |value|
                                         ready(
                                             value
                                                 .parse::<u16>()
                                                 .map_err(map_parsing_error(value))
                                         )
-
-                                
                             }
                         }
                     }
@@ -653,7 +651,7 @@ mod join_async_tests {
                         random
                             .as_ref()
                             .map(|number| println!("Random: {}", number))
-                            .unwrap_or(()); 
+                            .unwrap_or(());
                     },
                 // Concurrently it reads value from stdin
                 println!("Please, enter number") -> |_| read_number_from_stdin() |> Ok,
@@ -666,24 +664,24 @@ mod join_async_tests {
                         _ if random_diff < stdin_diff => GameResult::Lost,
                         _ => GameResult::Draw
                     }
-                }    
+                }
             };
 
             // Use sync join because we don't need concurrent execution
             // and sync `map` is more convenient
             let _ = try_join! {
-                task 
+                task
                     .await
-                    |> |result| 
+                    |> |result|
                         println!(
-                            "You {}", 
-                            match result { 
-                                GameResult::Won => "won!", 
-                                GameResult::Lost => "lose...", 
+                            "You {}",
+                            match result {
+                                GameResult::Won => "won!",
+                                GameResult::Lost => "lose...",
                                 _ => "have the same result as random generator!"
                             }
                         )
-            }.unwrap();   
+            }.unwrap();
         });
     }
 

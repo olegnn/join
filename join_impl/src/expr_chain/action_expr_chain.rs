@@ -73,14 +73,17 @@ impl<'a> ActionExprChainGenerator<'a> {
     ///
     /// Parses input, fills chain with given expressions.
     ///
-    pub fn parse_stream(&self, chain: &mut ActionExprChain, input: ParseStream) -> syn::Result<()> {
+    pub fn from_parse_stream(&self, input: ParseStream) -> syn::Result<ActionExprChain> {
+        let mut chain = ExprChain {
+            members: Vec::new(),
+            pat: None,
+        };
         let mut group_type =
             ActionGroup::new(CommandGroup::Initial, ApplyType::Instant, MoveType::None);
         let mut member_index = 0;
         let mut wrapper_count = 0i16;
 
         loop {
-            let input = input;
             let Unit {
                 parsed: mut action_expr,
                 next_group_type,
@@ -104,7 +107,7 @@ impl<'a> ActionExprChainGenerator<'a> {
                     } else {
                         return Err(input.error("Incorrect `let` pattern"));
                     }
-                    
+
                     action_expr = action_expr
                         .replace_inner(vec![*let_expr.expr.clone()])
                         .expect("join: Failed to replace initial expr. This's a bug, please report it.");
@@ -154,7 +157,7 @@ impl<'a> ActionExprChainGenerator<'a> {
                     } else if !input.is_empty() {
                         input.parse::<Token![,]>()?;
                     }
-                    Ok(())
+                    Ok(chain)
                 };
             }
         }
@@ -196,34 +199,6 @@ where
     }
 }
 
-///
-/// Impl of Chain with `ActionExpr` member.
-///
-impl ActionExprChain
-where
-    Self: Sized,
-{
-    ///
-    /// Constructs new `ActionExprChain` from given `ParseStream` using `ActionExprChainGenerator`.
-    ///
-    pub fn new<'a>(
-        input: ParseStream<'_>,
-        expr_chain_generator: &'a ActionExprChainGenerator,
-    ) -> syn::Result<Option<Self>> {
-        let mut expr_chain = ExprChain {
-            members: Vec::new(),
-            pat: None,
-        };
-
-        Ok(if input.is_empty() {
-            None
-        } else {
-            expr_chain_generator.parse_stream(&mut expr_chain, input)?;
-            Some(expr_chain)
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::super::super::join::parse::{
@@ -242,9 +217,7 @@ mod tests {
                 DEFERRED_DETERMINER,
                 WRAP_DETERMINER,
             );
-            Self::new(input, &gen)
-                .transpose()
-                .ok_or(input.error("Empty!"))?
+            gen.from_parse_stream(input)
         }
     }
 

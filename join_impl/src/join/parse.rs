@@ -5,7 +5,7 @@
 //!
 //!
 use super::super::expr_chain::group::GroupDeterminer;
-use super::super::expr_chain::{ActionExprChain, ActionExprChainGenerator};
+use super::super::expr_chain::ActionExprChainGenerator;
 use super::super::handler::Handler;
 use super::JoinInputDefault;
 use syn::parenthesized;
@@ -151,10 +151,8 @@ impl Parse for JoinInputDefault {
                 );
                 join.handler = Some(handler);
             } else {
-                let expr_chain = ActionExprChain::new(input, &action_expr_chain_generator)?;
-                if let Some(expr_chain) = expr_chain {
-                    join.branches.push(expr_chain);
-                }
+                let expr_chain = action_expr_chain_generator.from_parse_stream(input)?;
+                join.branches.push(expr_chain);
             };
         }
 

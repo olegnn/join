@@ -477,9 +477,9 @@ mod join_async_spawn_tests {
                 join_async_spawn! {
                     { let values = values.clone(); values.into_iter() } >^> { let other_values = other_values.clone(); other_values.into_iter() } <-> u8, u8, Vec<_>, Vec<_> -> ready
                 }.await,
-                {  
+                {
                     let values = vec![0, 1u8, 2, 3, 4, 5, 6];
-                    let other_values = vec![4u8, 5, 6, 7, 8, 9, 10]; 
+                    let other_values = vec![4u8, 5, 6, 7, 8, 9, 10];
                     (values, other_values)
                 }
             );

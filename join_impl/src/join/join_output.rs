@@ -304,9 +304,9 @@ impl<'a> Join<'a> {
             .map(|chain| chain.get(step_number as usize))
             .enumerate()
             .filter_map(
-                |(branch_index, chain_step_actions)| 
+                |(branch_index, chain_step_actions)|
                     chain_step_actions.and_then(
-                        |chain_step_actions| 
+                        |chain_step_actions|
                         chain_step_actions
                         .iter()
                         .enumerate()
@@ -316,13 +316,13 @@ impl<'a> Join<'a> {
                              (expr_index, &action_expr)| {
                                 acc.map(|step_acc|
                                     self.process_step_action_expr(
-                                        ActionExprPos::new( 
-                                            action_expr, 
+                                        ActionExprPos::new(
+                                            action_expr,
                                             branch_index,
-                                            expr_index 
+                                            expr_index
                                         ),
                                         step_acc
-                                    )    
+                                    )
                                 )
                                 .or_else(|| {
                                     let previous_result_name = &result_vars[branch_index];
@@ -330,16 +330,16 @@ impl<'a> Join<'a> {
                                     let wrapped_previous_result = self.wrap_into_block(previous_result_name);
 
                                     let step_acc = StepAcc {
-                                        def_stream: None, 
+                                        def_stream: None,
                                         step_streams: vec![(wrapped_previous_result, None)]
                                     };
 
                                     Some(
                                         self.process_step_action_expr(
-                                            ActionExprPos::new( 
-                                                action_expr, 
+                                            ActionExprPos::new(
+                                                action_expr,
                                                 branch_index,
-                                                expr_index 
+                                                expr_index
                                             ),
                                             step_acc
                                         )
@@ -701,7 +701,7 @@ impl<'a> Join<'a> {
             None
         } else {
             let thread_builders = (0..self.branch_count).filter_map(|branch_index| {
-                if self.is_branch_active_in_step(step_number, branch_index) { 
+                if self.is_branch_active_in_step(step_number, branch_index) {
                     let thread_builder_name = construct_thread_builder_name(branch_index);
                     let construct_thread_builder_fn_name = construct_thread_builder_fn_name();
                     Some(quote! { let #thread_builder_name = #construct_thread_builder_fn_name(#branch_index); })
@@ -1147,7 +1147,7 @@ impl<'a> ToTokens for Join<'a> {
                         async move {
                             use #futures_crate_path::{FutureExt, TryFutureExt, StreamExt, TryStreamExt};
                             #async_spawn_fn_definition
-                            #handler_definition                           
+                            #handler_definition
                             let #results_var = { #steps_stream };
                             #handle_results
                         }
@@ -1183,7 +1183,6 @@ impl<'a> ToTokens for Join<'a> {
                                                 )
                                         )
                                         .unwrap_or(thread_name)
-        
                                 )
                             }
                         }
@@ -1191,7 +1190,7 @@ impl<'a> ToTokens for Join<'a> {
                 } else {
                     None
                 };
-                
+
                 quote! {{
                     #inspect_fn_definition
                     #thread_builder_fn_definition
