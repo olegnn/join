@@ -71,7 +71,7 @@ impl<'a> ActionExprChainGenerator<'a> {
     }
 
     ///
-    /// Parses input, fills chain with given expressions.
+    /// Constructs new `ActionExprChain` from input `ParseStream`.
     ///
     pub fn from_parse_stream(&self, input: ParseStream) -> syn::Result<ActionExprChain> {
         let mut chain = ExprChain {
@@ -201,9 +201,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::super::super::join::parse::{
-        DEFAULT_GROUP_DETERMINERS, DEFERRED_DETERMINER, WRAP_DETERMINER,
-    };
+    #[cfg(not(feature = "static"))]
+    use super::super::super::join::parse::DEFAULT_GROUP_DETERMINERS;
+    #[cfg(feature = "static")]
+    use super::super::super::join::parse::DEFAULT_GROUP_DETERMINERS_STATIC as DEFAULT_GROUP_DETERMINERS;
+    use super::super::super::join::parse::{DEFERRED_DETERMINER, WRAP_DETERMINER};
     use super::super::expr::{Action, ApplyType, ErrExpr, InitialExpr, MoveType, ProcessExpr};
     use super::*;
     use ::quote::quote;
@@ -213,7 +215,7 @@ mod tests {
     impl Parse for ActionExprChain {
         fn parse(input: ParseStream) -> syn::Result<Self> {
             let gen = ActionExprChainGenerator::new(
-                DEFAULT_GROUP_DETERMINERS,
+                DEFAULT_GROUP_DETERMINERS.clone(),
                 DEFERRED_DETERMINER,
                 WRAP_DETERMINER,
             );

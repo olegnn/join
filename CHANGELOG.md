@@ -1,3 +1,7 @@
+# [0.1.0-beta.8]
+
+Fixed features implementations. Enabled all-feature tests. Implementation changes. Cosmetic fixes.
+
 # [0.1.0-beta.7]
 
 Fixed incorrect docs link.

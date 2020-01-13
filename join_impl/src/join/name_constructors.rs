@@ -95,14 +95,12 @@ pub fn construct_expr_wrapper_name(
 /// use std::thread;
 /// use join::join_spawn;
 ///
-/// fn main() {
-///     join_spawn! {
-///         Ok::<_, ()>("hello world") |> |value| {
-///             println!("{}", thread::current().name().unwrap()); // main_join_0
-///             value
-///         }
-///     };
-/// }
+/// join_spawn! {
+///     Ok::<_, ()>("hello world") |> |value| {
+///         println!("{}", thread::current().name().unwrap()); // main_join_0
+///         value
+///     }
+/// };
 /// ```
 /// In runtime thread's name will be constructed from name of parent thread and join_%branch_index%.
 ///
@@ -122,18 +120,16 @@ pub fn construct_expr_wrapper_name(
 ///     println!("Branch: {}. Thread name: {}.", index.unwrap(), get_current_thread_name());
 /// }
 ///
-/// fn main() {
-///     let _ = try_join_spawn! {
-///         Ok(0) ?? print_branch_thread_name,
-///         Ok(1) ?? print_branch_thread_name,
+/// let _ = try_join_spawn! {
+///     Ok(0) ?? print_branch_thread_name,
+///     Ok(1) ?? print_branch_thread_name,
+///     try_join_spawn! {
+///         Ok(2) ?? print_branch_thread_name,
 ///         try_join_spawn! {
-///             Ok(2) ?? print_branch_thread_name,
-///             try_join_spawn! {
-///                 Ok(3) ?? print_branch_thread_name,
-///             }
+///             Ok(3) ?? print_branch_thread_name,
 ///         }
-///     }.unwrap();
-/// }
+///     }
+/// }.unwrap();
 ///
 /// // Branch: 0. Thread name: main_join_0.
 /// // Branch: 1. Thread name: main_join_1.

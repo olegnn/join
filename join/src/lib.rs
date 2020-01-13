@@ -52,19 +52,19 @@
 //! - [`try_join!`](macro.try_join.html) - combines `Result`s/`Option`s, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
 //! ```rust
 //! # use join::*;
-//! # fn main() {
 //! assert_eq!(
 //!     try_join!(Ok::<_,()>(1), Ok::<_,()>("2"), Ok::<_,()>(3.0)),
 //!     Ok::<_,()>((1, "2", 3.0))
 //! );
-//! # }
 //! ```
 //! - [`try_join_async!`](macro.try_join_async.html) - combines futures, transposes tuple of `Result`s into `Result` of tuple.
 //! ```rust
 //! # use join::*;
 //! # use futures::future::*;
 //! # #[tokio::main]
-//! # async fn main() {
+//! # async fn main
+//! # // keep this to quell `needless_doctest_main` warning
+//! # () {
 //! assert_eq!(
 //!     try_join_async!(ok::<_,()>(1), ok::<_,()>("2"), ok::<_,()>(3.0)).await,
 //!     Ok::<_,()>((1, "2", 3.0))
@@ -74,12 +74,10 @@
 //! - [`try_join_spawn!`](macro.try_join_spawn.html) - spawns [`std::thread`](https://doc.rust-lang.org/std/thread/) per each branch and joins results, transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple.
 //! ```rust
 //! # use join::*;
-//! # fn main() {
 //! assert_eq!(
 //!     try_join_spawn!(Ok::<_,()>(1), Ok::<_,()>("2"), Ok::<_,()>(3.0)),
 //!     Ok::<_,()>((1, "2", 3.0))
 //! );
-//! # }
 //! ```
 //! - [`try_spawn!`](macro.try_spawn.html) - alias for [`try_join_spawn!`](macro.try_join_spawn.html).
 //! - [`try_join_async_spawn!`](macro.try_join_async_spawn.html) - spawns futures into default `tokio` executor using
@@ -89,7 +87,9 @@
 //! # use join::*;
 //! # use futures::future::*;
 //! #[tokio::main]
-//! # async fn main() {
+//! # async fn main
+//! # // keep this to quell `needless_doctest_main` warning
+//! # () {
 //! assert_eq!(
 //!     try_join_async_spawn!(ok::<_,()>(1), ok::<_,()>("2"), ok::<_,()>(3.0)).await,
 //!     Ok::<_,()>((1, "2", 3.0))
@@ -100,18 +100,18 @@
 //! - [`join!`](macro.join.html) - combines values.
 //! ```rust
 //! # use join::*;
-//! # fn main() {
 //! assert_eq!(
 //!     join!(1, "2", 3.0), (1, "2", 3.0)
 //! );
-//! # }
 //! ```
 //! - [`join_async!`](macro.join_async.html) - combines futures.
 //! ```rust
 //! # use join::*;
 //! # use futures::future::*;
 //! # #[tokio::main]
-//! # async fn main() {
+//! # async fn main
+//! # // keep this to quell `needless_doctest_main` warning
+//! # () {
 //! assert_eq!(
 //!     join_async!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0)
 //! );
@@ -120,11 +120,9 @@
 //! - [`join_spawn!`](macro.join_spawn.html) - spawns [`std::thread`](https://doc.rust-lang.org/std/thread/) per each branch.
 //! ```rust
 //! # use join::*;
-//! # fn main() {
 //! assert_eq!(
 //!     join_spawn!(1, "2", 3.0), (1, "2", 3.0)
 //! );
-//! # }
 //! ```
 //! - [`spawn!`](macro.spawn.html) - alias for [`join_spawn!`](macro.join_spawn.html).
 //! - [`join_async_spawn!`](macro.join_async_spawn.html) -  spawns futures into default `tokio` executor using [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each branch.
@@ -132,7 +130,9 @@
 //! # use join::*;
 //! # use futures::future::*;
 //! # #[tokio::main]
-//! # async fn main() {
+//! # async fn main
+//! # // keep this to quell `needless_doctest_main` warning
+//! # () {
 //! assert_eq!(
 //!     join_async_spawn!(ready(1), ready("2"), ready(3.0)).await, (1, "2", 3.0)
 //! );
@@ -145,53 +145,44 @@
 //! - Then: **`->`**
 //! ```rust
 //! # use join::try_join;
-//! # fn main() {
 //! # let value = Some(1u8);
 //! # let expr = |v: Option<u8>| Some(v.unwrap() + 1);
 //! # let result =
 //! try_join! { value -> expr }; // => expr(value)
 //! # assert_eq!(result, Some(2));
-//! # }
 //! ```
 //!
 //! - Map: **`|>`**
 //! ```rust
 //! # use join::try_join;
-//! # fn main() {
 //! # let value = Some(1u8);
 //! # let expr = |v| v;
 //! try_join! { value |> expr }; // => value.map(expr)
-//! # }
 //! ```
 //!
 //! - AndThen: **`=>`**
 //! ```rust
 //! # use join::try_join;
-//! # fn main() {
 //! # let value = Some(1u8);
 //! # let expr = |v| Some(v + 1);
 //! # let result =
 //! try_join! { value => expr }; // => value.and_then(expr)
 //! # assert_eq!(result, Some(2));
-//! # }
 //! ```
 //!
 //! - Filter: **`?>`**
 //! ```rust
 //! # use join::join;
 //! # fn expr(v: &u8) -> bool { *v == 3 }
-//! # fn main() {
 //! # let value = vec![1u8, 2, 3].into_iter();
 //! # let result =
 //! join! { value ?> expr }; // => value.filter(expr)
 //! # assert_eq!(result.collect::<Vec<_>>(), vec![3]);
-//! # }
 //! ```
 //!
 //! - Dot: **`..`** or **`>.`**
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let value = Some(1u8);
 //! # let result =
 //! join! { value .. is_some() }; // => value.is_some()
@@ -199,49 +190,41 @@
 //! # let result =
 //! join! { value >. is_none() }; // => value.is_none()
 //! # assert_eq!(result, false);
-//! # }
 //! ```
 //!
 //! - Or: **`<|`**
 //! ```rust
 //! # use join::try_join;
-//! # fn main() {
 //! # let value = Some(1u8);
 //! # let expr = Some(2u8);
 //! # let result =
 //! try_join! { value <| expr }; // => value.or(expr)
 //! # assert_eq!(result, Some(1));
-//! # }
 //! ```
 //!
 //! - OrElse: **`<=`**
 //! ```rust
 //! # use join::try_join;
-//! # fn main() {
 //! # let value = None;
 //! # let expr = || Some(6);
 //! # let result =
 //! try_join! { value <= expr }; // => value.or_else(expr)  
 //! # assert_eq!(result, Some(6));
-//! # }
 //! ```
 //!
 //! - MapErr: **`!>`**
 //! ```rust
 //! # use join::try_join;
-//! # fn main() {
 //! # let value = Err::<u8,_>(1u8);
 //! # let expr = |err| err + 1;
 //! # let result =
 //! try_join! { value !> expr }; // => value.map_err(expr)
 //! # assert_eq!(result, Err(2));
-//! # }
 //! ```
 //!
 //! - Collect: **`=>[]`** (type is optional)
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let value = vec![1u8, 2, 3].into_iter();
 //! # let result =
 //! join! { value =>[] Vec<_> }; // => value.collect::<Vec<_>>()
@@ -249,135 +232,113 @@
 //! # let value = vec![1u8, 3, 4].into_iter();
 //! let result: Vec<_> = join! { value =>[] }; // => value.collect()
 //! # assert_eq!(result, vec![1u8, 3, 4]);
-//! # }
 //! ```
 //!
 //! - Chain: **`>@>`**
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let value = vec![1u8].into_iter();
 //! # let expr = vec![1u8].into_iter();
 //! # let result =
 //! join! { value >@> expr }; // => value.chain(expr)
 //! # assert_eq!(result.collect::<Vec<_>>(), vec![1, 1]);
-//! # }
 //! ```
 //!
 //! - FindMap: **`?|>@`**
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let mut value = vec![1u8, 2, 3, 4].into_iter();
 //! # let expr = |v| if v == 4 { Some(v) } else { None };
 //! # let result =
 //! join! { value ?|>@ expr }; // => value.find_map(expr)
 //! # assert_eq!(result, Some(4));
-//! # }
 //! ```
 //!
 //! - FilterMap: **`?|>`**
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let value = vec![1u8, 2, 3, 4, 5].into_iter();
 //! # let expr = |v| Some(v);
 //! # let result =
 //! join! { value ?|> expr }; // => value.filter_map(expr)
 //! # assert_eq!(result.collect::<Vec<_>>(), vec![1u8, 2, 3, 4, 5]);
-//! # }
 //! ```
 //!
 //! - Enumerate: **`|n>`**
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let value = vec![1u8].into_iter();
 //! # let result =
 //! join! { value |n> }; // => value.enumerate()
 //! # assert_eq!(result.collect::<Vec<_>>(), vec![(0usize, 1u8)]);
-//! # }
 //! ```
 //!
 //! - Partition: **`?&!>`**
 //! ```rust
 //! # use join::join;
 //! # fn filter<'a>(v: &'a u8) -> bool { v % 2 == 0 }
-//! # fn main() {
 //! # let mut value = vec![1u8, 2, 3, 4, 5].into_iter();
 //! # let expr = filter;
 //! # let result =
 //! join! { value ?&!> expr }; // => value.partition(expr)
 //! # assert_eq!(result, (vec![2, 4], vec![1, 3, 5]));
-//! # }
 //! ```
 //!
 //! - Flatten: **`^^>`**
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let mut value = vec![vec![1u8]].into_iter();
 //! # let result =
 //! join! { value ^^> }; // => value.flatten()
 //! # assert_eq!(result.collect::<Vec<_>>(), vec![1u8]);
-//! # }
 //! ```
 //!
 //! - Fold: **`^@`**
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let mut value = vec![1u8, 2u8].into_iter();
 //! # let init_expr = 0;
 //! # let fn_expr = |a, b| a + b;
 //! # let result =
 //! join! { value ^@ init_expr, fn_expr }; // => value.fold(init_expr, fn_expr)
 //! # assert_eq!(result, 3);
-//! # }
 //! ```
 //!
 //! - TryFold: **`?^@`**
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let mut value = vec![1u8, 2u8].into_iter();
 //! # let init_expr = 0;
 //! # let fn_expr = |a, b| Ok::<_,()>(a + b);
 //! # let result =
 //! join! { value ?^@ init_expr, fn_expr }; // => value.try_fold(init_expr, fn_expr)
 //! # assert_eq!(result, Ok(3));
-//! # }
 //! ```
 //!
 //! - Find: **`?@`**
 //! ```rust
 //! # use join::try_join;
 //! # fn filter(v: &u8) -> bool { true }
-//! # fn main() {
 //! # let mut value = vec![1u8, 2u8].into_iter();
 //! # let expr = filter;
 //! # let result =
 //! try_join! { value ?@ expr }; // => value.find(expr)
 //! # assert_eq!(result, Some(1));
-//! # }
 //! ```
 //!
 //! - Zip: **`>^>`**
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let value = vec![1u8, 2u8].into_iter();
 //! # let expr = vec![1u8, 2u8].into_iter();
 //! # let result =
 //! join! { value >^> expr }; // => value.zip(expr)
 //! # assert_eq!(result.collect::<Vec<_>>(), vec![(1, 1), (2, 2)]);
-//! # }
 //! ```
 //!
 //! - Unzip: **`<->`** (types are optional)
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! # let value = vec![(1u8, 2u8)].into_iter();
 //! # let result =
 //! join! { value <-> _, _, Vec<_>, Vec<_> }; // => value.unzip::<_, _, Vec<_>, Vec<_>>()
@@ -385,14 +346,12 @@
 //! # let value = vec![(1u8, 2u8)].into_iter();
 //! let result: (Vec<_>, Vec<_>) = join! { value <-> }; // => value.unzip()
 //! # assert_eq!(result, (vec![1], vec![2]));
-//! # }
 //! ```
 //! - Inspect: **`??`**
 //! ```rust
 //! # use join::{try_join, try_join_async};
 //! # use futures::executor::block_on;
 //! # fn expr<T: std::fmt::Debug>(v: &T) { println!("{:?}", v); }
-//! # fn main() {
 //! # let value = Ok::<_,()>(1u8);
 //! # let result =
 //! try_join! { value ?? expr }; // => (|value| { (expr)(&value); value })(value) // for sync
@@ -401,7 +360,6 @@
 //! # let result =
 //! try_join_async! { value ?? expr }; // => value.inspect(expr) for async
 //! # block_on(async { assert_eq!(result.await, Ok::<_,()>(1u8)); });
-//! # }
 //! ```
 //!
 //! where `value` is the previous value.
@@ -413,16 +371,13 @@
 //! - Wrap: `combinator` **`>>>`** `combinator`(s)...
 //! ```rust
 //! # use join::try_join;
-//! # fn main() {
 //! # let value = Some(Some(5));
 //! # let result =
 //! try_join! { value => >>> |> |v| v + 2 }; // => value.and_then(|value| value.map(|v| v + 2))
 //! # assert_eq!(result, Some(7));
-//! # }
 //! ```
 //! Use to create nested constructions like
 //! ```rust
-//! # fn main() {
 //! # let a = Ok::<_,()>(Ok::<_,()>(Ok::<_,()>(4)));
 //! # let value =
 //! a.and_then(
@@ -436,13 +391,11 @@
 //! )
 //! # ;
 //! # assert_eq!(value, Ok(6));
-//! # }
 //! ```
 //!
 //! - Unwrap: **`<<<`**
 //! ```rust
 //! # use join::try_join;
-//! # fn main() {
 //! # let value = Some(Some(5));
 //! # let result =
 //! try_join! {
@@ -453,11 +406,9 @@
 //!     |> |v| Some(v + 4)  
 //! }; // => value.and_then(|value| value.map(|v| v + 2)).map(|v| Some(v + 4))
 //! # assert_eq!(result, Some(Some(11)));
-//! # }
 //! ```
 //! Use to move out of nested constructions
 //! ```rust
-//! # fn main() {
 //! # let a = Ok::<_,()>(Ok::<_,()>(Ok::<_,()>(4)));
 //! # let value =
 //! a.and_then(
@@ -475,7 +426,6 @@
 //! )
 //! # ;
 //! # assert_eq!(value, Ok(7));
-//! # }
 //! ```
 //!
 //!
@@ -487,23 +437,34 @@
 //! - `map` => **Only valid for `try` macros.** Will act as `results.map(|(result0, result1, ..)| handler(result0, result1, ..))`
 //! ```rust
 //! # use join::try_join;
-//! # fn main() {
 //! # let value = Some(1u8);
-//! assert_eq!(try_join! { Some(1), Some(2), Some(3), map => |a, b, c| a + b + c }, Some(6));
-//! # }
+//! assert_eq!(
+//!     try_join! {
+//!         Some(1),
+//!         Some(2),
+//!         Some(3),
+//!         map => |a, b, c| a + b + c
+//!     },
+//!     Some(6)
+//! );
 //! ```
 //! - `and_then` => **Only valid for `try` macros.** Will act as `results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))`
 //! ```rust
 //! # use join::try_join;
-//! # fn main() {
 //! # let value = Some(1u8);
-//! assert_eq!(try_join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Some(a + b + c) }, Some(6));
-//! # }
+//! assert_eq!(
+//!     try_join! {
+//!         Some(1),
+//!         Some(2),
+//!         Some(3),
+//!         and_then => |a, b, c| Some(a + b + c)
+//!     },
+//!     Some(6)
+//! );
 //! ```
 //! - `then` => **Only valid for not `try` macros.** Will be executed in any case, act as `handler(result0, result1, ..)`
 //! ```rust
 //! # use join::join;
-//! # fn main() {
 //! assert_eq!(
 //!     join! {
 //!         Some(1),
@@ -514,7 +475,6 @@
 //!     },
 //!     Some(6)
 //! );
-//! # }
 //! ```
 //! or not specified - then `Result<(result0, result1, ..), Error>` or `Option<(result0, result1, ..)>` will be returned for `try` macros and `(result0, result1, ..)` for not `try` macros.
 //!
@@ -599,7 +559,6 @@
 //!
 //! ```rust
 //! # use join::*;
-//! # fn main() {
 //! assert_eq!(
 //!     try_join! {
 //!         let mut branch_0 = Ok::<_,()>(1) ~|> |v| v + 1,
@@ -608,7 +567,6 @@
 //!     }.unwrap(),
 //!     6
 //! );
-//! # }
 //! ```
 //!
 //! ## Block captures
@@ -616,7 +574,6 @@
 //! In order to capture variables (for ex. values of other branches in example above) you can pass block statements instead of functions:
 //! ```rust
 //! # use join::*;
-//! # fn main() {
 //! let mut some_value = Some("capture me");
 //! assert_eq!(try_join! {
 //!     Some(0) |> |v| {
@@ -629,7 +586,6 @@
 //!         move |v| v + captured_len
 //!     }
 //! }.unwrap(), 10);
-//! # }
 //! ```
 //! These blocks will be placed before actual step expressions.
 //!
@@ -1260,6 +1216,8 @@
 //!     println!("Calculated: {}", sum);
 //! }
 //! ```
+#![allow(clippy::needless_doctest_main)]
+
 extern crate join_export;
 extern crate proc_macro_hack;
 extern crate proc_macro_nested;
@@ -1276,16 +1234,14 @@ use proc_macro_hack::proc_macro_hack;
 ///
 /// use join::try_join;
 ///
-/// fn main() {
-///     let product = try_join! {
-///         Ok::<_,()>(2) |> |v| v + 2,
-///         Ok::<_,()>(3),
-///         Ok::<_,()>(4),
-///         map => |a, b, c| a * b * c
-///     }.unwrap();
+/// let product = try_join! {
+///     Ok::<_,()>(2) |> |v| v + 2,
+///     Ok::<_,()>(3),
+///     Ok::<_,()>(4),
+///     map => |a, b, c| a * b * c
+/// }.unwrap();
 ///
-///     assert_eq!(product, 48);
-/// }
+/// assert_eq!(product, 48);
 /// ```
 ///
 #[proc_macro_hack(support_nested)]
@@ -1331,24 +1287,22 @@ pub use join_export::try_join_async;
 ///
 /// use join::try_join_spawn;
 ///
-/// fn main() {
-///     let product = try_join_spawn! {
-///         Ok::<_,()>(2) |> |v| v + 2 ?? |_| {
-///             println!("Hello from parallel world!");
-///             ::std::thread::sleep(::std::time::Duration::from_secs(1));
-///             println!("I'm done.");
-///         },
-///         Ok::<_,()>(3) ?? |_| {
-///             println!("Hello from parallel world again!");
-///             ::std::thread::sleep(::std::time::Duration::from_secs(2));
-///             println!("Me too.");
-///         },
-///         Ok::<_,()>(4),
-///         map => |a, b, c| a * b * c
-///     }.unwrap();
+/// let product = try_join_spawn! {
+///     Ok::<_,()>(2) |> |v| v + 2 ?? |_| {
+///         println!("Hello from parallel world!");
+///         ::std::thread::sleep(::std::time::Duration::from_secs(1));
+///         println!("I'm done.");
+///     },
+///     Ok::<_,()>(3) ?? |_| {
+///         println!("Hello from parallel world again!");
+///         ::std::thread::sleep(::std::time::Duration::from_secs(2));
+///         println!("Me too.");
+///     },
+///     Ok::<_,()>(4),
+///     map => |a, b, c| a * b * c
+/// }.unwrap();
 ///
-///     assert_eq!(product, 48);
-/// }
+/// assert_eq!(product, 48);
 ///```
 #[proc_macro_hack(support_nested)]
 pub use join_export::try_join_spawn;
@@ -1416,10 +1370,8 @@ pub use join_export::try_async_spawn;
 ///
 /// use join::join;
 ///
-/// fn main() {
-///     let filtered: Vec<_> = join! { vec![1,2,3].into_iter() ?> |v| v % 2 == 0 =>[] };
-///     assert_eq!(filtered, vec![2]);
-/// }
+/// let filtered: Vec<_> = join! { vec![1,2,3].into_iter() ?> |v| v % 2 == 0 =>[] };
+/// assert_eq!(filtered, vec![2]);
 /// ```
 ///
 #[proc_macro_hack(support_nested)]
@@ -1459,10 +1411,8 @@ pub use join_export::join_async;
 ///
 /// use join::join_spawn;
 ///
-/// fn main() {
-///     let filtered: Vec<_> = join_spawn! { vec![1,2,3].into_iter() ?> |v| v % 2 == 0 =>[] };
-///     assert_eq!(filtered, vec![2]);
-/// }
+/// let filtered: Vec<_> = join_spawn! { vec![1,2,3].into_iter() ?> |v| v % 2 == 0 =>[] };
+/// assert_eq!(filtered, vec![2]);
 ///```
 #[proc_macro_hack(support_nested)]
 pub use join_export::join_spawn;

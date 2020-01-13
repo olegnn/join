@@ -685,6 +685,7 @@ impl CommandGroup {
                 from_n_or_empty_unit!(ProcessExpr::Unzip, action_expr_chain_gen, input, 4)
             }
             Self::Zip => from_single_unit!(ProcessExpr::Zip, action_expr_chain_gen, input),
+            Self::UNWRAP => from_empty_unit!(ProcessExpr::UNWRAP, action_expr_chain_gen, input),
             _ => None,
         }
     }

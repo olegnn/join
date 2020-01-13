@@ -276,12 +276,28 @@ might be one of
 - `map` => **Only valid for `try` macros.** Will act as `results.map(|(result0, result1, ..)| handler(result0, result1, ..))`
 
 ```rust
-assert_eq!(try_join! { Some(1), Some(2), Some(3), map => |a, b, c| a + b + c }, Some(6));
+assert_eq!(
+    try_join! { 
+        Some(1), 
+        Some(2), 
+        Some(3), 
+        map => |a, b, c| a + b + c
+    },
+    Some(6)
+);
 ```
 - `and_then` => **Only valid for `try` macros.** Will act as `results.and_then(|(result0, result1, ..)| handler(result0, result1, ..))`
 
 ```rust
-assert_eq!(try_join! { Some(1), Some(2), Some(3), and_then => |a, b, c| Some(a + b + c) }, Some(6));
+assert_eq!(
+    try_join! { 
+        Some(1), 
+        Some(2), 
+        Some(3), 
+        and_then => |a, b, c| Some(a + b + c)
+    },
+    Some(6)
+);
 ```
 - `then` => **Only valid for not `try` macros.** Will be executed in any case, act as `handler(result0, result1, ..)`
 

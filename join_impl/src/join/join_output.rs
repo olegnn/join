@@ -741,12 +741,11 @@ impl<'a> Join<'a> {
     /// # Example:
     ///
     /// ```
-    /// fn main() {
-    ///     let result0 = Ok::<_,()>(0);
-    ///     let result1 = Ok::<_,()>(1);
-    ///     let result2 = Ok::<_,()>(2);
-    ///     let final_result = result0.and_then(|value0| result1.and_then(|value1| result2.map(|value2| (value0, value1, value2))));
-    /// }
+    /// let result0 = Ok::<_,()>(0);
+    /// let result1 = Ok::<_,()>(1);
+    /// let result2 = Ok::<_,()>(2);
+    /// let final_result = result0.and_then(|value0| result1.and_then(|value1| result2.map(|value2| (value0, value1, value2))));
+    /// assert_eq!(final_result, Ok((0,1,2)));
     /// ```
     ///
     ///

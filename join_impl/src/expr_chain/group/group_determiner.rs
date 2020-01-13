@@ -111,9 +111,7 @@ macro_rules! define_tokens_checker {
 /// use join_impl::define_group_determiner;
 /// use syn::Token;
 ///
-/// fn main() {
-///     let then_determiner = define_group_determiner!(CommandGroup::Then => Token![->] => 2); // last param is optional, true by default
-/// }
+/// let then_determiner = define_group_determiner!(CommandGroup::Then => Token![->] => 2); // last param is optional, true by default
 /// ```
 ///
 #[macro_export]
@@ -149,14 +147,12 @@ impl GroupDeterminer {
     ///
     /// fn check_input(input: ParseStream) -> bool { input.peek(Token![,]) }
     ///
-    /// fn main() {
-    ///     let first_comma_determiner = GroupDeterminer::new_const(
-    ///         None, // Because comma is not a command group
-    ///         check_input as *const (),
-    ///         false,
-    ///         1
-    ///     );
-    /// }
+    /// let first_comma_determiner = GroupDeterminer::new_const(
+    ///     None, // Because comma is not a command group
+    ///     check_input as *const (),
+    ///     false,
+    ///     1
+    /// );
     /// ```
     ///
     pub const fn new_const(
@@ -189,14 +185,12 @@ impl GroupDeterminer {
     ///
     /// fn check_input(input: ParseStream) -> bool { input.peek(Token![,]) }
     ///
-    /// fn main() {
-    ///     let first_comma_determiner = GroupDeterminer::new(
-    ///         None, // Because comma is not a command group
-    ///         check_input,
-    ///         false,
-    ///         1
-    ///     );
-    /// }
+    /// let first_comma_determiner = GroupDeterminer::new(
+    ///     None, // Because comma is not a command group
+    ///     check_input,
+    ///     false,
+    ///     1
+    /// );
     /// ```
     ///
     pub fn new(

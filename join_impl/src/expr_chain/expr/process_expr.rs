@@ -682,6 +682,9 @@ impl ToTokens for ProcessExpr {
             Self::Zip(expr) => {
                 quote! { .zip(#expr) }
             }
+            Self::UNWRAP => {
+                quote! {}
+            }
         };
         output.extend(tokens);
     }
@@ -962,6 +965,7 @@ mod tests {
             ));
             assert!(are_streams_equal(
                 token_stream,
+                #[cfg(not(feature = "full"))]
                 match process_expr {
                     ProcessExpr::AndThen(expr) => {
                         quote! { .and_then(#expr) }
@@ -1011,6 +1015,203 @@ mod tests {
                     }
                     ProcessExpr::TryFold((init, expr)) => {
                         quote! { .try_fold(#init, #expr) }
+                    }
+                    ProcessExpr::Unzip(type_spec) => type_spec
+                        .as_ref()
+                        .map(|(a, b, c, d)| quote! { .unzip::<#a, #b, #c, #d>() })
+                        .unwrap_or_else(|| quote! { .unzip() }),
+                    ProcessExpr::Zip(expr) => {
+                        quote! { .zip(#expr) }
+                    }
+                    ProcessExpr::UNWRAP => {
+                        quote! {}
+                    }
+                },
+                #[cfg(feature = "full")]
+                match process_expr {
+                    ProcessExpr::AndThen(expr) => {
+                        quote! { .and_then(#expr) }
+                    }
+                    ProcessExpr::Map(expr) => {
+                        quote! { .map(#expr) }
+                    }
+                    ProcessExpr::Dot(expr) => {
+                        quote! { .#expr }
+                    }
+                    ProcessExpr::Filter(expr) => {
+                        quote! { .filter(#expr) }
+                    }
+                    ProcessExpr::Then(expr) => {
+                        quote! {{ let __handler = #expr; __handler }}
+                    }
+                    //
+                    // Not used for now because returning closure requires bound lifetimes
+                    //
+                    ProcessExpr::Inspect(_) => unimplemented!(),
+                    ProcessExpr::All(expr) => {
+                        quote! { .all(#expr) }
+                    }
+                    ProcessExpr::Any(expr) => {
+                        quote! { .any(#expr) }
+                    }
+                    ProcessExpr::ByRef => {
+                        quote! { .by_ref() }
+                    }
+                    ProcessExpr::Chain(expr) => {
+                        quote! { .chain(#expr) }
+                    }
+                    ProcessExpr::Cloned => {
+                        quote! { .cloned() }
+                    }
+                    ProcessExpr::Cmp(expr) => {
+                        quote! { .cmp(#expr) }
+                    }
+                    ProcessExpr::Collect(type_spec) => {
+                        quote! { .collect::<#type_spec>() }
+                    }
+                    ProcessExpr::Copied => {
+                        quote! { .copied() }
+                    }
+                    ProcessExpr::Count => {
+                        quote! { .count() }
+                    }
+                    ProcessExpr::Cycle => {
+                        quote! { .cycle() }
+                    }
+                    ProcessExpr::Enumerate => {
+                        quote! { .enumerate() }
+                    }
+                    ProcessExpr::Eq(expr) => {
+                        quote! { .eq(#expr) }
+                    }
+                    ProcessExpr::FilterMap(expr) => {
+                        quote! { .filter_map(#expr) }
+                    }
+                    ProcessExpr::Find(expr) => {
+                        quote! { .find(#expr) }
+                    }
+                    ProcessExpr::FindMap(expr) => {
+                        quote! { .find_map(#expr) }
+                    }
+                    ProcessExpr::FlatMap(expr) => {
+                        quote! { .flat_map(#expr) }
+                    }
+                    ProcessExpr::Flatten => {
+                        quote! { .flatten() }
+                    }
+                    ProcessExpr::Fold((init, expr)) => {
+                        quote! { .fold(#init, #expr) }
+                    }
+                    ProcessExpr::ForEach(expr) => {
+                        quote! { .for_each(#expr) }
+                    }
+                    ProcessExpr::Fuse => {
+                        quote! { .fuse() }
+                    }
+                    ProcessExpr::Ge(expr) => {
+                        quote! { .ge(#expr) }
+                    }
+                    ProcessExpr::Gt(expr) => {
+                        quote! { .gt(#expr) }
+                    }
+                    ProcessExpr::IsSorted => {
+                        quote! { .is_sorted() }
+                    }
+                    ProcessExpr::IsSortedBy(expr) => {
+                        quote! { .is_sorted_by(#expr) }
+                    }
+                    ProcessExpr::IsSortedByKey(expr) => {
+                        quote! { .is_sorted_by_key(#expr) }
+                    }
+                    ProcessExpr::IsPartitioned => {
+                        quote! { .is_partitioned() }
+                    }
+                    ProcessExpr::Last => {
+                        quote! { .last() }
+                    }
+                    ProcessExpr::Le(expr) => {
+                        quote! { .le(#expr) }
+                    }
+                    ProcessExpr::Lt(expr) => {
+                        quote! { .lt(#expr) }
+                    }
+                    ProcessExpr::Max => {
+                        quote! { .max() }
+                    }
+                    ProcessExpr::MaxBy(expr) => {
+                        quote! { .max_by(#expr) }
+                    }
+                    ProcessExpr::MaxByKey(expr) => {
+                        quote! { .max_by_key(#expr) }
+                    }
+                    ProcessExpr::Min => {
+                        quote! { .min() }
+                    }
+                    ProcessExpr::MinBy(expr) => {
+                        quote! { .min_by(#expr) }
+                    }
+                    ProcessExpr::MinByKey(expr) => {
+                        quote! { .min_by_key(#expr) }
+                    }
+                    ProcessExpr::Ne(expr) => {
+                        quote! { .ne(#expr) }
+                    }
+                    ProcessExpr::Nth(expr) => {
+                        quote! { .nth(#expr) }
+                    }
+                    ProcessExpr::PartialCmp(expr) => {
+                        quote! { .partial_cmp(#expr) }
+                    }
+                    ProcessExpr::Partition(expr) => {
+                        quote! { .partition(#expr) }
+                    }
+                    ProcessExpr::PartitionInPlace(expr) => {
+                        quote! { .partition_in_place(#expr) }
+                    }
+                    ProcessExpr::Peekable => {
+                        quote! { .peekable() }
+                    }
+                    ProcessExpr::Position(expr) => {
+                        quote! { .position(#expr) }
+                    }
+                    ProcessExpr::Product => {
+                        quote! { .product() }
+                    }
+                    ProcessExpr::Rev => {
+                        quote! { .rev() }
+                    }
+                    ProcessExpr::Rposition(expr) => {
+                        quote! { .rposition(#expr) }
+                    }
+                    ProcessExpr::Scan(expr) => {
+                        quote! { .scan(#expr) }
+                    }
+                    ProcessExpr::SizeHint => {
+                        quote! { .size_hint() }
+                    }
+                    ProcessExpr::Skip(expr) => {
+                        quote! { .skip(#expr) }
+                    }
+                    ProcessExpr::SkipWhile(expr) => {
+                        quote! { .skip_while(#expr) }
+                    }
+                    ProcessExpr::StepBy(expr) => {
+                        quote! { .step_by(#expr) }
+                    }
+                    ProcessExpr::Sum => {
+                        quote! { .sum() }
+                    }
+                    ProcessExpr::Take(expr) => {
+                        quote! { .take(#expr) }
+                    }
+                    ProcessExpr::TakeWhile(expr) => {
+                        quote! { .take_while(#expr) }
+                    }
+                    ProcessExpr::TryFold((init, expr)) => {
+                        quote! { .try_fold(#init, #expr) }
+                    }
+                    ProcessExpr::TryForEach(expr) => {
+                        quote! { .try_for_each(#expr) }
                     }
                     ProcessExpr::Unzip(type_spec) => type_spec
                         .as_ref()
