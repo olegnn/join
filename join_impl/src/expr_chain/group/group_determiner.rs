@@ -12,7 +12,7 @@ pub type CheckStreamFn = fn(ParseStream) -> bool;
 
 #[derive(Clone, Copy)]
 union CheckStreamFnPointer {
-    fun: CheckStreamFn,
+    f: CheckStreamFn,
     raw: *const (),
 }
 
@@ -201,9 +201,7 @@ impl GroupDeterminer {
     ) -> Self {
         Self {
             group_type: group_type.into(),
-            check_input_fn: CheckStreamFnPointer {
-                fun: check_input_fn,
-            },
+            check_input_fn: CheckStreamFnPointer { f: check_input_fn },
             validate_parsed,
             length,
         }
@@ -220,7 +218,7 @@ impl GroupDeterminer {
     /// Checks if input next tokens are of self group type.
     ///  
     pub fn check_input(&self, input: ParseStream<'_>) -> bool {
-        (unsafe { self.check_input_fn.fun })(input)
+        (unsafe { self.check_input_fn.f })(input)
     }
 
     ///
@@ -236,7 +234,7 @@ impl GroupDeterminer {
     /// Used to parse `length` tokens of type `TokenTree` from input `ParseStream`.
     ///
     pub fn erase_input<'b>(&self, input: ParseStream<'b>) -> syn::Result<ParseStream<'b>> {
-        for _ in 0..self.length() {
+        for _ in 0..self.len() {
             input.parse::<TokenTree>()?;
         }
         Ok(input)
@@ -245,7 +243,7 @@ impl GroupDeterminer {
     ///
     /// Returns value of `length` field.
     ///
-    pub fn length(&self) -> u8 {
+    pub fn len(&self) -> u8 {
         self.length
     }
 }
@@ -270,7 +268,7 @@ mod tests {
 
         assert_eq!(first_comma_determiner.get_group_type(), None);
         assert!(first_comma_determiner.check_parsed::<::syn::Expr>(::quote::quote! { , }));
-        assert_eq!(first_comma_determiner.length(), 1);
+        assert_eq!(first_comma_determiner.len(), 1);
     }
 
     #[test]
@@ -283,6 +281,6 @@ mod tests {
 
         assert_eq!(then_determiner.get_group_type(), Some(CommandGroup::Then));
         assert!(then_determiner.check_parsed::<::syn::Expr>(::quote::quote! { 23 }));
-        assert_eq!(then_determiner.length(), 2);
+        assert_eq!(then_determiner.len(), 2);
     }
 }

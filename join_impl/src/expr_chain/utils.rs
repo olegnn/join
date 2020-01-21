@@ -45,7 +45,7 @@ pub fn parse_until<'a, T: Parse>(
     wrap_determiner: &'a GroupDeterminer,
     allow_empty_parsed: bool,
 ) -> UnitResult<T> {
-    let (group_count, _) = group_determiners.size_hint();
+    let group_count = group_determiners.clone().count();
     let mut group_determiners = group_determiners.cycle();
 
     let mut tokens = TokenStream::new();
