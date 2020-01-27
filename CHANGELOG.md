@@ -1,3 +1,7 @@
+# [0.1.1]
+
+Misc docs fixes.
+
 # [0.1.0]
 
 Initial release. Internal implementation updates.

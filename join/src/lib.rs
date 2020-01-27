@@ -86,9 +86,8 @@
 //! ```rust
 //! # use join::*;
 //! # use futures::future::*;
-//! #[tokio::main]
+//! # #[tokio::main]
 //! # async fn main
-//! # // keep this to quell `needless_doctest_main` warning
 //! # () {
 //! assert_eq!(
 //!     try_join_async_spawn!(ok::<_,()>(1), ok::<_,()>("2"), ok::<_,()>(3.0)).await,

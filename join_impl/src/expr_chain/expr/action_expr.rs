@@ -52,7 +52,7 @@ pub struct Action<E: InnerExpr> {
 
 impl<E: InnerExpr> Action<E> {
     ///
-    /// Create new `Action` with given expr and config.
+    /// Creates new `Action` with given expr and config.
     ///
     pub fn new(expr: E, apply_type: ApplyType, move_type: MoveType) -> Self {
         Self {

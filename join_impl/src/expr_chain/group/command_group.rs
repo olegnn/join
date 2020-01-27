@@ -441,14 +441,14 @@ macro_rules! from_double_unit {
 ///
 impl CommandGroup {
     ///
-    /// Returns true if self command group is of `ProcessExpr` type.
+    /// Returns `true` if self command group is of `ProcessExpr` type.
     ///
     pub fn is_process_expr(self) -> bool {
         !self.is_err_expr() && !self.is_initial_expr()
     }
 
     ///
-    /// Returns true if self command group is of `ErrExpr` type.
+    /// Returns `true` if self command group is of `ErrExpr` type.
     ///
     pub fn is_err_expr(self) -> bool {
         match self {
@@ -460,7 +460,7 @@ impl CommandGroup {
     }
 
     ///
-    /// Returns true if self command group is of `InitialExpr` type.
+    /// Returns `true` if self command group is of `InitialExpr` type.
     ///
     pub fn is_initial_expr(self) -> bool {
         match self {
@@ -470,7 +470,7 @@ impl CommandGroup {
     }
 
     ///
-    /// Returns true if command group can be a wrapper.
+    /// Returns `true` if command group can be a wrapper.
     ///
     pub fn can_be_wrapper(self) -> bool {
         match self {

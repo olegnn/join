@@ -55,7 +55,7 @@ impl Handler {
     }
 
     ///
-    /// Returns true if handler is `Map`.
+    /// Returns `true` if handler is `Map`.
     ///
     pub fn is_map(&self) -> bool {
         match self {
@@ -65,7 +65,7 @@ impl Handler {
     }
 
     ///
-    /// Returns true if handler is `Then`.
+    /// Returns `true` if handler is `Then`.
     ///
     pub fn is_then(&self) -> bool {
         match self {
@@ -75,7 +75,7 @@ impl Handler {
     }
 
     ///
-    /// Returns true if handler is `AndThen`.
+    /// Returns `true` if handler is `AndThen`.
     ///
     pub fn is_and_then(&self) -> bool {
         match self {
@@ -85,28 +85,28 @@ impl Handler {
     }
 
     ///
-    /// Returns true if next value in input `ParseStream` is the definition of `map` `Handler`.
+    /// Returns `true` if next value in input `ParseStream` is the definition of `map` `Handler`.
     ///
     fn peek_map_handler(input: ParseStream<'_>) -> bool {
         input.peek(keywords::map) && input.peek2(Token![=>])
     }
 
     ///
-    /// Returns true if next value in input `ParseStream` is the definition of `then` `Handler`.
+    /// Returns `true` if next value in input `ParseStream` is the definition of `then` `Handler`.
     ///
     fn peek_then_handler(input: ParseStream<'_>) -> bool {
         input.peek(keywords::then) && input.peek2(Token![=>])
     }
 
     ///
-    /// Returns true if next value in input `ParseStream` is the definition of `and_then` `Handler`.
+    /// Returns `true` if next value in input `ParseStream` is the definition of `and_then` `Handler`.
     ///
     fn peek_and_then_handler(input: ParseStream<'_>) -> bool {
         input.peek(keywords::and_then) && input.peek2(Token![=>])
     }
 
     ///
-    /// Returns true if next value in input `ParseStream` is the definition of `Handler`.
+    /// Returns `true` if next value in input `ParseStream` is the definition of `Handler`.
     ///  
     pub fn peek_handler(input: ParseStream<'_>) -> bool {
         Self::peek_then_handler(input)

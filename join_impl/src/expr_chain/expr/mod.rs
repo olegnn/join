@@ -30,12 +30,12 @@ where
 
     ///
     /// Replaces current expr by given `Expr` if it's possible, returning Some(`Self`) with given `Expr`(s),
-    /// otherwise returns None.
+    /// otherwise returns `None`.
     ///
     fn replace_inner(&self, expr: Vec<Expr>) -> Option<Self>;
 
     ///
-    /// Can expr be replaced or not.
+    /// Checks if expr can be replaced.
     ///
     fn is_replaceable(&self) -> bool {
         true

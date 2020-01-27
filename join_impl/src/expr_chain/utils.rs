@@ -12,21 +12,21 @@ use super::unit::{Unit, UnitResult};
 use super::{ActionGroup, CommandGroup, GroupDeterminer};
 
 ///
-/// Returns true if given stream is valid `Expr`.
+/// Returns `true` if given stream is valid `Expr`.
 ///
 pub fn is_valid_expr(input: TokenStream) -> bool {
     is_valid_stream::<Expr>(input)
 }
 
 ///
-/// Returns true if given stream can be parsed as `T`.
+/// Returns `true` if given stream can be parsed as `T`.
 ///
 pub fn is_valid_stream<T: Parse>(input: TokenStream) -> bool {
     syn::parse2::<T>(input).is_ok()
 }
 
 ///
-/// Returns true if expr is {...}.
+/// Returns `true` if expr is {...}.
 ///
 pub fn is_block_expr(expr: &Expr) -> bool {
     match *expr {
@@ -130,7 +130,7 @@ pub fn parse_until<'a, T: Parse>(
 }
 
 ///
-/// Skips next item it `ParseStream`. Returns true in case of success.
+/// Skips next item it `ParseStream`. Returns `true` in case of success.
 ///
 pub fn skip(input: ParseStream<'_>) -> bool {
     input

@@ -111,7 +111,7 @@ macro_rules! define_tokens_checker {
 /// use join_impl::define_group_determiner;
 /// use syn::Token;
 ///
-/// let then_determiner = define_group_determiner!(CommandGroup::Then => Token![->] => 2); // last param is optional, true by default
+/// let then_determiner = define_group_determiner!(CommandGroup::Then => Token![->] => 2); // last param is optional, `true` by default
 /// ```
 ///
 #[macro_export]
@@ -245,6 +245,13 @@ impl GroupDeterminer {
     ///
     pub fn len(&self) -> u8 {
         self.length
+    }
+
+    ///
+    /// Returns `true` if `length` is zero.
+    ///
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
