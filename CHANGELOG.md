@@ -1,3 +1,7 @@
+# [0.1.0]
+
+Initial release. Internal implementation updates.
+
 # [0.1.0-beta.8]
 
 Fixed features implementations. Enabled all-features tests. Implementation changes. Cosmetic fixes.
@@ -6,7 +10,7 @@ Fixed features implementations. Enabled all-features tests. Implementation chang
 
 Fixed incorrect docs link.
 
-# [0.1.0-beta.6]
+# [0.1.0]
 
 Updated Cargo.toml of `join` package.
 
@@ -29,7 +33,7 @@ Fixed docs. Restructured implementation.
 # [0.1.0-beta.1]
 
 Updated docs. Small refactoring.
-
+s
 # [0.1.0-alpha.17]
 
 Optimized steps: branches which are not active during step are excluded from code. Fixed `join_spawn!` last step behaviour. 
