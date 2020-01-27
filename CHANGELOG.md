@@ -10,7 +10,7 @@ Fixed features implementations. Enabled all-features tests. Implementation chang
 
 Fixed incorrect docs link.
 
-# [0.1.0]
+# [0.1.0-beta.6]
 
 Updated Cargo.toml of `join` package.
 
