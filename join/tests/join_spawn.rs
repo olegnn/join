@@ -1,5 +1,3 @@
-#![recursion_limit = "512"]
-
 #[cfg(test)]
 mod join_spawn_tests {
     use join::{join_spawn, try_join_spawn};
@@ -172,7 +170,7 @@ mod join_spawn_tests {
             Ok(2),
             Ok(3),
             get_ok_four(),
-            and_then => |a, b, c| Ok::<Option<u16>, _>(None)
+            and_then => |_a, _b, _c| Ok::<Option<u16>, _>(None)
         };
 
         assert_eq!(ok.unwrap(), None);
@@ -181,7 +179,7 @@ mod join_spawn_tests {
             Ok(2),
             Ok(3),
             get_ok_four(),
-            and_then => |a: u8, b, c| Err::<Option<u16>, _>(a.to_string().into())
+            and_then => |a: u8, _b, _c| Err::<Option<u16>, _>(a.to_string().into())
         };
 
         assert_eq!(
@@ -193,7 +191,7 @@ mod join_spawn_tests {
             Some(2),
             Some(3),
             get_some_five(),
-            and_then => |a, b, c| Some(a)
+            and_then => |a, _b, _c| Some(a)
         };
 
         assert_eq!(some, Some(2));
@@ -202,7 +200,7 @@ mod join_spawn_tests {
             Some(2),
             Some(3),
             get_some_five(),
-            and_then => |a, b, c| None::<u16>
+            and_then => |_a, _b, _c| None::<u16>
         };
 
         assert_eq!(none, None);
@@ -492,7 +490,7 @@ mod join_spawn_tests {
         );
 
         assert_eq!(
-            try_join_spawn! { let mut v = vec![1, 2, 3, 4, 5] -> Some ~=> >>> ..into_iter() ?|>@ |v| if v % 2 == 0 { Some(v) } else { None } },
+            try_join_spawn! { let v = vec![1, 2, 3, 4, 5] -> Some ~=> >>> ..into_iter() ?|>@ |v| if v % 2 == 0 { Some(v) } else { None } },
             Some(2)
         );
 

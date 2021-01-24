@@ -1,3 +1,10 @@
+# [0.2.0]
+
+- `tokio` upgraded to `1.0.1`
+- `futures` upgraded to `0.3.0`
+- `proc_macro_hack` replaced by `proc_macro` since `proc_macro` now supports macro in expr position
+- Refactored implementation
+
 # [0.1.1]
 
 Misc docs fixes.

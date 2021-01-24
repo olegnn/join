@@ -29,24 +29,24 @@ impl ActionExpr {
     }
 
     ///
-    /// Returns `ApplyType` of inner expr.
+    /// Returns `ApplicationType` of inner expr.
     ///
-    pub fn get_apply_type(&self) -> &ApplyType {
+    pub fn get_application_type(&self) -> &ApplicationType {
         match self {
-            Self::Process(expr) => &expr.apply_type,
-            Self::Err(expr) => &expr.apply_type,
-            Self::Initial(expr) => &expr.apply_type,
+            Self::Process(expr) => &expr.application_type,
+            Self::Err(expr) => &expr.application_type,
+            Self::Initial(expr) => &expr.application_type,
         }
     }
 }
 
 ///
-/// Defines `expr` with configuration (`ApplyType`, `MoveType`).
+/// Defines `expr` with configuration (`ApplicationType`, `MoveType`).
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Action<E: InnerExpr> {
     pub expr: E,
-    pub apply_type: ApplyType,
+    pub application_type: ApplicationType,
     pub move_type: MoveType,
 }
 
@@ -54,25 +54,22 @@ impl<E: InnerExpr> Action<E> {
     ///
     /// Creates new `Action` with given expr and config.
     ///
-    pub fn new(expr: E, apply_type: ApplyType, move_type: MoveType) -> Self {
+    pub fn new(expr: E, application_type: ApplicationType, move_type: MoveType) -> Self {
         Self {
             expr,
-            apply_type,
+            application_type,
             move_type,
         }
     }
 }
 
 impl<E: InnerExpr> InnerExpr for Action<E> {
-    fn replace_inner(&self, exprs: Vec<Expr>) -> Option<Self> {
-        self.expr.replace_inner(exprs).map(|expr| Self {
-            expr,
-            apply_type: self.apply_type.clone(),
-            move_type: self.move_type.clone(),
-        })
+    fn replace_inner(mut self, exprs: &[Expr]) -> Option<Self> {
+        self.expr = self.expr.replace_inner(exprs)?;
+        Some(self)
     }
 
-    fn extract_inner(&self) -> Option<Vec<&Expr>> {
+    fn extract_inner(&self) -> Option<&[Expr]> {
         self.expr.extract_inner()
     }
 
@@ -82,7 +79,7 @@ impl<E: InnerExpr> InnerExpr for Action<E> {
 }
 
 impl InnerExpr for ActionExpr {
-    fn extract_inner(&self) -> Option<Vec<&Expr>> {
+    fn extract_inner(&self) -> Option<&[Expr]> {
         match self {
             Self::Process(expr) => expr.extract_inner(),
             Self::Err(expr) => expr.extract_inner(),
@@ -90,7 +87,7 @@ impl InnerExpr for ActionExpr {
         }
     }
 
-    fn replace_inner(&self, exprs: Vec<Expr>) -> Option<Self> {
+    fn replace_inner(self, exprs: &[Expr]) -> Option<Self> {
         match self {
             Self::Process(inner) => inner.replace_inner(exprs).map(Self::Process),
             Self::Err(inner) => inner.replace_inner(exprs).map(Self::Err),
@@ -119,30 +116,33 @@ mod tests {
 
         for action_expr in vec![
             ActionExpr::Process(Action::new(
-                ProcessExpr::Then(expr.clone()),
-                ApplyType::Instant,
+                ProcessExpr::Then([expr.clone()]),
+                ApplicationType::Instant,
                 MoveType::None,
             )),
             ActionExpr::Err(Action::new(
-                ErrExpr::Or(expr.clone()),
-                ApplyType::Instant,
+                ErrExpr::Or([expr.clone()]),
+                ApplicationType::Instant,
                 MoveType::None,
             )),
             ActionExpr::Initial(Action::new(
-                InitialExpr(expr.clone()),
-                ApplyType::Instant,
+                InitialExpr([expr.clone()]),
+                ApplicationType::Instant,
                 MoveType::None,
             )),
         ]
         .into_iter()
         {
-            assert_eq!(action_expr.extract_inner().clone(), Some(vec![&expr]));
+            assert_eq!(
+                action_expr.extract_inner().clone(),
+                Some(&[expr.clone()][..])
+            );
             assert_eq!(
                 action_expr
-                    .replace_inner(vec![replace_expr.clone()])
+                    .replace_inner(&[replace_expr.clone()][..])
                     .unwrap()
                     .extract_inner(),
-                Some(vec![&replace_expr])
+                Some(&[replace_expr.clone()][..])
             )
         }
     }

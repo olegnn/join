@@ -1,5 +1,3 @@
-#![recursion_limit = "1024"]
-
 #[cfg(test)]
 mod join_async_tests {
     use futures::executor::block_on;
@@ -152,7 +150,7 @@ mod join_async_tests {
                 ok(2u16),
                 ok(3u16),
                 get_ok_four(),
-                and_then => |a, b, c| ok::<Option<u16>, _>(None)
+                and_then => |_a, _b, _c| ok::<Option<u16>, _>(None)
             };
 
             assert_eq!(ok_value.await.unwrap(), None);
@@ -161,7 +159,7 @@ mod join_async_tests {
                 ok(2u16),
                 ok(3u16),
                 get_ok_four(),
-                and_then => |a, b, c| to_err(a)
+                and_then => |a, _b, _c| to_err(a)
             };
 
             assert_eq!(
@@ -173,7 +171,7 @@ mod join_async_tests {
                 ready(Ok(2u16)),
                 ready(Ok(3u16)),
                 get_ok_five(),
-                map => |a, b, c| a
+                map => |a, _b, _c| a
             };
 
             assert_eq!(okay.await.unwrap(), 2u16);
@@ -182,7 +180,7 @@ mod join_async_tests {
                 ready(Ok(2u16)),
                 ready(Ok(3u16)),
                 get_ok_five(),
-                and_then => |a, b, c| ready(Err("error".into()))
+                and_then => |_a, _b, _c| ready(Err("error".into()))
             }
             .await;
 
@@ -201,7 +199,7 @@ mod join_async_tests {
                 ready(Ok::<_,BoxedError>(2u16)),
                 ready(Ok::<_,BoxedError>(3u16)),
                 err::<u16,BoxedError>("25".into()),
-                then => |a, b, c| ready(a)
+                then => |a, _b, _c| ready(a)
             }
             .await;
 
@@ -396,7 +394,7 @@ mod join_async_tests {
             let _fut = join_async! {
                 ready(panic!()),
                 ready(unreachable!()),
-                then => |a: Result<u8>, b: Result<u8>| ready(a)
+                then => |a: Result<u8>, _b: Result<u8>| ready(a)
             };
         });
     }
@@ -466,7 +464,7 @@ mod join_async_tests {
             );
 
             assert_eq!(
-                try_join_async! { let mut v = vec![1u8, 2, 3, 4, 5] ..into_iter() ?|>@ |v: u8| if v % 2 == 0 { Some(v) } else { None } -> |v: Option<u8>| ready(v.ok_or(Err::<u8,&'static str>("e"))) }.await,
+                try_join_async! { let v = vec![1u8, 2, 3, 4, 5] ..into_iter() ?|>@ |v: u8| if v % 2 == 0 { Some(v) } else { None } -> |v: Option<u8>| ready(v.ok_or(Err::<u8,&'static str>("e"))) }.await,
                 Ok(2u8)
             );
 
@@ -525,51 +523,21 @@ mod join_async_tests {
 
     #[test]
     fn it_tests_readme_demo_async_behaviour_and_requires_internet_connection() {
-        use ::failure::format_err;
-        use ::futures::future::try_join_all;
-        use ::futures::stream::{iter, Stream};
-        use ::reqwest::Client;
-        use join::try_join;
+        use failure::format_err;
+        use futures::future::{ok, ready, try_join_all};
+        use futures::stream::{iter, Stream};
+        use join::try_join_async;
+        use reqwest::Client;
+        use tokio::runtime::Runtime;
 
-        fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
-            iter(
-                vec![
-                    "https://en.wikipedia.org/w/api.php?format=json&action=query&generator=random&grnnamespace=0&prop=revisions|images&rvprop=content&grnlimit=100",
-                    "https://github.com/explore",
-                    "https://twitter.com/search?f=tweets&vertical=news&q=%23news&src=unkn"
-                ]
-            )
-        }
-
-        fn get_url_to_get_random_number() -> &'static str {
-            "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
-        }
-
-        async fn read_number_from_stdin() -> u16 {
-            let mut input = iter(vec!["100"]);
-            let result = try_join_async! {
-                input
-                    .next()
-                    |> |value| value.ok_or(format_err!("Failed to read from input"))
-                    => |value|
-                        ready(
-                            value
-                                .parse()
-                                .map_err(|e| format_err!("Failed to parse input from stdin: {:?}, input: {}", e, value))
-                        )
-            };
-            result.await.unwrap()
-        }
-
-        let rt = ::tokio::runtime::Runtime::new().unwrap();
-
+        let rt = Runtime::new().unwrap();
         rt.block_on(async {
-
             println!(
-                "Hello.\nThis's is the game where winner is the player, which value is the closest to {}",
-                "the maximum link count found on one of random pages.\nYou play against random generator (0-500)."
+                "{} {}\n{}",
+                "Hello.\nThis's is the game where winner is player, which number is closest to",
+                "the max count of links (starting with `https://`) found on one of random pages.",
+                "You play against random generator (0-500)."
             );
-
             enum GameResult {
                 Won,
                 Lost,
@@ -578,58 +546,51 @@ mod join_async_tests {
 
             let client = Client::new();
 
-            let task = try_join_async! {
-                // This programs makes requests to several sites 
-                // and calculates count of links starting from `https://`
+            let game = try_join_async! {
+                // Make requests to several sites
+                // and calculate count of links starting from `https://`
                 get_urls_to_calculate_link_count()
                     |> {
-                        // If pass block statement instead of fn, it will be placed before current step, 
+                        // If pass block statement instead of fn, it will be placed before current step,
                         // so it will us allow to capture some variables from context
                         let ref client = client;
-                        move |url| {
+                        move |url|
+                            // `try_join_async!` wraps its content into `Box::pin(async move { })`
                             try_join_async! {
                                 client
-                                    .get(url)
-                                    .send()
+                                    .get(url).send()
                                     => |value| value.text()
                                     => |body| ok((url, body.matches("https://").collect::<Vec<_>>().len()))
                             }
-                        }
                     }
                     // Collect values into `Vec<_>`
                     =>[] Vec<_>
                     |> Ok
                     => try_join_all
                     !> |err| format_err!("Error retrieving pages to calculate links: {:#?}", err)
-                    => |results|
-                        ok(
-                            results
-                                .into_iter()
-                                .max_by_key(|(_, link_count)| link_count.clone())
-                                .unwrap()
-                        )
+                    => >>>
+                        ..into_iter()
+                        .max_by_key(|(_, link_count)| *link_count)
+                        .ok_or(format_err!("Failed to find max link count"))
+                        -> ready
                     // It waits for input in stdin before log max links count
-                    ~?? |result| {
-                        result
-                            .as_ref()
-                            .map(
-                                |(url, count)|
-                                    println!("Max link count found on `{}`: {}", url, count)
-                            )
-                            .unwrap_or(());
-                    },
+                    ~?? >>>
+                        ..as_ref()
+                        |> |(url, count)| {
+                            let split = url.to_owned().split('/').collect::<Vec<_>>();
+                            let domain_name = split.get(2).unwrap_or(&url);
+                            println!("Max `https://` link count found on `{}`: {}", domain_name, count)
+                        }
+                        ..unwrap_or(()),
                 // Concurrently it makes request to the site which generates random number
                 get_url_to_get_random_number()
                     -> ok
                     => {
                         // If pass block statement instead of fn, it will be placed before current step,
                         // so it will allow us to capture some variables from context
-                        let client = client.clone();
-                        let map_parsing_error =
-                            |value|
-                                move |err|
-                                    format_err!("Failed to parse random number: {:#?}, value: {}", err, value);
-                        move |url| {
+                        let ref client = client;
+                        let map_parse_error = |error, value| format_err!("Failed to parse random number: {:#?}, value: {}", error, value);
+                        move |url|
                             try_join_async! {
                                 client
                                     .get(url)
@@ -641,20 +602,17 @@ mod join_async_tests {
                                         ready(
                                             value
                                                 .parse::<u16>()
-                                                .map_err(map_parsing_error(value))
+                                                .map_err(|err| map_parse_error(err, value))
                                         )
                             }
-                        }
                     }
                     // It waits for input in stdin before log random value
-                    ~?? |random| {
-                        random
-                            .as_ref()
-                            .map(|number| println!("Random: {}", number))
-                            .unwrap_or(());
-                    },
+                    ~?? >>>
+                        ..as_ref()
+                        |> |number| println!("Random: {}", number)
+                        ..unwrap_or(()),
                 // Concurrently it reads value from stdin
-                println!("Please, enter number") -> |_| read_number_from_stdin() |> Ok,
+                read_number_from_stdin() |> Ok,
                 // Finally, when we will have all results, we can decide, who is winner
                 map => |(_url, link_count), random_number, number_from_stdin| {
                     let random_diff = (link_count as i32 - random_number as i32).abs();
@@ -667,22 +625,56 @@ mod join_async_tests {
                 }
             };
 
-            // Use sync join because we don't need concurrent execution
-            // and sync `map` is more convenient
-            let _ = try_join! {
-                task
-                    .await
-                    |> |result|
-                        println!(
-                            "You {}",
-                            match result {
-                                GameResult::Won => "won!",
-                                GameResult::Lost => "lose...",
-                                _ => "have the same result as random generator!"
-                            }
-                        )
-            }.unwrap();
+            let _ = game.await.map(
+                |result|
+                    println!(
+                        "You {}",
+                        match result {
+                            GameResult::Won => "won!",
+                            GameResult::Lost => "lose...",
+                            _ => "have the same result as random generator!"
+                        }
+                    )
+            ).unwrap_or_else(|error| eprintln!("Error: {:#?}", error));
         });
+
+        fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
+            iter(
+                 vec![
+                     "https://en.wikipedia.org/w/api.php?format=json&action=query&generator=random&grnnamespace=0&prop=revisions|images&rvprop=content&grnlimit=100",
+                     "https://github.com/explore",
+                     "https://twitter.com/search?f=tweets&vertical=news&q=%23news&src=unkn"
+                 ]
+             )
+        }
+
+        fn get_url_to_get_random_number() -> &'static str {
+            "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
+        }
+
+        async fn read_number_from_stdin() -> u16 {
+            use tokio::io::{Error, ErrorKind};
+
+            loop {
+                println!("Please, enter number (`u16`)");
+                let next = ok(Some("100"));
+
+                let result = try_join_async! {
+                     next
+                         => >>>
+                            ..ok_or(Error::new(ErrorKind::Other, "Failed to read value from stdin"))
+                            => >>>
+                                ..parse()
+                                !> |err| Error::new(ErrorKind::Other, format!("Value from stdin isn't a correct `u16`: {:?}", err))
+                            <<<
+                            -> ready
+                 }.await;
+
+                if let Ok(value) = result {
+                    break value;
+                }
+            }
+        }
     }
 
     #[test]

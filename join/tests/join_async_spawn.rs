@@ -1,5 +1,3 @@
-#![recursion_limit = "1024"]
-
 #[cfg(test)]
 mod join_async_spawn_tests {
     use futures::future::{err, ok, ready};
@@ -179,7 +177,7 @@ mod join_async_spawn_tests {
                     ok(2u16),
                     ok(3u16),
                     get_ok_four(),
-                    and_then => |a, b, c| ok::<Option<u16>, _>(None)
+                    and_then => |_a, _b, _c| ok::<Option<u16>, _>(None)
                 };
 
                 assert_eq!(ok_value.await.unwrap(), None);
@@ -188,7 +186,7 @@ mod join_async_spawn_tests {
                     ok(2u16),
                     ok(3u16),
                     get_ok_four(),
-                    and_then => |a, b, c| to_err(a)
+                    and_then => |a, _b, _c| to_err(a)
                 };
 
                 assert_eq!(format!("{:?}", err_value.await.unwrap_err()), format!("{:?}", to_err(2).await.unwrap_err()));
@@ -197,7 +195,7 @@ mod join_async_spawn_tests {
                     ready(Ok(2u16)),
                     ready(Ok(3u16)),
                     get_ok_five(),
-                    map => |a, b, c| a
+                    map => |a, _b, _c| a
                 };
 
                 assert_eq!(some.await.unwrap(), 2u16);
@@ -206,7 +204,7 @@ mod join_async_spawn_tests {
                     ready(Ok::<_,BoxedError>(2u16)),
                     ready(Ok::<_,BoxedError>(3u16)),
                     err::<u16,BoxedError>("25".into()),
-                    then => |a, b, c| ready(a)
+                    then => |a, _b, _c| ready(a)
                 }.await;
 
                 assert!(okay.is_ok());
@@ -284,10 +282,7 @@ mod join_async_spawn_tests {
     #[test]
     fn it_tests_nested_macro_combinations() {
         use join::*;
-        let rt = tokio::runtime::Builder::new()
-            .core_threads(4)
-            .build()
-            .unwrap();
+        let rt = Runtime::new().unwrap();
 
         rt.block_on(async {
             let value = try_join_async! {
@@ -319,10 +314,7 @@ mod join_async_spawn_tests {
 
     #[test]
     fn it_checks_concurrent_branches_execution() {
-        let rt = tokio::runtime::Builder::new()
-            .core_threads(4)
-            .build()
-            .unwrap();
+        let rt = Runtime::new().unwrap();
         rt.block_on(async {
             use futures::lock::Mutex;
             use std::sync::Arc;
@@ -332,7 +324,7 @@ mod join_async_spawn_tests {
             let _ = join_async_spawn! {
                 ok((values.clone(), 1u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(1)).await.unwrap();;
+                    Delay::new(Duration::from_secs(1)).await.unwrap();
                     {
                         let mut values = values.lock().await;
                         values.sort();
@@ -342,7 +334,7 @@ mod join_async_spawn_tests {
                     Ok::<_, BoxedError>((values, value + 1))
                 } ~=> |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(1)).await.unwrap();;
+                    Delay::new(Duration::from_secs(1)).await.unwrap();
                     let mut values = values.lock().await;
                     values.sort();
                     assert_eq!(values[..], [2, 3, 4]);
@@ -350,7 +342,7 @@ mod join_async_spawn_tests {
                 },
                 ok((values.clone(), 2u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(2)).await.unwrap();;
+                    Delay::new(Duration::from_secs(2)).await.unwrap();
                     {
                         let mut values = values.lock().await;
                         values.sort();
@@ -360,7 +352,7 @@ mod join_async_spawn_tests {
                     Ok::<_, BoxedError>((values, value + 1))
                 } ~=> |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(2)).await.unwrap();;
+                    Delay::new(Duration::from_secs(2)).await.unwrap();
                     let mut values = values.lock().await;
                     values.sort();
                     assert_eq!(values[..], [2, 3, 4]);
@@ -368,7 +360,7 @@ mod join_async_spawn_tests {
                 },
                 ok((values.clone(), 3u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(3)).await.unwrap();;
+                    Delay::new(Duration::from_secs(3)).await.unwrap();
                     {
                         let mut values = values.lock().await;
                         values.sort();
@@ -378,7 +370,7 @@ mod join_async_spawn_tests {
                     Ok::<_, BoxedError>((values, value + 1))
                 } ~=> |(values, value)| async move {
                     values.lock().await.push(value);
-                    Delay::new(Duration::from_secs(3)).await.unwrap();;
+                    Delay::new(Duration::from_secs(3)).await.unwrap();
                     let mut values = values.lock().await;
                     values.sort();
                     assert_eq!(values[..], [2, 3, 4]);
@@ -420,7 +412,7 @@ mod join_async_spawn_tests {
             let _fut = join_async_spawn! {
                 ready(panic!()),
                 ready(unreachable!()),
-                then => |a: Result<u8>, b: Result<u8>| ready(a)
+                then => |a: Result<u8>, _b: Result<u8>| ready(a)
             };
         });
     }
@@ -491,7 +483,7 @@ mod join_async_spawn_tests {
             );
 
             assert_eq!(
-                try_join_async_spawn! { let mut v = vec![1u8, 2, 3, 4, 5] ..into_iter() ?|>@ |v: u8| if v % 2 == 0 { Some(v) } else { None } -> |v: Option<u8>| ready(v.ok_or(Err::<u8,&'static str>("e"))) }.await,
+                try_join_async_spawn! { let v = vec![1u8, 2, 3, 4, 5] ..into_iter() ?|>@ |v: u8| if v % 2 == 0 { Some(v) } else { None } -> |v: Option<u8>| ready(v.ok_or(Err::<u8,&'static str>("e"))) }.await,
                 Ok(2u8)
             );
 

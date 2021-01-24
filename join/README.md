@@ -326,8 +326,6 @@ You can specify any params at the beginning of macro call.
 - `lazy_branches` - wrap every branch into `move || {}` when pass values to joiner. By default `true` for `try_join_spawn!`, `try_spawn!` and `join_spawn!` , `spawn!` macros because they use `thread::spawn` call. Only if active branch count > 1.
 
 ```rust
-#![recursion_limit="256"]
-
 use join::try_join_async;
 use futures::future::ok;
 
@@ -354,8 +352,6 @@ async fn main() {
 *Rayon demo*
 
 ```rust
-#![recursion_limit="256"]
-
 use join::{try_join, join};
 
 fn fib(num: u8) -> usize {
@@ -432,8 +428,6 @@ These blocks will be placed before actual step expressions.
 Using this macro you can write things like
 
 ```rust
-#![recursion_limit = "256"]
-
 use rand::prelude::*;
 use std::sync::Arc;
 use join::try_join_spawn;
@@ -535,8 +529,6 @@ where
 ```
 
 ```rust
-#![recursion_limit="256"]
-
 extern crate rand;
 extern crate join;
 
@@ -843,8 +835,6 @@ fn main() {
 Each branch will represent future chain. All branches will be joined using `::futures::join!`/`::futures::try_join!` macro and `join_async!`/`try_join_async!` will return `unpolled` future.
 
 ```rust
-#![recursion_limit="256"]
-
 use std::error::Error;
 use join::try_join_async;
 use futures::future::{ok, err};
@@ -973,8 +963,6 @@ fn main() {
 (number of branches is the max count of `tokio` tasks at the time).
 
 ```rust
-#![recursion_limit="256"]
-
 use std::error::Error;
 use join::try_join_async_spawn;
 use futures::future::{ok, err};
@@ -1016,8 +1004,6 @@ async fn main() {
 By separating chain in actions, you will make actions wait for completion of all of them in current step before go to the next step.
 
 ```rust
-#![recursion_limit="256"]
-
 use std::error::Error;
 use join::try_join;
 
