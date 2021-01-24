@@ -1,9 +1,9 @@
 pub mod builder;
 
-use crate::chain::Chain;
-use syn::PatIdent;
 use crate::chain::expr::ActionExpr;
+use crate::chain::Chain;
 pub use builder::ActionExprChainBuilder;
+use syn::PatIdent;
 
 ///
 /// Chain with members of type `ActionExpr`. and optional `PatIdent` identifier.

@@ -1,9 +1,9 @@
-use syn::parse::ParseStream;
 use super::Chain;
+use syn::parse::ParseStream;
 
 ///
 /// Build chain from `ParseStream`
-/// 
+///
 pub trait ParseChain<T: Chain> {
     ///
     ///  Builds `Self` from input `ParseStream`.
