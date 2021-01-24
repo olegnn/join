@@ -327,7 +327,7 @@ mod join_async_spawn_tests {
                     Delay::new(Duration::from_secs(1)).await.unwrap();
                     {
                         let mut values = values.lock().await;
-                        values.sort();
+                        values.sort_unstable();
                         assert_eq!(values[..], [1, 2, 3]);
                         values.pop();
                     }
@@ -336,7 +336,7 @@ mod join_async_spawn_tests {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(1)).await.unwrap();
                     let mut values = values.lock().await;
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
@@ -345,7 +345,7 @@ mod join_async_spawn_tests {
                     Delay::new(Duration::from_secs(2)).await.unwrap();
                     {
                         let mut values = values.lock().await;
-                        values.sort();
+                        values.sort_unstable();
                         assert_eq!(values[..], [1, 2]);
                         values.pop();
                     }
@@ -354,7 +354,7 @@ mod join_async_spawn_tests {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(2)).await.unwrap();
                     let mut values = values.lock().await;
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
@@ -363,7 +363,7 @@ mod join_async_spawn_tests {
                     Delay::new(Duration::from_secs(3)).await.unwrap();
                     {
                         let mut values = values.lock().await;
-                        values.sort();
+                        values.sort_unstable();
                         assert_eq!(values[..], [1]);
                         values.pop();
                     }
@@ -372,7 +372,7 @@ mod join_async_spawn_tests {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(3)).await.unwrap();
                     let mut values = values.lock().await;
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },

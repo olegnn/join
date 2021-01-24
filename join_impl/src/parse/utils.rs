@@ -29,10 +29,7 @@ pub fn is_valid_stream<T: Parse>(input: TokenStream) -> bool {
 /// Returns `true` if expr is {...}.
 ///
 pub fn is_block_expr(expr: &Expr) -> bool {
-    match *expr {
-        Expr::Block(_) => true,
-        _ => false,
-    }
+    matches!(expr, Expr::Block(_))
 }
 
 ///

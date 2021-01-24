@@ -53,7 +53,7 @@ mod tests {
 
         assert_eq!(
             InitialExpr([expr.clone()]).extract_inner().clone(),
-            Some(&[expr.clone()][..])
+            Some(&[expr][..])
         );
     }
 

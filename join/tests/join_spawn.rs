@@ -333,7 +333,7 @@ mod join_spawn_tests {
                 thread::sleep(Duration::from_secs(1));
                 {
                     let mut values = values.lock().unwrap();
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [1, 2, 3]);
                     values.pop();
                 }
@@ -343,7 +343,7 @@ mod join_spawn_tests {
                 thread::sleep(Duration::from_secs(1));
                 {
                     let mut values = values.lock().unwrap();
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [2, 3, 4]);
                 }
             },
@@ -352,7 +352,7 @@ mod join_spawn_tests {
                 thread::sleep(Duration::from_secs(2));
                 {
                     let mut values = values.lock().unwrap();
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [1, 2]);
                     values.pop();
                 }
@@ -362,7 +362,7 @@ mod join_spawn_tests {
                 thread::sleep(Duration::from_secs(2));
                 {
                     let mut values = values.lock().unwrap();
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [2, 3, 4]);
                 }
             },
@@ -371,7 +371,7 @@ mod join_spawn_tests {
                 thread::sleep(Duration::from_secs(3));
                 {
                     let mut values = values.lock().unwrap();
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [1]);
                     values.pop();
                 }
@@ -381,7 +381,7 @@ mod join_spawn_tests {
                 thread::sleep(Duration::from_secs(3));
                 {
                     let mut values = values.lock().unwrap();
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [2, 3, 4]);
                 }
             },

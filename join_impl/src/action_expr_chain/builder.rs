@@ -234,8 +234,7 @@ mod tests {
 
         let members = chain
             .get_members()
-            .into_iter()
-            .map(|v| v.clone())
+            .iter().cloned()
             .collect::<Vec<_>>();
 
         assert_eq!(
@@ -319,8 +318,7 @@ mod tests {
 
         let members = chain
             .get_members()
-            .into_iter()
-            .map(|v| v.clone())
+            .iter().cloned()
             .collect::<Vec<_>>();
 
         assert_eq!(

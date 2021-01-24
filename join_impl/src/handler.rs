@@ -58,30 +58,21 @@ impl Handler {
     /// Returns `true` if handler is `Map`.
     ///
     pub fn is_map(&self) -> bool {
-        match self {
-            Self::Map(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::Map(_))
     }
 
     ///
     /// Returns `true` if handler is `Then`.
     ///
     pub fn is_then(&self) -> bool {
-        match self {
-            Self::Then(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::Then(_))
     }
 
     ///
     /// Returns `true` if handler is `AndThen`.
     ///
     pub fn is_and_then(&self) -> bool {
-        match self {
-            Self::AndThen(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::AndThen(_))
     }
 
     ///

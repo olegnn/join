@@ -99,7 +99,7 @@ mod tests {
         for err_expr in vec![
             ErrExpr::Or([expr.clone()]),
             ErrExpr::OrElse([expr.clone()]),
-            ErrExpr::MapErr([expr.clone()]),
+            ErrExpr::MapErr([expr]),
         ]
         .into_iter()
         {
@@ -121,7 +121,7 @@ mod tests {
         for err_expr in vec![
             ErrExpr::Or([expr.clone()]),
             ErrExpr::OrElse([expr.clone()]),
-            ErrExpr::MapErr([expr.clone()]),
+            ErrExpr::MapErr([expr]),
         ]
         .into_iter()
         {
