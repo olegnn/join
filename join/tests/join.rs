@@ -112,7 +112,7 @@ mod join_tests {
             => >>>
                 |> |v| { captured = None; v }
                 => >>>
-                    |> { let captured = captured.as_ref().unwrap().clone(); move |v| v + captured }
+                    |> { let captured = *captured.as_ref().unwrap(); move |v| v + captured }
                     ..ok_or(4)
                 <<<
                 |> |v| Ok::<_,u8>(v + 5)

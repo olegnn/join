@@ -232,11 +232,7 @@ mod tests {
             Ok(2) => |_| Ok(3) |> |_| 4 <| Ok(5) => |v| Ok(v) <= |_| Ok(8) ?? |v| println!("{}", v) -> |v| v
         };
 
-        let members = chain
-            .get_members()
-            .into_iter()
-            .map(|v| v.clone())
-            .collect::<Vec<_>>();
+        let members = chain.get_members().iter().cloned().collect::<Vec<_>>();
 
         assert_eq!(
             members[0],
@@ -317,11 +313,7 @@ mod tests {
             Ok(2) ~=> |_| Ok(3) ~|> |_| 4 ~<| Ok(5) ~=> |v| Ok(v) ~<= |_| Ok(8) ~?? |v| println!("{}", v) ~-> |v| v
         };
 
-        let members = chain
-            .get_members()
-            .into_iter()
-            .map(|v| v.clone())
-            .collect::<Vec<_>>();
+        let members = chain.get_members().iter().cloned().collect::<Vec<_>>();
 
         assert_eq!(
             members[0],

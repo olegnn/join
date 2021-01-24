@@ -236,10 +236,6 @@ fn to_none<T, R>(_: T) -> Option<R> {
     None
 }
 
-fn to_some<T>(v: T) -> Option<T> {
-    Some(v)
-}
-
 fn parse_empty_unit(
     action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
     input: ParseStream<'_>,
@@ -269,7 +265,7 @@ fn parse_single_or_empty_unit<P: Parse, ResultExpr>(
         .or_else(|_| {
             action_expr_chain_gen
                 .parse_unit::<P>(input, false)
-                .map_over(to_some)
+                .map_over(Some)
         })
         .map_over(to_expr)
 }
@@ -448,41 +444,33 @@ impl CommandGroup {
     /// Returns `true` if self command group is of `ErrExpr` type.
     ///
     pub fn is_err_expr(self) -> bool {
-        match self {
-            Self::Or => true,
-            Self::OrElse => true,
-            Self::MapErr => true,
-            _ => false,
-        }
+        matches!(self, Self::Or | Self::OrElse | Self::MapErr)
     }
 
     ///
     /// Returns `true` if self command group is of `InitialExpr` type.
     ///
     pub fn is_initial_expr(self) -> bool {
-        match self {
-            Self::Initial => true,
-            _ => false,
-        }
+        matches!(self, Self::Initial)
     }
 
     ///
     /// Returns `true` if command group can be a wrapper.
     ///
     pub fn can_be_wrapper(self) -> bool {
-        match self {
-            Self::Map => true,
-            Self::AndThen => true,
-            Self::Filter => true,
-            Self::Inspect => true,
-            Self::FilterMap => true,
-            Self::Find => true,
-            Self::FindMap => true,
-            Self::Partition => true,
-            Self::OrElse => true,
-            Self::MapErr => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            Self::Map
+                | Self::AndThen
+                | Self::Filter
+                | Self::Inspect
+                | Self::FilterMap
+                | Self::Find
+                | Self::FindMap
+                | Self::Partition
+                | Self::OrElse
+                | Self::MapErr
+        )
     }
 
     ///

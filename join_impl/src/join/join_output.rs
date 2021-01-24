@@ -819,7 +819,7 @@ impl<'a> JoinOutput<'a> {
         if inner_expr.is_replaceable() {
             inner_expr.extract_inner().and_then(|exprs| {
                 let (def, replace_exprs): (Option<_>, Vec<_>) = exprs
-                    .into_iter()
+                    .iter()
                     .enumerate()
                     .map(|(index, expr)| {
                         if is_block_expr(expr) {

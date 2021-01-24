@@ -31,11 +31,11 @@ pub enum ProcessExpr {
     ///
     Filter([Expr; 1]),
     ///
-    ///	.find_map(Expr)
+    /// .find_map(Expr)
     ///
     FindMap([Expr; 1]),
     ///
-    ///	.flatten()
+    /// .flatten()
     ///
     Flatten,
     ///
@@ -48,43 +48,43 @@ pub enum ProcessExpr {
     ///
     Dot([Expr; 1]),
     ///
-    ///	.chain(Expr)
+    /// .chain(Expr)
     ///
     Chain([Expr; 1]),
     ///
-    ///	.collect::<Type>()
+    /// .collect::<Type>()
     ///
     Collect(Option<Type>),
     ///
-    ///	.enumerate()
+    /// .enumerate()
     ///
     Enumerate,
     ///
-    ///	.filter_map(Expr)
+    /// .filter_map(Expr)
     ///
     FilterMap([Expr; 1]),
     ///
-    ///	.find(Expr)
+    /// .find(Expr)
     ///
     Find([Expr; 1]),
     ///
-    ///	.fold(Expr, Expr)
+    /// .fold(Expr, Expr)
     ///
     Fold([Expr; 2]),
     ///
-    ///	.partition(Expr)
+    /// .partition(Expr)
     ///
     Partition([Expr; 1]),
     ///
-    ///	.try_fold(Expr, Expr)
+    /// .try_fold(Expr, Expr)
     ///
     TryFold([Expr; 2]),
     ///
-    ///	.unzip::<A, B, FromA, FromB>()
+    /// .unzip::<A, B, FromA, FromB>()
     ///
     Unzip(Option<(Type, Type, Type, Type)>),
     ///
-    ///	.zip(Expr)
+    /// .zip(Expr)
     ///
     Zip([Expr; 1]),
     ///
@@ -144,12 +144,10 @@ impl InnerExpr for ProcessExpr {
     }
 
     fn is_replaceable(&self) -> bool {
-        match self {
-            Self::Dot(_) | Self::Collect(_) | Self::Unzip(_) | Self::Flatten | Self::Enumerate => {
-                false
-            }
-            _ => true,
-        }
+        !matches!(
+            self,
+            Self::Dot(_) | Self::Collect(_) | Self::Unzip(_) | Self::Flatten | Self::Enumerate
+        )
     }
 }
 
@@ -182,91 +180,91 @@ pub enum ProcessExpr {
     ///
     Dot([Expr; 1]),
     ///
-    ///	.all(Expr)
+    /// .all(Expr)
     ///
     All([Expr; 1]),
     ///
-    ///	.any(Expr)
+    /// .any(Expr)
     ///
     Any([Expr; 1]),
     ///
-    ///	.by_ref()
+    /// .by_ref()
     ///
     ByRef,
     ///
-    ///	.chain(Expr)
+    /// .chain(Expr)
     ///
     Chain([Expr; 1]),
     ///
-    ///	.cloned(Expr)
+    /// .cloned(Expr)
     ///
     Cloned,
     ///
-    ///	.cmp(Expr)
+    /// .cmp(Expr)
     ///
     Cmp([Expr; 1]),
     ///
-    ///	.collect::<Type>()
+    /// .collect::<Type>()
     ///
     Collect(Option<Type>),
     ///
-    ///	.copied(Expr)
+    /// .copied(Expr)
     ///
     Copied,
     ///
-    ///	.count()
+    /// .count()
     ///
     Count,
     ///
-    ///	.cycle()
+    /// .cycle()
     ///
     Cycle,
     ///
-    ///	.enumerate()
+    /// .enumerate()
     ///
     Enumerate,
     ///
-    ///	.eq(Expr)
+    /// .eq(Expr)
     ///
     Eq([Expr; 1]),
     ///
-    ///	.filter_map(Expr)
+    /// .filter_map(Expr)
     ///
     FilterMap([Expr; 1]),
     ///
-    ///	.find(Expr)
+    /// .find(Expr)
     ///
     Find([Expr; 1]),
     ///
-    ///	.find_map(Expr)
+    /// .find_map(Expr)
     ///
     FindMap([Expr; 1]),
     ///
-    ///	.flat_map(Expr)
+    /// .flat_map(Expr)
     ///
     FlatMap([Expr; 1]),
     ///
-    ///	.flatten()
+    /// .flatten()
     ///
     Flatten,
     ///
-    ///	.fold(Expr, Expr)
+    /// .fold(Expr, Expr)
     ///
     Fold([Expr; 2]),
     ///
-    ///	.for_each(Expr)
+    /// .for_each(Expr)
     ///
     ForEach([Expr; 1]),
     ///
-    ///	.fuse()
+    /// .fuse()
     ///
     Fuse,
     ///
-    ///	.ge(Expr)
+    /// .ge(Expr)
     ///
     Ge([Expr; 1]),
     ///
-    ///	.gt(Expr)
+    /// .gt(Expr)
     ///
     Gt([Expr; 1]),
     ///
@@ -274,11 +272,11 @@ pub enum ProcessExpr {
     ///
     IsSorted,
     ///
-    ///	.is_sorted_by(Expr)
+    /// .is_sorted_by(Expr)
     ///
     IsSortedBy([Expr; 1]),
     ///
-    ///	.is_sorted_by_key(Expr)
+    /// .is_sorted_by_key(Expr)
     ///
     IsSortedByKey([Expr; 1]),
     ///
@@ -286,127 +284,127 @@ pub enum ProcessExpr {
     ///
     IsPartitioned,
     ///
-    ///	.last()
+    /// .last()
     ///
     Last,
     ///
-    ///	.le(Expr)
+    /// .le(Expr)
     ///
     Le([Expr; 1]),
     ///
-    ///	.lt(Expr)
+    /// .lt(Expr)
     ///
     Lt([Expr; 1]),
     ///
-    ///	.max()
+    /// .max()
     ///
     Max,
     ///
-    ///	.max_by(Expr)
+    /// .max_by(Expr)
     ///
     MaxBy([Expr; 1]),
     ///
-    ///	.max_by_key(Expr)
+    /// .max_by_key(Expr)
     ///
     MaxByKey([Expr; 1]),
     ///
-    ///	.min()
+    /// .min()
     ///
     Min,
     ///
-    ///	.min_by(Expr)
+    /// .min_by(Expr)
     ///
     MinBy([Expr; 1]),
     ///
-    ///	.min_by_key(Expr)
+    /// .min_by_key(Expr)
     ///
     MinByKey([Expr; 1]),
     ///
-    ///	.ne(Expr)
+    /// .ne(Expr)
     ///
     Ne([Expr; 1]),
     ///
-    ///	.nth(Expr)
+    /// .nth(Expr)
     ///
     Nth([Expr; 1]),
     ///
-    ///	.partial_cmp(Expr)
+    /// .partial_cmp(Expr)
     ///
     PartialCmp([Expr; 1]),
     ///
-    ///	.partition(Expr)
+    /// .partition(Expr)
     ///
     Partition([Expr; 1]),
     ///
-    ///	.partition_in_place(Expr)
+    /// .partition_in_place(Expr)
     ///
     PartitionInPlace([Expr; 1]),
     ///
-    ///	.peekable()
+    /// .peekable()
     ///
     Peekable,
     ///
-    ///	.position(Expr)
+    /// .position(Expr)
     ///
     Position([Expr; 1]),
     ///
-    ///	.product()
+    /// .product()
     ///
     Product,
     ///
-    ///	.rev()
+    /// .rev()
     ///
     Rev,
     ///
-    ///	.rposition(Expr)
+    /// .rposition(Expr)
     ///
     Rposition([Expr; 1]),
     ///
-    ///	.scan(Expr)
+    /// .scan(Expr)
     ///
     Scan([Expr; 1]),
     ///
-    ///	.size_hint()
+    /// .size_hint()
     ///
     SizeHint,
     ///
-    ///	.skip(Expr)
+    /// .skip(Expr)
     ///
     Skip([Expr; 1]),
     ///
-    ///	.skip_while(Expr)
+    /// .skip_while(Expr)
     ///
     SkipWhile([Expr; 1]),
     ///
-    ///	.step_by(Expr)
+    /// .step_by(Expr)
     ///
     StepBy([Expr; 1]),
     ///
-    ///	.sum()
+    /// .sum()
     ///
     Sum,
     ///
-    ///	.take(Expr)
+    /// .take(Expr)
     ///
     Take([Expr; 1]),
     ///
-    ///	.take_while(Expr)
+    /// .take_while(Expr)
     ///
     TakeWhile([Expr; 1]),
     ///
-    ///	.try_fold(Expr, Expr)
+    /// .try_fold(Expr, Expr)
     ///
     TryFold([Expr; 2]),
     ///
-    ///	.try_for_each(Expr)
+    /// .try_for_each(Expr)
     ///
     TryForEach([Expr; 1]),
     ///
-    ///	.unzip::<A, B, FromA, FromB>()
+    /// .unzip::<A, B, FromA, FromB>()
     ///
     Unzip(Option<(Type, Type, Type, Type)>),
     ///
-    ///	.zip(Expr)
+    /// .zip(Expr)
     ///
     Zip([Expr; 1]),
     ///
@@ -799,7 +797,7 @@ impl InnerExpr for ProcessExpr {
     }
 
     fn is_replaceable(&self) -> bool {
-        match self {
+        !matches!(self,
             Self::Dot(_)
             | Self::Collect(_)
             | Self::Max
@@ -817,9 +815,8 @@ impl InnerExpr for ProcessExpr {
             | Self::Count
             | Self::Cycle
             | Self::Enumerate
-            | Self::Rev => false,
-            _ => true,
-        }
+            | Self::Rev
+        )
     }
 }
 
@@ -869,7 +866,7 @@ mod tests {
             ProcessExpr::TryFold([expr.clone(), expr.clone()])
                 .extract_inner()
                 .clone(),
-            Some(&[expr.clone(), expr.clone()][..])
+            Some(&[expr.clone(), expr][..])
         );
     }
 
@@ -918,12 +915,12 @@ mod tests {
         );
 
         assert_eq!(
-            ProcessExpr::TryFold([expr.clone(), expr.clone()])
+            ProcessExpr::TryFold([expr.clone(), expr])
                 .replace_inner(&[replace_inner.clone(), replace_inner.clone()])
                 .unwrap()
                 .extract_inner()
                 .clone(),
-            Some(&[replace_inner.clone(), replace_inner.clone()][..])
+            Some(&[replace_inner.clone(), replace_inner][..])
         );
     }
 
@@ -1219,7 +1216,7 @@ mod tests {
         }
 
         assert!(::std::panic::catch_unwind(
-            move || ProcessExpr::Inspect([expr.clone()]).into_token_stream()
+            move || ProcessExpr::Inspect([expr]).into_token_stream()
         )
         .is_err());
     }

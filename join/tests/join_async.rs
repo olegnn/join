@@ -297,7 +297,7 @@ mod join_async_tests {
                     Delay::new(Duration::from_secs(1)).await.unwrap();
                     {
                         let mut values = values.lock().await;
-                        values.sort();
+                        values.sort_unstable();
                         assert_eq!(values[..], [1, 2, 3]);
                         values.pop();
                     }
@@ -306,7 +306,7 @@ mod join_async_tests {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(1)).await.unwrap();
                     let mut values = values.lock().await;
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
@@ -315,7 +315,7 @@ mod join_async_tests {
                     Delay::new(Duration::from_secs(2)).await.unwrap();
                     {
                         let mut values = values.lock().await;
-                        values.sort();
+                        values.sort_unstable();
                         assert_eq!(values[..], [1, 2]);
                         values.pop();
                     }
@@ -324,7 +324,7 @@ mod join_async_tests {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(2)).await.unwrap();
                     let mut values = values.lock().await;
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
@@ -333,7 +333,7 @@ mod join_async_tests {
                     Delay::new(Duration::from_secs(3)).await.unwrap();
                     {
                         let mut values = values.lock().await;
-                        values.sort();
+                        values.sort_unstable();
                         assert_eq!(values[..], [1]);
                         values.pop();
                     }
@@ -342,7 +342,7 @@ mod join_async_tests {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(3)).await.unwrap();
                     let mut values = values.lock().await;
-                    values.sort();
+                    values.sort_unstable();
                     assert_eq!(values[..], [2, 3, 4]);
                     Ok::<_, BoxedError>(())
                 },
@@ -553,14 +553,14 @@ mod join_async_tests {
                     |> {
                         // If pass block statement instead of fn, it will be placed before current step,
                         // so it will us allow to capture some variables from context
-                        let ref client = client;
+                        let client = &client;
                         move |url|
                             // `try_join_async!` wraps its content into `Box::pin(async move { })`
                             try_join_async! {
                                 client
                                     .get(url).send()
                                     => |value| value.text()
-                                    => |body| ok((url, body.matches("https://").collect::<Vec<_>>().len()))
+                                    => |body| ok((url, body.matches("https://").count()))
                             }
                     }
                     // Collect values into `Vec<_>`
@@ -588,7 +588,7 @@ mod join_async_tests {
                     => {
                         // If pass block statement instead of fn, it will be placed before current step,
                         // so it will allow us to capture some variables from context
-                        let ref client = client;
+                        let client = &client;
                         let map_parse_error = |error, value| format_err!("Failed to parse random number: {:#?}, value: {}", error, value);
                         move |url|
                             try_join_async! {
