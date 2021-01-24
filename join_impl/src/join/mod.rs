@@ -13,9 +13,10 @@ use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::Path;
 
-use super::expr_chain::{ActionExprChain, Chain};
 use super::handler::Handler;
-use join_output::Join;
+use crate::action_expr_chain::ActionExprChain;
+use crate::chain::Chain;
+use join_output::JoinOutput;
 use syn::parse_quote;
 
 ///
@@ -113,7 +114,7 @@ pub fn generate_join<T: JoinInput<Chain = ActionExprChain, Handler = Handler>>(
 ) -> TokenStream {
     let default_futures_crate_path = parse_quote! { ::futures };
 
-    Join::new(
+    JoinOutput::new(
         join.get_branches(),
         join.get_handler(),
         if let Some(futures_crate_path) = join.get_futures_crate_path() {

@@ -7,14 +7,13 @@ use quote::quote;
 use quote::ToTokens;
 use syn::{parse_quote, Ident, Index, PatIdent, Path};
 
-use super::super::expr_chain::expr::{
-    Action, ActionExpr, ApplyType, InnerExpr, MoveType, ProcessExpr,
-};
-use super::super::expr_chain::utils::is_block_expr;
-use super::super::expr_chain::{ActionExprChain, Chain};
-use super::super::handler::Handler;
-use super::super::name_constructors::*;
 use super::config::Config;
+use super::name_constructors::*;
+use crate::action_expr_chain::ActionExprChain;
+use crate::chain::expr::{Action, ActionExpr, ApplicationType, InnerExpr, MoveType, ProcessExpr};
+use crate::chain::Chain;
+use crate::handler::Handler;
+use crate::parse::utils::is_block_expr;
 
 struct ActionExprPos<'a> {
     pub expr: &'a ActionExpr,
@@ -44,7 +43,7 @@ struct StepAcc<'a> {
 ///
 /// Generator of `join!` macro output.
 ///
-pub struct Join<'a> {
+pub struct JoinOutput<'a> {
     ///
     /// Total branch count.
     ///
@@ -54,7 +53,7 @@ pub struct Join<'a> {
     ///
     branch_pats: Vec<Option<&'a PatIdent>>,
     ///
-    /// `ActionExpr` groups each of which represents chain of `Instant` actions but every next group is `Deferred` from previous.
+    /// `ActionExpr` groups each of which represents chain of `Instant` actions but every next group is `Deferred` from prev.
     /// [[map, or_else, map, and_then], [map, and_then]] =>
     /// it will be interpreted as `expr.map().or_else().map().and_then()`, and after first will be finished, `expr.map().and_then()`
     ///
@@ -93,7 +92,7 @@ pub struct Join<'a> {
     transpose: bool,
 }
 
-impl<'a> Join<'a> {
+impl<'a> JoinOutput<'a> {
     ///
     /// Creates new `Join` with given branches - `ActionExprChain`s, optional handler,
     /// optional `futures_crate_path` and `Config`.
@@ -139,10 +138,16 @@ impl<'a> Join<'a> {
                         let (depth, steps) = expr_chain.get_members().iter().fold(
                             (1, vec![Vec::new()]),
                             |(depth, mut chain_acc), member| match member {
-                                ActionExpr::Process(Action { apply_type, .. })
-                                | ActionExpr::Err(Action { apply_type, .. })
-                                | ActionExpr::Initial(Action { apply_type, .. }) => {
-                                    if apply_type == &ApplyType::Deferred {
+                                ActionExpr::Process(Action {
+                                    application_type, ..
+                                })
+                                | ActionExpr::Err(Action {
+                                    application_type, ..
+                                })
+                                | ActionExpr::Initial(Action {
+                                    application_type, ..
+                                }) => {
+                                    if application_type == &ApplicationType::Deferred {
                                         chain_acc.push(vec![member]);
                                         (depth + 1, chain_acc)
                                     } else {
@@ -152,7 +157,7 @@ impl<'a> Join<'a> {
                                 }
                             },
                         );
-                        ((depth, expr_chain.get_pat()), steps)
+                        ((depth, expr_chain.get_id()), steps)
                     })
                     .unzip();
 
@@ -185,7 +190,7 @@ impl<'a> Join<'a> {
 
     ///
     /// Generates `TokenStream` which contains all steps. `result_pats` will be used in `let` destructuring patterns and
-    /// `result_vars` will be placed in actual step streams. They both are needed to join steps and make results of previous
+    /// `result_vars` will be placed in actual step streams. They both are needed to join steps and make results of prev
     /// values in next.
     ///
     pub fn generate_steps<TPat: ToTokens + Clone, TVar: ToTokens + Clone>(
@@ -283,7 +288,7 @@ impl<'a> Join<'a> {
     }
 
     ///
-    /// Generates `TokenStream` for step with given index. Result vars are variables with previous step results.
+    /// Generates `TokenStream` for step with given index. Result vars are variables with prev step results.
     /// `result_vars` will be used as source values for step and `step_result_name` will contain tuple of step results.
     ///
     pub fn generate_step<TVar: ToTokens, TName: ToTokens>(
@@ -325,13 +330,13 @@ impl<'a> Join<'a> {
                                     )
                                 )
                                 .or_else(|| {
-                                    let previous_result_name = &result_vars[branch_index];
+                                    let prev_result_name = &result_vars[branch_index];
 
-                                    let wrapped_previous_result = self.wrap_into_block(previous_result_name);
+                                    let wrapped_prev_result = self.wrap_into_block(prev_result_name);
 
                                     let step_acc = StepAcc {
                                         def_stream: None,
-                                        step_streams: vec![(wrapped_previous_result, None)]
+                                        step_streams: vec![(wrapped_prev_result, None)]
                                     };
 
                                     Some(
@@ -436,7 +441,7 @@ impl<'a> Join<'a> {
 
     ///
     /// Joins step steam with next step stream (if `Some`), returning `TokenStream` which contains all code.
-    /// `result_pats` will be used for desturcturing `let` patterns while `result_vars` will be source values for next step.
+    /// `result_pats` will be used for destructuring `let` patterns while `result_vars` will be source values for next step.
     /// `result_vars` are also used in results transposer.
     ///
     pub fn join_steps<TPat: ToTokens + Clone, TVar: ToTokens + Clone, TName: ToTokens>(
@@ -775,26 +780,26 @@ impl<'a> Join<'a> {
     }
 
     ///
-    /// Expands process expr with given previous result.
+    /// Expands process expr with given prev result.
     ///
-    fn expand_process_expr(&self, previous_result: TokenStream, expr: &ProcessExpr) -> TokenStream {
+    fn expand_process_expr(&self, prev_result: TokenStream, expr: &ProcessExpr) -> TokenStream {
         match expr {
             ProcessExpr::Then(_) => {
-                quote! { (#expr(#previous_result)) }
+                quote! { (#expr(#prev_result)) }
             }
-            ProcessExpr::Inspect(expr) => {
+            ProcessExpr::Inspect([expr]) => {
                 let inspect_fn_name = construct_inspect_fn_name();
                 if self.config.is_async {
-                    quote! { #previous_result.inspect(#expr) }
+                    quote! { #prev_result.inspect(#expr) }
                 } else {
                     //
                     // Define custom `into_token_stream` converter because `inspect` fn signature accepts two params.
                     //
-                    quote! { #inspect_fn_name(#expr, #previous_result) }
+                    quote! { #inspect_fn_name(#expr, #prev_result) }
                 }
             }
             _ => {
-                quote! { #previous_result#expr }
+                quote! { #prev_result#expr }
             }
         }
     }
@@ -802,7 +807,7 @@ impl<'a> Join<'a> {
     ///
     /// Separates definition stream from step stream for given expression.
     ///
-    fn separate_block_expr<ExprType: InnerExpr>(
+    fn separate_block_expr<ExprType: InnerExpr + Clone>(
         &self,
         inner_expr: &ExprType,
         branch_index: impl Into<usize>,
@@ -848,7 +853,7 @@ impl<'a> Join<'a> {
                             }
                         },
                     );
-                def.map(|def| (def, inner_expr.replace_inner(replace_exprs)))
+                def.map(|def| (def, inner_expr.clone().replace_inner(&replace_exprs)))
             })
         } else {
             None
@@ -895,17 +900,17 @@ impl<'a> Join<'a> {
     }
 
     ///
-    /// Pops top stream of step_streams and wraps it into previous expr, adds next expr (if `Some`) to the result chain.
+    /// Pops top stream of step_streams and wraps it into prev expr, adds next expr (if `Some`) to the result chain.
     ///
     fn wrap_last_step_stream<'b, 'c>(
         &self,
         StepAcc {
-            def_stream: previous_def_stream,
+            def_stream: prev_def_stream,
             mut step_streams,
         }: StepAcc<'c>,
         action_expr_pos: impl Into<Option<ActionExprPos<'b>>>,
     ) -> StepAcc<'c> {
-        let (previous_step_stream, _) = step_streams.pop().expect(
+        let (prev_step_stream, _) = step_streams.pop().expect(
             "join: Unexpected error on attempt to get last step stream. This's a bug, please report it.",
         );
 
@@ -918,9 +923,8 @@ impl<'a> Join<'a> {
 
         let replaced_expr = action_expr_wrapper
             .expr
-            .replace_inner(vec![
-                parse_quote! { |#internal_value_name| #previous_step_stream },
-            ])
+            .clone()
+            .replace_inner(&[parse_quote! { |#internal_value_name| #prev_step_stream }])
             .expect("join: Failed to replace expr in unwrap expr. This's a bug, please report it.");
 
         let replaced_action_expr_position = ActionExprPos {
@@ -930,7 +934,7 @@ impl<'a> Join<'a> {
         };
 
         let (def_stream, step_stream) = self.generate_def_and_step_streams(
-            previous_def_stream,
+            prev_def_stream,
             current_step_steam,
             replaced_action_expr_position,
         );
@@ -951,11 +955,11 @@ impl<'a> Join<'a> {
     ///
     fn generate_def_and_step_streams<'b>(
         &self,
-        previous_def_stream: impl Into<Option<TokenStream>>,
-        previous_step_stream: TokenStream,
+        prev_def_stream: impl Into<Option<TokenStream>>,
+        prev_step_stream: TokenStream,
         action_expr_pos: impl Into<Option<ActionExprPos<'b>>>,
     ) -> (Option<TokenStream>, TokenStream) {
-        let previous_def_stream = previous_def_stream.into();
+        let prev_def_stream = prev_def_stream.into();
 
         if let Some(ActionExprPos {
             expr: action_expr,
@@ -971,12 +975,12 @@ impl<'a> Join<'a> {
                         self.separate_block_expr(process_expr, branch_index, expr_index);
 
                     let step_stream = self.expand_process_expr(
-                        previous_step_stream,
+                        prev_step_stream,
                         replaced_expr.as_ref().unwrap_or(process_expr),
                     );
 
                     (
-                        previous_def_stream
+                        prev_def_stream
                             .map(|prev| quote! { #prev #def_stream })
                             .or(def_stream),
                         step_stream,
@@ -989,10 +993,10 @@ impl<'a> Join<'a> {
                     let err_expr = replaced_expr.as_ref().unwrap_or(err_expr);
 
                     (
-                        previous_def_stream
+                        prev_def_stream
                             .map(|prev| quote! { #prev #def_stream })
                             .or(def_stream),
-                        quote! { #previous_step_stream#err_expr },
+                        quote! { #prev_step_stream#err_expr },
                     )
                 }
                 ActionExpr::Initial(Action {
@@ -1004,7 +1008,7 @@ impl<'a> Join<'a> {
                     let initial_expr = replaced_expr.as_ref().unwrap_or(initial_expr);
 
                     (
-                        previous_def_stream
+                        prev_def_stream
                             .map(|prev| quote! { #prev #def_stream })
                             .or(def_stream),
                         quote! { #initial_expr },
@@ -1012,7 +1016,7 @@ impl<'a> Join<'a> {
                 }
             }
         } else {
-            (previous_def_stream, previous_step_stream)
+            (prev_def_stream, prev_step_stream)
         }
     }
 
@@ -1038,7 +1042,7 @@ impl<'a> Join<'a> {
             ),
             MoveType::Wrap => {
                 let StepAcc {
-                    def_stream: previous_def_stream,
+                    def_stream: prev_def_stream,
                     mut step_streams,
                 } = step_acc;
 
@@ -1051,21 +1055,21 @@ impl<'a> Join<'a> {
                 step_streams.push((construct_internal_value_name().into_token_stream(), None));
 
                 StepAcc {
-                    def_stream: previous_def_stream,
+                    def_stream: prev_def_stream,
                     step_streams,
                 }
             }
             MoveType::None => {
                 let StepAcc {
-                    def_stream: previous_def_stream,
+                    def_stream: prev_def_stream,
                     mut step_streams,
                 } = step_acc;
 
-                let (previous_step_stream, _) =
+                let (prev_step_stream, _) =
                     step_streams.pop().expect("join: Unexpected `None` when pop step streams. This's a bug, please report it.");
                 let (def_stream, step_stream) = self.generate_def_and_step_streams(
-                    previous_def_stream,
-                    previous_step_stream,
+                    prev_def_stream,
+                    prev_step_stream,
                     ActionExprPos::new(action_expr, branch_index, expr_index),
                 );
 
@@ -1080,7 +1084,7 @@ impl<'a> Join<'a> {
     }
 }
 
-impl<'a> ToTokens for Join<'a> {
+impl<'a> ToTokens for JoinOutput<'a> {
     fn to_tokens(&self, output: &mut TokenStream) {
         let Config {
             is_async, is_spawn, ..
@@ -1127,13 +1131,7 @@ impl<'a> ToTokens for Join<'a> {
                                 F: #futures_crate_path::future::Future<Output = T> + Send + 'static,
                                 T: Send + 'static,
                             {
-                                let (__tx, __rx) = #futures_crate_path::channel::oneshot::channel();
-
-                                ::tokio::spawn(
-                                    __future.map(|#value_name| __tx.send(#value_name).map(|_| ()).unwrap_or(()))
-                                );
-
-                                __rx.map(|#value_name| #value_name.unwrap())
+                                ::tokio::spawn(__future).map(|#value_name| #value_name.unwrap_or_else(|err| panic!("tokio JoinHandle failed: {:#?}", err)))
                             }
                         }
                     )

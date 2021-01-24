@@ -328,8 +328,6 @@ You can specify any params at the beginning of macro call.
 - `lazy_branches` - wrap every branch into `move || {}` when pass values to joiner. By default `true` for `try_join_spawn!`, `try_spawn!` and `join_spawn!` , `spawn!` macros because they use `thread::spawn` call. Only if active branch count > 1.
 
 ```rust
-#![recursion_limit="256"]
-
 use join::try_join_async;
 use futures::future::ok;
 
@@ -356,8 +354,6 @@ async fn main() {
 *Rayon demo*
 
 ```rust
-#![recursion_limit="256"]
-
 use join::{try_join, join};
 
 fn fib(num: u8) -> usize {
@@ -434,8 +430,6 @@ These blocks will be placed before actual step expressions.
 Using this macro you can write things like
 
 ```rust
-#![recursion_limit = "256"]
-
 use rand::prelude::*;
 use std::sync::Arc;
 use join::try_join_spawn;
@@ -537,8 +531,6 @@ where
 ```
 
 ```rust
-#![recursion_limit="256"]
-
 extern crate rand;
 extern crate join;
 
@@ -618,14 +610,11 @@ reqwest = "0.10.0-alpha.2"
 And like this:
 
 ```rust
-#![recursion_limit="1024"]
-
 use join::try_join_async;
 use futures::stream::{iter, Stream};
 use reqwest::Client;
 use futures::future::{try_join_all, ok, ready};
 use failure::{format_err, Error};
-
 #[tokio::main]
 async fn main() {
     println!(
@@ -634,13 +623,11 @@ async fn main() {
         "the max count of links (starting with `https://`) found on one of random pages.",
         "You play against random generator (0-500)."
     );
-
     enum GameResult {
         Won,
         Lost,
         Draw
     }
-
     let client = Client::new();
     
     let game = try_join_async! {
@@ -660,25 +647,19 @@ async fn main() {
                             => |body| ok((url, body.matches("https://").collect::<Vec<_>>().len()))
                     }
             }
-            // .collect::<Vec<_>>() (Collect values into `Vec<_>`)
+            // Collect values into `Vec<_>`
             =>[] Vec<_>
-            // .map(Ok)
             |> Ok
-            // .and_then(try_join_all)
             => try_join_all
-            // .map_err(|err| ...)
             !> |err| format_err!("Error retrieving pages to calculate links: {:#?}", err)
-            // .and_then(|v| v.into_iter()...)
             => >>>
                 ..into_iter()
                 .max_by_key(|(_, link_count)| *link_count)
                 .ok_or(format_err!("Failed to find max link count"))
-                // Wrap previous result into `ready(...)`
                 -> ready
             // It waits for input in stdin before log max links count
             ~?? >>>
                 ..as_ref()
-                // .map(|number| ...)
                 |> |(url, count)| {
                     let split = url.to_owned().split('/').collect::<Vec<_>>();
                     let domain_name = split.get(2).unwrap_or(&url);
@@ -687,9 +668,7 @@ async fn main() {
                 ..unwrap_or(()),
         // Concurrently it makes request to the site which generates random number
         get_url_to_get_random_number()
-            // Wrap previous result into `ok(...)`
             -> ok
-            // .and_then(...)
             => {
                 // If pass block statement instead of fn, it will be placed before current step,
                 // so it will allow us to capture some variables from context
@@ -712,10 +691,8 @@ async fn main() {
                     }
             }
             // It waits for input in stdin before log random value
-            // .inspect(|v| v.as_ref()...)
             ~?? >>>
                 ..as_ref()
-                // .map(|number| ...)
                 |> |number| println!("Random: {}", number)
                 ..unwrap_or(()),
         // Concurrently it reads value from stdin
@@ -731,7 +708,6 @@ async fn main() {
             }
         }    
     };
-
     let _ = game.await.map(
         |result|
             println!(
@@ -744,7 +720,6 @@ async fn main() {
             )
     ).unwrap_or_else(|error| eprintln!("Error: {:#?}", error));
 }
-
 fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
     iter(
         vec![
@@ -754,44 +729,27 @@ fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
         ]
     )   
 }
-
 fn get_url_to_get_random_number() -> &'static str {
     "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
 }
-
 async fn read_number_from_stdin() -> u16 {
-    use tokio::*;
-    use futures::stream::StreamExt;
-    
-    let map_parse_error = |error, value| format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
-
-    let mut reader = codec::FramedRead::new(io::BufReader::new(io::stdin()), codec::LinesCodec::new());
+    use tokio::io::{stdin, BufReader, Error, ErrorKind, AsyncBufReadExt};
+    let mut reader = BufReader::new(stdin()).lines();
 
     loop {
         println!("Please, enter number (`u16`)");
-
-        let next = reader.next();
+        let next = reader.next_line();
     
         let result = try_join_async! {
             next
-                // .map(|v| v.ok_or()...)
-                |> >>>
-                    ..ok_or(format_err!("Unexpected end of input"))
-                    // .and_then(|v| v.map_err(|err| ...))
-                    => >>> !> |err| format_err!("Failed to apply codec: {:#?}", err)
-                    <<<
-                <<<
-                // .and_then(|value| ready(...))
-                => |value|
-                    ready(
-                        value
-                            .parse()
-                            .map_err(|err| map_parse_error(err, value))
-                    )
-                // .map_err(|error| ...)
-                !> |error| { eprintln!("Error: {:#?}", error); error}
+                => >>>
+                   ..ok_or(Error::new(ErrorKind::Other, "Failed to read value from stdin"))
+                   => >>>
+                       ..parse()
+                       !> |err| Error::new(ErrorKind::Other, format!("Value from stdin isn't a correct `u16`: {:?}", err))
+                   <<<
+                   -> ready              
         }.await;
-
         if let Ok(value) = result {
             break value
         }
@@ -845,8 +803,6 @@ fn main() {
 Each branch will represent future chain. All branches will be joined using `::futures::join!`/`::futures::try_join!` macro and `join_async!`/`try_join_async!` will return `unpolled` future.
 
 ```rust
-#![recursion_limit="256"]
-
 use std::error::Error;
 use join::try_join_async;
 use futures::future::{ok, err};
@@ -975,8 +931,6 @@ fn main() {
 (number of branches is the max count of `tokio` tasks at the time).
 
 ```rust
-#![recursion_limit="256"]
-
 use std::error::Error;
 use join::try_join_async_spawn;
 use futures::future::{ok, err};
@@ -1018,8 +972,6 @@ async fn main() {
 By separating chain in actions, you will make actions wait for completion of all of them in current step before go to the next step.
 
 ```rust
-#![recursion_limit="256"]
-
 use std::error::Error;
 use join::try_join;
 

@@ -15,27 +15,27 @@ pub enum ErrExpr {
     ///
     /// .or(Expr)
     ///
-    Or(Expr),
+    Or([Expr; 1]),
     ///
     /// .or_else(Expr)
     ///
-    OrElse(Expr),
+    OrElse([Expr; 1]),
     ///
     /// .map_err(Expr)
     ///
-    MapErr(Expr),
+    MapErr([Expr; 1]),
 }
 
 impl ToTokens for ErrExpr {
     fn to_tokens(&self, output: &mut TokenStream) {
         let tokens = match self {
-            Self::Or(expr) => {
+            Self::Or([expr]) => {
                 quote! { .or(#expr) }
             }
-            Self::OrElse(expr) => {
+            Self::OrElse([expr]) => {
                 quote! { .or_else(#expr) }
             }
-            Self::MapErr(expr) => {
+            Self::MapErr([expr]) => {
                 quote! { .map_err(#expr) }
             }
         };
@@ -50,25 +50,19 @@ impl ToTokens for ErrExpr {
 }
 
 impl InnerExpr for ErrExpr {
-    fn extract_inner(&self) -> Option<Vec<&Expr>> {
-        Some(vec![match self {
+    fn extract_inner(&self) -> Option<&[Expr]> {
+        Some(match self {
             Self::Or(expr) => expr,
             Self::OrElse(expr) => expr,
             Self::MapErr(expr) => expr,
-        }])
+        })
     }
 
-    fn replace_inner(&self, mut exprs: Vec<Expr>) -> Option<Self> {
-        exprs.pop().and_then(|expr| {
-            if exprs.is_empty() {
-                Some(match self {
-                    Self::Or(_) => Self::Or(expr),
-                    Self::OrElse(_) => Self::OrElse(expr),
-                    Self::MapErr(_) => Self::MapErr(expr),
-                })
-            } else {
-                None
-            }
+    fn replace_inner(self, exprs: &[Expr]) -> Option<Self> {
+        exprs.last().map(Clone::clone).map(|expr| match self {
+            Self::Or(_) => Self::Or([expr]),
+            Self::OrElse(_) => Self::OrElse([expr]),
+            Self::MapErr(_) => Self::MapErr([expr]),
         })
     }
 }
@@ -87,13 +81,13 @@ mod tests {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         for err_expr in vec![
-            ErrExpr::Or(expr.clone()),
-            ErrExpr::OrElse(expr.clone()),
-            ErrExpr::MapErr(expr.clone()),
+            ErrExpr::Or([expr.clone()]),
+            ErrExpr::OrElse([expr.clone()]),
+            ErrExpr::MapErr([expr.clone()]),
         ]
         .into_iter()
         {
-            assert_eq!(err_expr.extract_inner().clone(), Some(vec![&expr]));
+            assert_eq!(err_expr.extract_inner().clone(), Some(&[expr.clone()][..]));
         }
     }
 
@@ -103,19 +97,19 @@ mod tests {
         let replace_inner: Expr = parse_quote! { |v| 1 + v };
 
         for err_expr in vec![
-            ErrExpr::Or(expr.clone()),
-            ErrExpr::OrElse(expr.clone()),
-            ErrExpr::MapErr(expr.clone()),
+            ErrExpr::Or([expr.clone()]),
+            ErrExpr::OrElse([expr.clone()]),
+            ErrExpr::MapErr([expr.clone()]),
         ]
         .into_iter()
         {
             assert_eq!(
                 err_expr
-                    .replace_inner(vec![replace_inner.clone()])
+                    .replace_inner(&[replace_inner.clone()][..])
                     .unwrap()
                     .extract_inner()
                     .clone(),
-                Some(vec![&replace_inner])
+                Some(&[replace_inner.clone()][..])
             );
         }
     }
@@ -125,9 +119,9 @@ mod tests {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         for err_expr in vec![
-            ErrExpr::Or(expr.clone()),
-            ErrExpr::OrElse(expr.clone()),
-            ErrExpr::MapErr(expr.clone()),
+            ErrExpr::Or([expr.clone()]),
+            ErrExpr::OrElse([expr.clone()]),
+            ErrExpr::MapErr([expr.clone()]),
         ]
         .into_iter()
         {
@@ -140,13 +134,13 @@ mod tests {
             assert!(are_streams_equal(
                 token_stream,
                 match err_expr {
-                    ErrExpr::Or(expr) => {
+                    ErrExpr::Or([expr]) => {
                         quote! { .or(#expr) }
                     }
-                    ErrExpr::OrElse(expr) => {
+                    ErrExpr::OrElse([expr]) => {
                         quote! { .or_else(#expr) }
                     }
-                    ErrExpr::MapErr(expr) => {
+                    ErrExpr::MapErr([expr]) => {
                         quote! { .map_err(#expr) }
                     }
                 }

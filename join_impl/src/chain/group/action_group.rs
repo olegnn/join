@@ -2,20 +2,21 @@
 //! Definition of `ActionGroup`.
 //!
 
-use super::super::expr::{Action, ActionExpr, ApplyType, MoveType};
-use super::super::ActionExprChainGenerator;
-use super::super::{TransformParsed, Unit, UnitResult};
 use super::command_group::CommandGroup;
+use crate::chain::expr::{Action, ActionExpr, ApplicationType, MoveType};
+use crate::common::MapOver;
+use crate::parse::unit::ParseUnit;
+use crate::parse::unit::{Unit, UnitResult};
 use quote::quote;
 use syn::parse::ParseStream;
 
 ///
-/// `CommandGroup` with configuration. (`ApplyType` and `MoveType`).
+/// `CommandGroup` with configuration. (`ApplicationType` and `MoveType`).
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ActionGroup {
     pub group: CommandGroup,
-    pub apply_type: ApplyType,
+    pub application_type: ApplicationType,
     pub move_type: MoveType,
 }
 
@@ -23,25 +24,29 @@ impl ActionGroup {
     ///
     /// Creates new `ActionGroup` with provided configuration.
     ///
-    pub fn new(group: CommandGroup, apply_type: ApplyType, move_type: MoveType) -> Self {
+    pub fn new(
+        group: CommandGroup,
+        application_type: ApplicationType,
+        move_type: MoveType,
+    ) -> Self {
         Self {
             group,
-            apply_type,
+            application_type,
             move_type,
         }
     }
 
     ///
-    /// Parses `ParseStream` as `ActionExpr` using given `ActionExprChainGenerator`.
+    /// Parses `ParseStream` as `ActionExpr` using given `ParseUnit`.
     ///
     pub fn parse_stream(
         self,
-        action_expr_chain: &ActionExprChainGenerator,
+        action_expr_chain: &impl ParseUnit<ActionGroup>,
         input: ParseStream<'_>,
-    ) -> UnitResult<ActionExpr> {
+    ) -> UnitResult<ActionExpr, ActionGroup> {
         let Self {
             group,
-            apply_type,
+            application_type,
             move_type,
         } = self;
 
@@ -54,13 +59,16 @@ impl ActionGroup {
                         value.ok_or_else(|| input.error("This combinator can't be wrapper!"))
                     })
                     .and_then(|parsed| {
-                        let Unit {
-                            next_group_type, ..
-                        } = group.parse_empty_expr(action_expr_chain, input).unwrap()?;
+                        let Unit { next, .. } =
+                            group.parse_empty_expr(action_expr_chain, input).unwrap()?;
 
                         Ok(Unit {
-                            parsed: ActionExpr::Process(Action::new(parsed, apply_type, move_type)),
-                            next_group_type,
+                            parsed: ActionExpr::Process(Action::new(
+                                parsed,
+                                application_type,
+                                move_type,
+                            )),
+                            next,
                         })
                     })
             } else if group.is_err_expr() {
@@ -70,13 +78,16 @@ impl ActionGroup {
                         value.ok_or_else(|| input.error("This combinator can't be wrapper!"))
                     })
                     .and_then(|parsed| {
-                        let Unit {
-                            next_group_type, ..
-                        } = group.parse_empty_expr(action_expr_chain, input).unwrap()?;
+                        let Unit { next, .. } =
+                            group.parse_empty_expr(action_expr_chain, input).unwrap()?;
 
                         Ok(Unit {
-                            parsed: ActionExpr::Err(Action::new(parsed, apply_type, move_type)),
-                            next_group_type,
+                            parsed: ActionExpr::Err(Action::new(
+                                parsed,
+                                application_type,
+                                move_type,
+                            )),
+                            next,
                         })
                     })
             } else {
@@ -86,13 +97,13 @@ impl ActionGroup {
             }
         } else if group.is_process_expr() {
             group.parse_process_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (process). This is a bug, please report it.")
-                .transform_parsed(|parsed| ActionExpr::Process(Action::new(parsed, apply_type, move_type)))
+                .map_over(|parsed| ActionExpr::Process(Action::new(parsed, application_type, move_type)))
         } else if group.is_err_expr() {
             group.parse_err_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (err). This is a bug, please report it.")
-                .transform_parsed(|parsed| ActionExpr::Err(Action::new(parsed, apply_type, move_type)))
+                .map_over(|parsed| ActionExpr::Err(Action::new(parsed, application_type, move_type)))
         } else if group.is_initial_expr() {
             group.parse_initial_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (initial). This is a bug, please report it.")
-                .transform_parsed(|parsed| ActionExpr::Initial(Action::new(parsed, apply_type, move_type)))
+                .map_over(|parsed| ActionExpr::Initial(Action::new(parsed, application_type, move_type)))
         } else {
             unreachable!()
         }

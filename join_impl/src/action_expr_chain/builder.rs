@@ -1,32 +1,16 @@
-//!
-//! `ExprChain` definition and `ActionExprChain` implementation.
-//!
-
+use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
 use syn::Expr::Let;
-use syn::{Pat, PatIdent, Token};
+use syn::{Pat, Token};
 
-use super::expr::{ActionExpr, ApplyType, InnerExpr, MoveType};
-use super::*;
-use quote::ToTokens;
+use super::ActionExprChain;
+use crate::chain::expr::{ApplicationType, InnerExpr, MoveType};
+use crate::chain::group::{ActionGroup, CommandGroup, GroupDeterminer};
+use crate::chain::{Chain, ParseChain};
+use crate::parse::unit::{ParseUnit, Unit, UnitResult};
+use crate::parse::utils::{is_block_expr, parse_until};
 
-///
-/// Chain with members of type `Member` and optional `PatIdent` pat.
-///
-pub struct ExprChain<Member: Sized> {
-    members: Vec<Member>,
-    pat: Option<PatIdent>,
-}
-
-///
-/// `ExprChain` of `ActionExpr`.
-///
-pub type ActionExprChain = ExprChain<ActionExpr>;
-
-///
-/// Generator of `ActionExprChain`.
-///
-pub struct ActionExprChainGenerator<'a> {
+pub struct ActionExprChainBuilder<'a> {
     #[cfg(not(feature = "static"))]
     group_determiners: &'a [GroupDeterminer],
 
@@ -34,60 +18,62 @@ pub struct ActionExprChainGenerator<'a> {
     group_determiners: ::std::sync::Arc<&'a [GroupDeterminer]>,
 
     deferred_determiner: &'a GroupDeterminer,
-    wrap_determiner: &'a GroupDeterminer,
+    wrapper_determiner: &'a GroupDeterminer,
 }
 
-impl<'a> ActionExprChainGenerator<'a> {
+impl<'a> ActionExprChainBuilder<'a> {
     ///
-    /// Creates new `ActionExprChainGenerator` with given `GroupDeterminer`'s.
+    /// Creates new `ActionExprChainBuilderOutput` with given `GroupDeterminer`'s.
     ///
     #[cfg(not(feature = "static"))]
     pub fn new(
         group_determiners: &'a [GroupDeterminer],
         deferred_determiner: &'a GroupDeterminer,
-        wrap_determiner: &'a GroupDeterminer,
+        wrapper_determiner: &'a GroupDeterminer,
     ) -> Self {
         Self {
             group_determiners,
             deferred_determiner,
-            wrap_determiner,
+            wrapper_determiner,
         }
     }
 
     ///
-    /// Creates new `ActionExprChainGenerator` with given `GroupDeterminer`'s.
+    /// Creates new `ActionExprChainBuilderOutput` with given `GroupDeterminer`'s.
     ///
     #[cfg(feature = "static")]
     pub fn new(
         group_determiners: ::std::sync::Arc<&'a [GroupDeterminer]>,
         deferred_determiner: &'a GroupDeterminer,
-        wrap_determiner: &'a GroupDeterminer,
+        wrapper_determiner: &'a GroupDeterminer,
     ) -> Self {
         Self {
             group_determiners,
             deferred_determiner,
-            wrap_determiner,
+            wrapper_determiner,
         }
     }
+}
 
+impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
     ///
-    /// Constructs new `ActionExprChain` from input `ParseStream`.
+    /// Builds new `ActionExprChainBuilder` from input `ParseStream`.
     ///
-    pub fn from_parse_stream(&self, input: ParseStream) -> syn::Result<ActionExprChain> {
-        let mut chain = ExprChain {
-            members: Vec::new(),
-            pat: None,
-        };
-        let mut group_type =
-            ActionGroup::new(CommandGroup::Initial, ApplyType::Instant, MoveType::None);
+    fn build_from_parse_stream(&self, input: ParseStream<'_>) -> syn::Result<ActionExprChain> {
+        let mut chain = ActionExprChain::new(None, &[]);
+        let mut group_type = ActionGroup::new(
+            CommandGroup::Initial,
+            ApplicationType::Instant,
+            MoveType::None,
+        );
         let mut member_index = 0;
         let mut wrapper_count = 0i16;
 
         loop {
             let Unit {
                 parsed: mut action_expr,
-                next_group_type,
-            } = group_type.parse_stream(&self, input)?;
+                next,
+            } = group_type.parse_stream(self, input)?;
 
             if member_index == 0 {
                 // Because first expr is `Initial`
@@ -100,16 +86,17 @@ impl<'a> ActionExprChainGenerator<'a> {
                 // it with given branch
                 if let Let(let_expr) = exprs
                     .first()
+                    .map(Clone::clone)
                     .expect("join: Failed to extract first expr of initial expr. This's a bug, please report it.")
                 {
                     if let Pat::Ident(pat) = &let_expr.pat {
-                        chain.pat = Some(pat.clone());
+                        chain.set_id(Some(pat.clone()));
                     } else {
                         return Err(input.error("Incorrect `let` pattern"));
                     }
 
                     action_expr = action_expr
-                        .replace_inner(vec![*let_expr.expr.clone()])
+                        .replace_inner(&[*let_expr.expr.clone()])
                         .expect("join: Failed to replace initial expr. This's a bug, please report it.");
                 }
 
@@ -125,10 +112,10 @@ impl<'a> ActionExprChainGenerator<'a> {
                 }
             }
 
-            chain.members.push(action_expr);
+            chain.append_member(action_expr);
 
-            if let Some(next_group_type) = next_group_type {
-                wrapper_count += match next_group_type.move_type {
+            if let Some(next) = next {
+                wrapper_count += match next.move_type {
                     MoveType::Wrap => 1,
                     MoveType::Unwrap => -1,
                     _ => 0,
@@ -137,20 +124,23 @@ impl<'a> ActionExprChainGenerator<'a> {
                     break Err(input.error("Unexpected `<<<`"));
                 }
 
-                group_type = next_group_type;
+                group_type = next;
                 member_index += 1;
             } else {
-                break if chain.members.is_empty() {
+                break if chain.is_empty() {
                     Err(input.error("Chain can't be empty"))
                 } else {
                     if chain
-                        .members
+                        .get_members()
                         .last()
                         .expect("join: Failed to extract last `ActionExpr` member. This's a bug, please report it.")
                         .extract_inner()
-                        .unwrap_or_else(Vec::new)
-                        .last()
-                        .map(|&expr| is_block_expr(expr))
+                        .and_then(
+                            |val|
+                                val
+                                    .last()
+                        )
+                        .map(is_block_expr)
                         .unwrap_or(false)
                     {
                         input.parse::<Option<Token![,]>>()?;
@@ -162,40 +152,24 @@ impl<'a> ActionExprChainGenerator<'a> {
             }
         }
     }
+}
 
+impl<'a> ParseUnit<ActionGroup> for ActionExprChainBuilder<'a> {
     ///
     /// Parses unit using self `GroupDeterminer`'s to determine unit end.
     ///
-    pub fn parse_unit<T: Parse>(
+    fn parse_unit<T: Parse>(
         &self,
         input: ParseStream,
         allow_empty_parsed: bool,
-    ) -> UnitResult<T> {
+    ) -> UnitResult<T, ActionGroup> {
         parse_until(
             input,
             self.group_determiners.iter(),
             self.deferred_determiner,
-            self.wrap_determiner,
+            self.wrapper_determiner,
             allow_empty_parsed,
         )
-    }
-}
-
-///
-/// Implementation of `Chain` with `ActionExpr` members.
-///
-impl Chain for ActionExprChain
-where
-    Self: Sized,
-{
-    type Member = ActionExpr;
-
-    fn get_members(&self) -> &[Self::Member] {
-        &self.members
-    }
-
-    fn get_pat(&self) -> Option<&PatIdent> {
-        self.pat.as_ref()
     }
 }
 
@@ -205,21 +179,24 @@ mod tests {
     use super::super::super::join::parse::DEFAULT_GROUP_DETERMINERS;
     #[cfg(feature = "static")]
     use super::super::super::join::parse::DEFAULT_GROUP_DETERMINERS_STATIC as DEFAULT_GROUP_DETERMINERS;
-    use super::super::super::join::parse::{DEFERRED_DETERMINER, WRAP_DETERMINER};
-    use super::super::expr::{Action, ApplyType, ErrExpr, InitialExpr, MoveType, ProcessExpr};
+    use super::super::super::join::parse::{DEFERRED_DETERMINER, WRAPPER_DETERMINER};
     use super::*;
+    use crate::chain::expr::{
+        Action, ActionExpr, ApplicationType, ErrExpr, InitialExpr, MoveType, ProcessExpr,
+    };
     use ::quote::quote;
     use ::syn::parse::Parse;
     use ::syn::{parse2, parse_quote};
+    use syn::parse::ParseStream;
 
     impl Parse for ActionExprChain {
         fn parse(input: ParseStream) -> syn::Result<Self> {
-            let gen = ActionExprChainGenerator::new(
+            let builder = ActionExprChainBuilder::new(
                 DEFAULT_GROUP_DETERMINERS.clone(),
                 DEFERRED_DETERMINER,
-                WRAP_DETERMINER,
+                WRAPPER_DETERMINER,
             );
-            gen.from_parse_stream(input)
+            builder.build_from_parse_stream(input)
         }
     }
 
@@ -227,21 +204,21 @@ mod tests {
     fn it_parses_chain_from_3_process_expr() {
         let chain: ActionExprChain = parse_quote! { Ok(2) => |v| Ok(v + 1) |> |v| v + 2 };
         assert_eq!(chain.get_members().len(), 3);
-        assert!(chain.get_pat().is_none());
+        assert!(chain.get_id().is_none());
     }
 
     #[test]
     fn it_parses_chain_from_3_process_expr_and_1_err_expr() {
         let chain: ActionExprChain = parse_quote! { Ok(2) => |v| Ok(v + 1) |> |v| v + 2 <| Ok(2) };
         assert_eq!(chain.get_members().len(), 4);
-        assert!(chain.get_pat().is_none());
+        assert!(chain.get_id().is_none());
     }
 
     #[test]
     fn it_parses_chain_from_initial_expr() {
         let chain: ActionExprChain = parse_quote! { Ok(2) };
         assert_eq!(chain.get_members().len(), 1);
-        assert!(chain.get_pat().is_none());
+        assert!(chain.get_id().is_none());
     }
 
     #[test]
@@ -264,8 +241,8 @@ mod tests {
         assert_eq!(
             members[0],
             ActionExpr::Initial(Action::new(
-                InitialExpr(parse_quote! { Ok(2) }),
-                ApplyType::Instant,
+                InitialExpr([parse_quote! { Ok(2) }]),
+                ApplicationType::Instant,
                 MoveType::None
             ))
         );
@@ -273,8 +250,8 @@ mod tests {
         assert_eq!(
             members[1],
             ActionExpr::Process(Action::new(
-                ProcessExpr::AndThen(parse_quote! { |_| Ok(3) }),
-                ApplyType::Instant,
+                ProcessExpr::AndThen([parse_quote! { |_| Ok(3) }]),
+                ApplicationType::Instant,
                 MoveType::None
             ))
         );
@@ -282,8 +259,8 @@ mod tests {
         assert_eq!(
             members[2],
             ActionExpr::Process(Action::new(
-                ProcessExpr::Map(parse_quote! { |_| 4 }),
-                ApplyType::Instant,
+                ProcessExpr::Map([parse_quote! { |_| 4 }]),
+                ApplicationType::Instant,
                 MoveType::None
             ))
         );
@@ -291,8 +268,8 @@ mod tests {
         assert_eq!(
             members[3],
             ActionExpr::Err(Action::new(
-                ErrExpr::Or(parse_quote! { Ok(5) }),
-                ApplyType::Instant,
+                ErrExpr::Or([parse_quote! { Ok(5) }]),
+                ApplicationType::Instant,
                 MoveType::None
             ))
         );
@@ -300,8 +277,8 @@ mod tests {
         assert_eq!(
             members[4],
             ActionExpr::Process(Action::new(
-                ProcessExpr::AndThen(parse_quote! { |v| Ok(v) }),
-                ApplyType::Instant,
+                ProcessExpr::AndThen([parse_quote! { |v| Ok(v) }]),
+                ApplicationType::Instant,
                 MoveType::None
             ))
         );
@@ -309,8 +286,8 @@ mod tests {
         assert_eq!(
             members[5],
             ActionExpr::Err(Action::new(
-                ErrExpr::OrElse(parse_quote! { |_| Ok(8) }),
-                ApplyType::Instant,
+                ErrExpr::OrElse([parse_quote! { |_| Ok(8) }]),
+                ApplicationType::Instant,
                 MoveType::None
             ))
         );
@@ -318,8 +295,8 @@ mod tests {
         assert_eq!(
             members[6],
             ActionExpr::Process(Action::new(
-                ProcessExpr::Inspect(parse_quote! { |v| println!("{}", v) }),
-                ApplyType::Instant,
+                ProcessExpr::Inspect([parse_quote! { |v| println!("{}", v) }]),
+                ApplicationType::Instant,
                 MoveType::None
             ))
         );
@@ -327,8 +304,8 @@ mod tests {
         assert_eq!(
             members[7],
             ActionExpr::Process(Action::new(
-                ProcessExpr::Then(parse_quote! { |v| v }),
-                ApplyType::Instant,
+                ProcessExpr::Then([parse_quote! { |v| v }]),
+                ApplicationType::Instant,
                 MoveType::None
             ))
         );
@@ -349,8 +326,8 @@ mod tests {
         assert_eq!(
             members[0],
             ActionExpr::Initial(Action::new(
-                InitialExpr(parse_quote! { Ok(2) }),
-                ApplyType::Instant,
+                InitialExpr([parse_quote! { Ok(2) }]),
+                ApplicationType::Instant,
                 MoveType::None
             ))
         );
@@ -358,8 +335,8 @@ mod tests {
         assert_eq!(
             members[1],
             ActionExpr::Process(Action::new(
-                ProcessExpr::AndThen(parse_quote! { |_| Ok(3) }),
-                ApplyType::Deferred,
+                ProcessExpr::AndThen([parse_quote! { |_| Ok(3) }]),
+                ApplicationType::Deferred,
                 MoveType::None
             ))
         );
@@ -367,8 +344,8 @@ mod tests {
         assert_eq!(
             members[2],
             ActionExpr::Process(Action::new(
-                ProcessExpr::Map(parse_quote! { |_| 4 }),
-                ApplyType::Deferred,
+                ProcessExpr::Map([parse_quote! { |_| 4 }]),
+                ApplicationType::Deferred,
                 MoveType::None
             ))
         );
@@ -376,8 +353,8 @@ mod tests {
         assert_eq!(
             members[3],
             ActionExpr::Err(Action::new(
-                ErrExpr::Or(parse_quote! { Ok(5) }),
-                ApplyType::Deferred,
+                ErrExpr::Or([parse_quote! { Ok(5) }]),
+                ApplicationType::Deferred,
                 MoveType::None
             ))
         );
@@ -385,8 +362,8 @@ mod tests {
         assert_eq!(
             members[4],
             ActionExpr::Process(Action::new(
-                ProcessExpr::AndThen(parse_quote! { |v| Ok(v) }),
-                ApplyType::Deferred,
+                ProcessExpr::AndThen([parse_quote! { |v| Ok(v) }]),
+                ApplicationType::Deferred,
                 MoveType::None
             ))
         );
@@ -394,8 +371,8 @@ mod tests {
         assert_eq!(
             members[5],
             ActionExpr::Err(Action::new(
-                ErrExpr::OrElse(parse_quote! { |_| Ok(8) }),
-                ApplyType::Deferred,
+                ErrExpr::OrElse([parse_quote! { |_| Ok(8) }]),
+                ApplicationType::Deferred,
                 MoveType::None
             ))
         );
@@ -403,8 +380,8 @@ mod tests {
         assert_eq!(
             members[6],
             ActionExpr::Process(Action::new(
-                ProcessExpr::Inspect(parse_quote! { |v| println!("{}", v) }),
-                ApplyType::Deferred,
+                ProcessExpr::Inspect([parse_quote! { |v| println!("{}", v) }]),
+                ApplicationType::Deferred,
                 MoveType::None
             ))
         );
@@ -412,8 +389,8 @@ mod tests {
         assert_eq!(
             members[7],
             ActionExpr::Process(Action::new(
-                ProcessExpr::Then(parse_quote! { |v| v }),
-                ApplyType::Deferred,
+                ProcessExpr::Then([parse_quote! { |v| v }]),
+                ApplicationType::Deferred,
                 MoveType::None
             ))
         );

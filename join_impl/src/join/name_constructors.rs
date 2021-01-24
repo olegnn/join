@@ -9,27 +9,27 @@ use quote::format_ident;
 /// Constructs name for variable with given index.
 ///
 pub fn construct_var_name(index: impl Into<usize>) -> Ident {
-    format_ident!("__value_{}", index.into() as u16)
+    format_ident!("__v{}", index.into() as u16)
 }
 ///
 /// Constructs step result name using given index.
 ///
 pub fn construct_step_results_name(index: impl Into<usize>) -> Ident {
-    format_ident!("__step_{}_results", index.into() as u16)
+    format_ident!("__sr{}", index.into() as u16)
 }
 
 ///
 /// Constructs result name with given index.
 ///
 pub fn construct_result_name(index: impl Into<usize>) -> Ident {
-    format_ident!("__result_{}", index.into() as u16)
+    format_ident!("__r{}", index.into() as u16)
 }
 
 ///
 /// Constructs thread builder name with given index.
 ///
 pub fn construct_thread_builder_name(index: impl Into<usize>) -> Ident {
-    format_ident!("__join_thread_builder_{}", index.into() as u16)
+    format_ident!("__j{}", index.into() as u16)
 }
 
 ///
@@ -50,21 +50,21 @@ pub fn construct_spawn_tokio_fn_name() -> Ident {
 /// Constructs results name.
 ///
 pub fn construct_results_name() -> Ident {
-    Ident::new("__results", Span::call_site())
+    Ident::new("__rs", Span::call_site())
 }
 
 ///
 /// Constructs handler name.
 ///
 pub fn construct_handler_name() -> Ident {
-    Ident::new("__handler", Span::call_site())
+    Ident::new("__h", Span::call_site())
 }
 
 ///
 /// Constructs internal value name with no index.
 ///
 pub fn construct_internal_value_name() -> Ident {
-    Ident::new("__value", Span::call_site())
+    Ident::new("__v", Span::call_site())
 }
 
 ///
@@ -76,7 +76,7 @@ pub fn construct_expr_wrapper_name(
     internal_index: impl Into<usize>,
 ) -> Ident {
     format_ident!(
-        "__expr_wrapper_{}_{}_{}",
+        "__ew{}{}{}",
         index.into() as u16,
         expr_index.into() as u16,
         internal_index.into() as u16
@@ -139,5 +139,5 @@ pub fn construct_expr_wrapper_name(
 /// ```
 ///
 pub fn construct_thread_builder_fn_name() -> Ident {
-    Ident::new("__construct_thread_builder", Span::call_site())
+    Ident::new("__tb", Span::call_site())
 }

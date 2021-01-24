@@ -1,6 +1,6 @@
 [package]
 name = "join"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 license = "MIT"
 description = """
@@ -16,20 +16,20 @@ categories = ["asynchronous", "rust-patterns", "concurrency"]
 
 [lib]
 name = "join"
+proc-macro = true
 
 [features]
-full = ["join_export/full"]
+full = ["join_impl/full"]
 
 [dependencies]
-proc-macro-hack = "0.5.10"
-proc-macro-nested = "0.1.3"
-join_export = { path = "../join_export", version = "0.1.1" }
+join_impl = { path = "../join_impl", version = "0.2.0" }
+syn = { version = "1.0", features = ["full", "extra-traits"] }
 
 [dev-dependencies]
-futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
-tokio = "0.2.0-alpha.6"
+futures = "0.3.0"
+tokio = { version = "1.0.1", features = ["full"] }
 failure = "0.1.6"
 futures-timer = "0.4.0"
-reqwest = "0.10.0-alpha.2"
+reqwest = "0.11.0"
 rand = "0.7.2"
 rayon = "1.2.1"

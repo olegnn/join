@@ -5,12 +5,12 @@
 use proc_macro2::TokenStream;
 use syn::parse::Parse;
 use syn::parse::ParseStream;
-use syn::parse2;
-use syn::Token;
+use syn::{parse2, Token};
 
-use super::super::super::expr_chain::ActionExprChainGenerator;
-use super::super::expr::{ErrExpr, InitialExpr, ProcessExpr};
-use super::super::{TransformParsed, Unit, UnitResult};
+use crate::chain::expr::{ErrExpr, InitialExpr, ProcessExpr};
+use crate::chain::group::ActionGroup;
+use crate::common::MapOver;
+use crate::parse::unit::{ParseUnit, Unit, UnitResult};
 
 ///
 /// `CommandGroup` is an enum of all possible `ProcessExpr`, `ErrExpr` and `InitialExpr` operations.
@@ -241,71 +241,68 @@ fn to_some<T>(v: T) -> Option<T> {
 }
 
 fn parse_empty_unit(
-    action_expr_chain_gen: &ActionExprChainGenerator,
+    action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
     input: ParseStream<'_>,
-) -> UnitResult<Empty> {
+) -> UnitResult<Empty, ActionGroup> {
     action_expr_chain_gen.parse_unit(input, true)
 }
 
-fn parse_single_unit<ParseUnit: Parse, ResultExpr>(
-    to_expr: fn(ParseUnit) -> ResultExpr,
-    action_expr_chain_gen: &ActionExprChainGenerator,
+fn parse_single_unit<P: Parse, ResultExpr>(
+    to_expr: fn(P) -> ResultExpr,
+    action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
     input: ParseStream<'_>,
-) -> UnitResult<ResultExpr> {
+) -> UnitResult<ResultExpr, ActionGroup> {
     action_expr_chain_gen
-        .parse_unit(input, false)
-        .transform_parsed(to_expr)
+        .parse_unit::<P>(input, false)
+        .map_over(to_expr)
 }
 
-fn parse_single_or_empty_unit<ParseUnit: Parse, ResultExpr>(
-    to_expr: fn(Option<ParseUnit>) -> ResultExpr,
-    action_expr_chain_gen: &ActionExprChainGenerator,
+fn parse_single_or_empty_unit<P: Parse, ResultExpr>(
+    to_expr: fn(Option<P>) -> ResultExpr,
+    action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
     input: ParseStream<'_>,
-) -> UnitResult<ResultExpr> {
+) -> UnitResult<ResultExpr, ActionGroup> {
     action_expr_chain_gen
         .parse_unit::<Empty>(&input.fork(), true)
         .and_then(|_| action_expr_chain_gen.parse_unit::<Empty>(&input, true))
-        .transform_parsed(to_none)
+        .map_over(to_none)
         .or_else(|_| {
             action_expr_chain_gen
-                .parse_unit::<ParseUnit>(input, false)
-                .transform_parsed(to_some)
+                .parse_unit::<P>(input, false)
+                .map_over(to_some)
         })
-        .transform_parsed(to_expr)
+        .map_over(to_expr)
 }
 
-fn parse_double_unit<ParseUnit: Parse, ParseUnit2: Parse, ResultExpr>(
-    to_expr: fn((ParseUnit, ParseUnit2)) -> ResultExpr,
-    action_expr_chain_gen: &ActionExprChainGenerator,
+fn parse_double_unit<P: Parse, P2: Parse, ResultExpr>(
+    to_expr: fn((P, P2)) -> ResultExpr,
+    action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
     input: ParseStream<'_>,
-) -> UnitResult<ResultExpr> {
-    action_expr_chain_gen.parse_unit(input, false).and_then(
-        |Unit {
-             parsed,
-             next_group_type,
-         }| {
-            if next_group_type.is_some() {
+) -> UnitResult<ResultExpr, ActionGroup> {
+    action_expr_chain_gen
+        .parse_unit(input, false)
+        .and_then(|Unit { parsed, next }| {
+            if next.is_some() {
                 Err(input.error("Expected 2 expressions, found group identifier!"))
             } else {
                 input.parse::<syn::Token![,]>()?;
                 action_expr_chain_gen
                     .parse_unit(input, false)
-                    .transform_parsed(|parsed2| to_expr((parsed, parsed2)))
+                    .map_over(|parsed2| to_expr((parsed, parsed2)))
             }
-        },
-    )
+        })
 }
 
 macro_rules! from_empty_unit {
     ($create_expr: path, $action_expr_chain_gen: expr, $input: expr) => {
-        Some(parse_empty_unit($action_expr_chain_gen, $input).transform_parsed(|_| $create_expr))
+        Some(parse_empty_unit($action_expr_chain_gen, $input).map_over(|_| $create_expr))
     };
 }
 
 macro_rules! from_single_unit {
     ($create_expr: path, $action_expr_chain_gen: expr, $input: expr) => {
         Some(parse_single_unit(
-            $create_expr,
+            |expr| $create_expr([expr]),
             $action_expr_chain_gen,
             $input,
         ))
@@ -368,25 +365,25 @@ macro_rules! define_args {
 
 macro_rules! from_n_or_empty_unit {
     ($create_expr: path, $action_expr_chain_gen: expr, $input: expr, $unit_count: tt) => {{
-        fn parse_n_or_empty_unit<ParseUnit: Parse, ResultExpr>(
-            to_expr: fn(Option<define_args!($unit_count, ParseUnit)>) -> ResultExpr,
-            action_expr_chain_gen: &ActionExprChainGenerator,
+        fn parse_n_or_empty_unit<P: Parse, ResultExpr>(
+            to_expr: fn(Option<define_args!($unit_count, P)>) -> ResultExpr,
+            action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
             input: ParseStream<'_>
-        ) -> UnitResult<ResultExpr> {
+        ) -> UnitResult<ResultExpr, ActionGroup> {
             let unit_count = $unit_count;
             action_expr_chain_gen
                 .parse_unit::<Empty>(&input.fork(), true)
                 .and_then(|_| action_expr_chain_gen.parse_unit::<Empty>(&input, true))
-                .transform_parsed(to_none)
+                .map_over(to_none)
                 .or_else(|_| {
                     (0..unit_count)
                         .map(|index| {
                             action_expr_chain_gen
-                                .parse_unit::<ParseUnit>(input, false)
+                                .parse_unit::<P>(input, false)
                                 .and_then(|unit| {
                                     if index + 1 < unit_count {
                                         input.parse::<Token![,]>().and_then(|_| {
-                                            if unit.next_group_type.is_none() {
+                                            if unit.next.is_none() {
                                                 Ok(unit)
                                             } else {
                                                 Err(input.error(&format!(
@@ -403,19 +400,19 @@ macro_rules! from_n_or_empty_unit {
                         .try_fold(
                             Unit {
                                 parsed: Some(Vec::with_capacity(unit_count)),
-                                next_group_type: None,
+                                next: None,
                             },
                             |mut acc, unit| {
                                 unit.map(|unit| {
                                     acc.parsed.as_mut().unwrap().push(unit.parsed);
-                                    acc.next_group_type = unit.next_group_type;
+                                    acc.next = unit.next;
                                     acc
                                 })
                             },
                         )
                 })
-                .transform_parsed(|parsed| parsed.map(|parsed_vec| iter_to_tuple!($unit_count, parsed_vec.into_iter())))
-                .transform_parsed(to_expr)
+                .map_over(|parsed| parsed.map(|parsed_vec| iter_to_tuple!($unit_count, parsed_vec.into_iter())))
+                .map_over(to_expr)
         }
 
         Some(parse_n_or_empty_unit(
@@ -429,7 +426,7 @@ macro_rules! from_n_or_empty_unit {
 macro_rules! from_double_unit {
     ($create_expr: path, $action_expr_chain_gen: expr, $input: expr) => {
         Some(parse_double_unit(
-            $create_expr,
+            |(expr1, expr2)| $create_expr([expr1, expr2]),
             $action_expr_chain_gen,
             $input,
         ))
@@ -494,17 +491,17 @@ impl CommandGroup {
     // TODO: implement for full list of process expr.
     pub fn to_process_expr(self, tokens: TokenStream) -> syn::Result<Option<ProcessExpr>> {
         Ok(Some(match self {
-            Self::Map => ProcessExpr::Map(parse2(tokens)?),
-            Self::AndThen => ProcessExpr::AndThen(parse2(tokens)?),
-            Self::Filter => ProcessExpr::Filter(parse2(tokens)?),
-            Self::Then => ProcessExpr::Then(parse2(tokens)?),
-            Self::Inspect => ProcessExpr::Inspect(parse2(tokens)?),
-            Self::Chain => ProcessExpr::Chain(parse2(tokens)?),
-            Self::FilterMap => ProcessExpr::FilterMap(parse2(tokens)?),
-            Self::Find => ProcessExpr::Find(parse2(tokens)?),
-            Self::FindMap => ProcessExpr::FindMap(parse2(tokens)?),
-            Self::Partition => ProcessExpr::Partition(parse2(tokens)?),
-            Self::Zip => ProcessExpr::Zip(parse2(tokens)?),
+            Self::Map => ProcessExpr::Map([parse2(tokens)?]),
+            Self::AndThen => ProcessExpr::AndThen([parse2(tokens)?]),
+            Self::Filter => ProcessExpr::Filter([parse2(tokens)?]),
+            Self::Then => ProcessExpr::Then([parse2(tokens)?]),
+            Self::Inspect => ProcessExpr::Inspect([parse2(tokens)?]),
+            Self::Chain => ProcessExpr::Chain([parse2(tokens)?]),
+            Self::FilterMap => ProcessExpr::FilterMap([parse2(tokens)?]),
+            Self::Find => ProcessExpr::Find([parse2(tokens)?]),
+            Self::FindMap => ProcessExpr::FindMap([parse2(tokens)?]),
+            Self::Partition => ProcessExpr::Partition([parse2(tokens)?]),
+            Self::Zip => ProcessExpr::Zip([parse2(tokens)?]),
             _ => {
                 return Ok(None);
             }
@@ -516,9 +513,9 @@ impl CommandGroup {
     ///
     pub fn to_err_expr(self, tokens: TokenStream) -> syn::Result<Option<ErrExpr>> {
         Ok(Some(match self {
-            Self::Or => ErrExpr::Or(parse2(tokens)?),
-            Self::OrElse => ErrExpr::OrElse(parse2(tokens)?),
-            Self::MapErr => ErrExpr::MapErr(parse2(tokens)?),
+            Self::Or => ErrExpr::Or([parse2(tokens)?]),
+            Self::OrElse => ErrExpr::OrElse([parse2(tokens)?]),
+            Self::MapErr => ErrExpr::MapErr([parse2(tokens)?]),
             _ => {
                 return Ok(None);
             }
@@ -530,7 +527,7 @@ impl CommandGroup {
     ///
     pub fn to_initial_expr(self, tokens: TokenStream) -> syn::Result<Option<InitialExpr>> {
         Ok(match self {
-            Self::Initial => Some(InitialExpr(parse2(tokens)?)),
+            Self::Initial => Some(InitialExpr([parse2(tokens)?])),
             _ => None,
         })
     }
@@ -541,9 +538,9 @@ impl CommandGroup {
     #[cfg(not(feature = "full"))]
     pub fn parse_process_expr(
         self,
-        action_expr_chain_gen: &ActionExprChainGenerator,
+        action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
         input: ParseStream,
-    ) -> Option<UnitResult<ProcessExpr>> {
+    ) -> Option<UnitResult<ProcessExpr, ActionGroup>> {
         match self {
             Self::Map => from_single_unit!(ProcessExpr::Map, action_expr_chain_gen, input),
             Self::AndThen => from_single_unit!(ProcessExpr::AndThen, action_expr_chain_gen, input),
@@ -584,9 +581,9 @@ impl CommandGroup {
     #[cfg(feature = "full")]
     pub fn parse_process_expr(
         self,
-        action_expr_chain_gen: &ActionExprChainGenerator,
+        action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
         input: ParseStream,
-    ) -> Option<UnitResult<ProcessExpr>> {
+    ) -> Option<UnitResult<ProcessExpr, ActionGroup>> {
         match self {
             Self::Map => from_single_unit!(ProcessExpr::Map, action_expr_chain_gen, input),
             Self::AndThen => from_single_unit!(ProcessExpr::AndThen, action_expr_chain_gen, input),
@@ -695,9 +692,9 @@ impl CommandGroup {
     ///
     pub fn parse_err_expr(
         self,
-        action_expr_chain_gen: &ActionExprChainGenerator,
+        action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
         input: ParseStream,
-    ) -> Option<UnitResult<ErrExpr>> {
+    ) -> Option<UnitResult<ErrExpr, ActionGroup>> {
         match self {
             Self::Or => from_single_unit!(ErrExpr::Or, action_expr_chain_gen, input),
             Self::OrElse => from_single_unit!(ErrExpr::OrElse, action_expr_chain_gen, input),
@@ -711,9 +708,9 @@ impl CommandGroup {
     ///
     pub fn parse_initial_expr(
         self,
-        action_expr_chain_gen: &ActionExprChainGenerator,
+        action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
         input: ParseStream,
-    ) -> Option<UnitResult<InitialExpr>> {
+    ) -> Option<UnitResult<InitialExpr, ActionGroup>> {
         match self {
             Self::Initial => from_single_unit!(InitialExpr, action_expr_chain_gen, input),
             _ => None,
@@ -725,9 +722,9 @@ impl CommandGroup {
     ///
     pub fn parse_empty_expr(
         self,
-        action_expr_chain_gen: &ActionExprChainGenerator,
+        action_expr_chain_gen: &impl ParseUnit<ActionGroup>,
         input: ParseStream,
-    ) -> Option<UnitResult<Empty>> {
+    ) -> Option<UnitResult<Empty, ActionGroup>> {
         Some(parse_empty_unit(action_expr_chain_gen, input))
     }
 }

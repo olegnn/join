@@ -2,7 +2,7 @@
 //! Definition of `GroupDeterminer` and related macros.
 //!
 
-use super::super::utils::is_valid_stream;
+use crate::parse::utils::is_valid_stream;
 use proc_macro2::{TokenStream, TokenTree};
 use syn::parse::{Parse, ParseStream};
 
@@ -41,10 +41,10 @@ macro_rules! define_group_determiners {
             $crate::define_determiner_with_no_group!(Token![,] => 0),
             $(
                 $crate::define_group_determiner!(
-                    $crate::expr_chain::group::CommandGroup::$group_type => $($token),+ => $length
+                    $crate::chain::group::CommandGroup::$group_type => $($token),+ => $length
                 )
             ),*,
-            $crate::expr_chain::group::GroupDeterminer::new_const(
+            $crate::chain::group::GroupDeterminer::new_const(
                 None,
                 $crate::handler::Handler::peek_handler as *const (),
                 true,
@@ -61,7 +61,7 @@ macro_rules! define_group_determiners {
 macro_rules! define_determiner_with_no_group {
     ($($token: expr),+ => $length: expr) => {{
         let check_tokens = $crate::define_tokens_checker!($($token),+);
-        $crate::expr_chain::group::GroupDeterminer::new_const(
+        $crate::chain::group::GroupDeterminer::new_const(
             None,
             check_tokens as *const (),
             true,
@@ -95,7 +95,7 @@ macro_rules! define_tokens_checker {
         fn check_tokens(input: ::syn::parse::ParseStream<'_>) -> bool {
             let input = input.fork();
             $(
-                input.peek($token) && $crate::expr_chain::utils::skip(&input)
+                input.peek($token) && $crate::parse::utils::skip(&input)
             )&&+
         }
         check_tokens
@@ -107,7 +107,7 @@ macro_rules! define_tokens_checker {
 ///
 /// # Example:
 /// ```
-/// use join_impl::expr_chain::group::CommandGroup;
+/// use join_impl::chain::group::CommandGroup;
 /// use join_impl::define_group_determiner;
 /// use syn::Token;
 ///
@@ -118,7 +118,7 @@ macro_rules! define_tokens_checker {
 macro_rules! define_group_determiner {
     ($group_type: expr => $($tokens: expr),+ => $length: expr => $validate_parsed: expr) => {{
         let check_tokens = $crate::define_tokens_checker!($($tokens),*);
-        $crate::expr_chain::group::GroupDeterminer::new_const(
+        $crate::chain::group::GroupDeterminer::new_const(
             Some($group_type),
             check_tokens as *const (),
             $validate_parsed,
@@ -143,7 +143,7 @@ impl GroupDeterminer {
     ///
     /// use syn::Token;
     /// use syn::parse::ParseStream;
-    /// use join_impl::expr_chain::group::GroupDeterminer;
+    /// use join_impl::chain::group::GroupDeterminer;
     ///
     /// fn check_input(input: ParseStream) -> bool { input.peek(Token![,]) }
     ///
@@ -181,7 +181,7 @@ impl GroupDeterminer {
     ///
     /// use syn::Token;
     /// use syn::parse::ParseStream;
-    /// use join_impl::expr_chain::group::GroupDeterminer;
+    /// use join_impl::chain::group::GroupDeterminer;
     ///
     /// fn check_input(input: ParseStream) -> bool { input.peek(Token![,]) }
     ///

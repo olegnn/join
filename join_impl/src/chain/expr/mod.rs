@@ -26,13 +26,13 @@ where
     ///
     /// Extracts `Expr`(s) from given value if applicable.
     ///
-    fn extract_inner(&self) -> Option<Vec<&Expr>>;
+    fn extract_inner(&self) -> Option<&[Expr]>;
 
     ///
     /// Replaces current expr by given `Expr` if it's possible, returning Some(`Self`) with given `Expr`(s),
     /// otherwise returns `None`.
     ///
-    fn replace_inner(&self, expr: Vec<Expr>) -> Option<Self>;
+    fn replace_inner(self, expr: &[Expr]) -> Option<Self>;
 
     ///
     /// Checks if expr can be replaced.

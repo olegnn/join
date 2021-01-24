@@ -487,8 +487,6 @@
 //! - `lazy_branches` - wrap every branch into `move || {}` when pass values to joiner. By default `true` for `try_join_spawn!`, `try_spawn!` and `join_spawn!` , `spawn!` macros because they use `thread::spawn` call. Only if active branch count > 1.
 //!
 //! ```rust
-//! #![recursion_limit="256"]
-//!
 //! use join::try_join_async;
 //! use futures::future::ok;
 //!
@@ -515,8 +513,6 @@
 //! *Rayon demo*
 //!
 //! ```rust
-//! #![recursion_limit="256"]
-//!
 //! use join::{try_join, join};
 //!
 //! fn fib(num: u8) -> usize {
@@ -699,8 +695,6 @@
 //!
 //!
 //! ```rust
-//! #![recursion_limit="256"]
-//!
 //! extern crate rand;
 //! extern crate join;
 //!
@@ -912,34 +906,25 @@
 //! }
 //!
 //! async fn read_number_from_stdin() -> u16 {
-//!     use tokio::*;
-//!     use futures::stream::StreamExt;
-//!     
-//!     let map_parse_error = |error, value| format_err!("Value from stdin isn't a correct `u16`: {:?}, input: {}", error, value);
+//!     use tokio::io::{stdin, BufReader, Error, ErrorKind, AsyncBufReadExt};
+//!
+//!     let mut reader = BufReader::new(stdin()).lines();
 //!
 //!     # return 25;
 //!
-//!     let mut reader = codec::FramedRead::new(io::BufReader::new(io::stdin()), codec::LinesCodec::new());
-//!
 //!     loop {
 //!         println!("Please, enter number (`u16`)");
-//!
-//!         let next = reader.next();
+//!         let next = reader.next_line();
 //!     
 //!         let result = try_join_async! {
 //!             next
-//!                 |> >>>
-//!                     ..ok_or(format_err!("Unexpected end of input"))
-//!                     => >>> !> |err| format_err!("Failed to apply codec: {:#?}", err)
-//!                     <<<
-//!                 <<<
-//!                 => |value|
-//!                     ready(
-//!                         value
-//!                             .parse()
-//!                             .map_err(|err| map_parse_error(err, value))
-//!                     )
-//!                 !> |error| { eprintln!("Error: {:#?}", error); error}
+//!                 => >>>
+//!                    ..ok_or(Error::new(ErrorKind::Other, "Failed to read value from stdin"))
+//!                    => >>>
+//!                        ..parse()
+//!                        !> |err| Error::new(ErrorKind::Other, format!("Value from stdin isn't a correct `u16`: {:?}", err))
+//!                    <<<
+//!                    -> ready              
 //!         }.await;
 //!
 //!         if let Ok(value) = result {
@@ -995,8 +980,6 @@
 //! Each branch will represent future chain. All branches will be joined using `::futures::join!`/`::futures::try_join!` macro and `join_async!`/`try_join_async!` will return `unpolled` future.
 //!
 //! ```rust
-//! #![recursion_limit="256"]
-//!
 //! use std::error::Error;
 //! use join::try_join_async;
 //! use futures::future::{ok, err};
@@ -1125,8 +1108,6 @@
 //! [`join_async_spawn!`](macro.join_async_spawn.html) uses [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) function to spawn futures so it should be done inside `tokio` runtime.
 //!
 //! ```rust
-//! #![recursion_limit="256"]
-//!
 //! use std::error::Error;
 //! use join::try_join_async_spawn;
 //! use futures::future::{ok, err};
@@ -1169,8 +1150,6 @@
 //! By separating chain in actions, you will make actions wait for completion of all of them in current step before go to the next step.
 //!
 //! ```rust
-//! #![recursion_limit="256"]
-//!
 //! use std::error::Error;
 //! use join::try_join;
 //!
@@ -1217,11 +1196,15 @@
 //! ```
 #![allow(clippy::needless_doctest_main)]
 
-extern crate join_export;
-extern crate proc_macro_hack;
-extern crate proc_macro_nested;
+extern crate join_impl;
+extern crate syn;
 
-use proc_macro_hack::proc_macro_hack;
+use join_impl::{generate_join, Config, JoinInputDefault};
+use proc_macro::TokenStream;
+
+fn join_impl(join: JoinInputDefault, config: Config) -> TokenStream {
+    TokenStream::from(generate_join(&join, config))
+}
 
 ///
 /// Use to combine results. It transposes tuple of `Result`s/`Option`s into `Result`/`Option` of tuple or single `Result`/`Option` in
@@ -1243,8 +1226,19 @@ use proc_macro_hack::proc_macro_hack;
 /// assert_eq!(product, 48);
 /// ```
 ///
-#[proc_macro_hack(support_nested)]
-pub use join_export::try_join;
+#[proc_macro]
+pub fn try_join(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: false,
+            is_spawn: false,
+            is_try: true,
+        },
+    )
+}
 
 ///
 /// Use to combine futures. It transposes tuple of `Result`s into `Result` of tuple or single `Result` in
@@ -1273,8 +1267,19 @@ pub use join_export::try_join;
 /// }
 /// ```
 ///
-#[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use join_export::try_join_async;
+#[proc_macro]
+pub fn try_join_async(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: true,
+            is_spawn: false,
+            is_try: true,
+        },
+    )
+}
 
 ///
 /// Use to spawn [`::std::thread`](https://doc.rust-lang.org/std/thread/) per each step of each branch. It transposes
@@ -1303,14 +1308,36 @@ pub use join_export::try_join_async;
 ///
 /// assert_eq!(product, 48);
 ///```
-#[proc_macro_hack(support_nested)]
-pub use join_export::try_join_spawn;
+#[proc_macro]
+pub fn try_join_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: false,
+            is_spawn: true,
+            is_try: true,
+        },
+    )
+}
 
 ///
 /// Alias for [`try_join_spawn!`](macro.try_join_spawn.html).
 ///
-#[proc_macro_hack(support_nested)]
-pub use join_export::try_spawn;
+#[proc_macro]
+pub fn try_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: false,
+            is_spawn: true,
+            is_try: true,
+        },
+    )
+}
 
 ///
 /// Use to spawn [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each step of each branch.
@@ -1351,14 +1378,36 @@ pub use join_export::try_spawn;
 ///     assert_eq!(product, 48);
 /// }
 ///```
-#[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use join_export::try_join_async_spawn;
+#[proc_macro]
+pub fn try_join_async_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: true,
+            is_spawn: true,
+            is_try: true,
+        },
+    )
+}
 
 ///
 /// Alias for [`try_join_async_spawn!`](macro.try_join_async_spawn.html).
 ///
-#[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use join_export::try_async_spawn;
+#[proc_macro]
+pub fn try_async_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: true,
+            is_spawn: true,
+            is_try: true,
+        },
+    )
+}
 
 ///
 /// Use to combine sync values. It produces tuple of values or single value in case of 1 branch.
@@ -1373,8 +1422,19 @@ pub use join_export::try_async_spawn;
 /// assert_eq!(filtered, vec![2]);
 /// ```
 ///
-#[proc_macro_hack(support_nested)]
-pub use join_export::join;
+#[proc_macro]
+pub fn join(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: false,
+            is_spawn: false,
+            is_try: false,
+        },
+    )
+}
 
 ///
 /// Use to combine futures. It produces tuple of values or single value in case of 1 branch.
@@ -1397,8 +1457,19 @@ pub use join_export::join;
 /// }
 /// ```
 ///
-#[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use join_export::join_async;
+#[proc_macro]
+pub fn join_async(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: true,
+            is_spawn: false,
+            is_try: false,
+        },
+    )
+}
 
 ///
 /// Use to spawn [`::std::thread`](https://doc.rust-lang.org/std/thread/) per each step of each branch.
@@ -1413,14 +1484,36 @@ pub use join_export::join_async;
 /// let filtered: Vec<_> = join_spawn! { vec![1,2,3].into_iter() ?> |v| v % 2 == 0 =>[] };
 /// assert_eq!(filtered, vec![2]);
 ///```
-#[proc_macro_hack(support_nested)]
-pub use join_export::join_spawn;
+#[proc_macro]
+pub fn join_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: false,
+            is_spawn: true,
+            is_try: false,
+        },
+    )
+}
 
 ///
 /// Alias for [`join_spawn!`](macro.join_spawn.html).
 ///
-#[proc_macro_hack(support_nested)]
-pub use join_export::spawn;
+#[proc_macro]
+pub fn spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: false,
+            is_spawn: true,
+            is_try: false,
+        },
+    )
+}
 
 ///
 /// Use to spawn futures using [`::tokio::spawn`](https://docs.rs/tokio/0.2.0-alpha.6/tokio/fn.spawn.html) per each step of each branch.
@@ -1443,11 +1536,33 @@ pub use join_export::spawn;
 ///     assert_eq!(filtered, vec![2]);
 /// }
 ///```
-#[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use join_export::join_async_spawn;
+#[proc_macro]
+pub fn join_async_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: true,
+            is_spawn: true,
+            is_try: false,
+        },
+    )
+}
 
 ///
 /// Alias for [`join_async_spawn!`](macro.join_async_spawn.html).
 ///
-#[proc_macro_hack(support_nested, internal_macro_calls = 20)]
-pub use join_export::async_spawn;
+#[proc_macro]
+pub fn async_spawn(input: TokenStream) -> TokenStream {
+    let parsed = syn::parse_macro_input!(input as JoinInputDefault);
+
+    join_impl(
+        parsed,
+        Config {
+            is_async: true,
+            is_spawn: true,
+            is_try: false,
+        },
+    )
+}

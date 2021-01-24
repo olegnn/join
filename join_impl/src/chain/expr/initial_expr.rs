@@ -12,7 +12,7 @@ use super::InnerExpr;
 /// `InitialExpr` used to define initial expression.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct InitialExpr(pub Expr);
+pub struct InitialExpr(pub [Expr; 1]);
 
 impl ToTokens for InitialExpr {
     fn to_tokens(&self, output: &mut TokenStream) {
@@ -29,18 +29,12 @@ impl ToTokens for InitialExpr {
 }
 
 impl InnerExpr for InitialExpr {
-    fn extract_inner(&self) -> Option<Vec<&Expr>> {
-        Some(vec![&self.0])
+    fn extract_inner(&self) -> Option<&[Expr]> {
+        Some(&self.0)
     }
 
-    fn replace_inner(&self, mut exprs: Vec<Expr>) -> Option<Self> {
-        exprs.pop().and_then(|expr| {
-            if exprs.is_empty() {
-                Some(Self(expr))
-            } else {
-                None
-            }
-        })
+    fn replace_inner(self, exprs: &[Expr]) -> Option<Self> {
+        exprs.last().map(Clone::clone).map(|expr| Self([expr]))
     }
 }
 
@@ -58,8 +52,8 @@ mod tests {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         assert_eq!(
-            InitialExpr(expr.clone()).extract_inner().clone(),
-            Some(vec![&expr])
+            InitialExpr([expr.clone()]).extract_inner().clone(),
+            Some(&[expr.clone()][..])
         );
     }
 
@@ -69,12 +63,12 @@ mod tests {
         let replace_inner: Expr = parse_quote! { |v| 1 + v };
 
         assert_eq!(
-            InitialExpr(expr)
-                .replace_inner(vec![replace_inner.clone()])
+            InitialExpr([expr])
+                .replace_inner(&[replace_inner.clone()][..])
                 .unwrap()
                 .extract_inner()
                 .clone(),
-            Some(vec![&replace_inner])
+            Some(&[replace_inner][..])
         );
     }
 
@@ -83,7 +77,7 @@ mod tests {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         assert!(are_streams_equal(
-            InitialExpr(expr.clone()).into_token_stream(),
+            InitialExpr([expr.clone()]).into_token_stream(),
             expr.into_token_stream()
         ));
     }

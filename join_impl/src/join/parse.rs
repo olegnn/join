@@ -4,10 +4,11 @@
 //! Handler can be either defined once or not defined.
 //!
 //!
-use super::super::expr_chain::group::GroupDeterminer;
-use super::super::expr_chain::ActionExprChainGenerator;
-use super::super::handler::Handler;
 use super::JoinInputDefault;
+use crate::action_expr_chain::ActionExprChainBuilder;
+use crate::chain::group::GroupDeterminer;
+use crate::chain::parse_chain::ParseChain;
+use crate::handler::Handler;
 use syn::parenthesized;
 use syn::parse::{Parse, ParseStream};
 use syn::{LitBool, Token};
@@ -62,7 +63,7 @@ pub const DEFERRED_DETERMINER: &GroupDeterminer = &crate::define_determiner_with
 ///
 /// `GroupDeterminer` used to determine wrapper group.
 ///
-pub const WRAP_DETERMINER: &GroupDeterminer = &crate::define_determiner_with_no_group! {
+pub const WRAPPER_DETERMINER: &GroupDeterminer = &crate::define_determiner_with_no_group! {
     Token![>], Token![>], Token![>] => 3
 };
 
@@ -86,17 +87,17 @@ impl Parse for JoinInputDefault {
         };
 
         #[cfg(not(feature = "static"))]
-        let action_expr_chain_generator = ActionExprChainGenerator::new(
+        let action_expr_chain_builder = ActionExprChainBuilder::new(
             DEFAULT_GROUP_DETERMINERS,
             DEFERRED_DETERMINER,
-            WRAP_DETERMINER,
+            WRAPPER_DETERMINER,
         );
 
         #[cfg(feature = "static")]
-        let action_expr_chain_generator = ActionExprChainGenerator::new(
+        let action_expr_chain_builder = ActionExprChainBuilder::new(
             DEFAULT_GROUP_DETERMINERS_STATIC.clone(),
             DEFERRED_DETERMINER,
-            WRAP_DETERMINER,
+            WRAPPER_DETERMINER,
         );
 
         for _ in 0..4 {
@@ -151,7 +152,7 @@ impl Parse for JoinInputDefault {
                 );
                 join.handler = Some(handler);
             } else {
-                let expr_chain = action_expr_chain_generator.from_parse_stream(input)?;
+                let expr_chain = action_expr_chain_builder.build_from_parse_stream(input)?;
                 join.branches.push(expr_chain);
             };
         }
