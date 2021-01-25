@@ -9,8 +9,7 @@ use syn::{parse2, Token};
 
 use crate::chain::expr::{ErrExpr, InitialExpr, ProcessExpr};
 use crate::chain::group::ActionGroup;
-use crate::common::MapOver;
-use crate::parse::unit::{ParseUnit, Unit, UnitResult};
+use crate::parse::unit::{MapParsed, ParseUnit, Unit, UnitResult};
 
 ///
 /// `CommandGroup` is an enum of all possible `ProcessExpr`, `ErrExpr` and `InitialExpr` operations.
@@ -250,7 +249,7 @@ fn parse_single_unit<P: Parse, ResultExpr>(
 ) -> UnitResult<ResultExpr, ActionGroup> {
     action_expr_chain_gen
         .parse_unit::<P>(input, false)
-        .map_over(to_expr)
+        .map_parsed(to_expr)
 }
 
 fn parse_single_or_empty_unit<P: Parse, ResultExpr>(
@@ -261,13 +260,13 @@ fn parse_single_or_empty_unit<P: Parse, ResultExpr>(
     action_expr_chain_gen
         .parse_unit::<Empty>(&input.fork(), true)
         .and_then(|_| action_expr_chain_gen.parse_unit::<Empty>(&input, true))
-        .map_over(to_none)
+        .map_parsed(to_none)
         .or_else(|_| {
             action_expr_chain_gen
                 .parse_unit::<P>(input, false)
-                .map_over(Some)
+                .map_parsed(Some)
         })
-        .map_over(to_expr)
+        .map_parsed(to_expr)
 }
 
 fn parse_double_unit<P: Parse, P2: Parse, ResultExpr>(
@@ -284,14 +283,14 @@ fn parse_double_unit<P: Parse, P2: Parse, ResultExpr>(
                 input.parse::<syn::Token![,]>()?;
                 action_expr_chain_gen
                     .parse_unit(input, false)
-                    .map_over(|parsed2| to_expr((parsed, parsed2)))
+                    .map_parsed(|parsed2| to_expr((parsed, parsed2)))
             }
         })
 }
 
 macro_rules! from_empty_unit {
     ($create_expr: path, $action_expr_chain_gen: expr, $input: expr) => {
-        Some(parse_empty_unit($action_expr_chain_gen, $input).map_over(|_| $create_expr))
+        Some(parse_empty_unit($action_expr_chain_gen, $input).map_parsed(|_| $create_expr))
     };
 }
 
@@ -370,7 +369,7 @@ macro_rules! from_n_or_empty_unit {
             action_expr_chain_gen
                 .parse_unit::<Empty>(&input.fork(), true)
                 .and_then(|_| action_expr_chain_gen.parse_unit::<Empty>(&input, true))
-                .map_over(to_none)
+                .map_parsed(to_none)
                 .or_else(|_| {
                     (0..unit_count)
                         .map(|index| {
@@ -407,8 +406,8 @@ macro_rules! from_n_or_empty_unit {
                             },
                         )
                 })
-                .map_over(|parsed| parsed.map(|parsed_vec| iter_to_tuple!($unit_count, parsed_vec.into_iter())))
-                .map_over(to_expr)
+                .map_parsed(|parsed| parsed.map(|parsed_vec| iter_to_tuple!($unit_count, parsed_vec.into_iter())))
+                .map_parsed(to_expr)
         }
 
         Some(parse_n_or_empty_unit(

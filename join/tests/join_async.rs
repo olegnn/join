@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::unused_unit)]
 mod join_async_tests {
     use futures::executor::block_on;
     use futures::future::{err, ok, ready};
@@ -16,10 +17,12 @@ mod join_async_tests {
         3
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     async fn get_ok_four() -> Result<u16> {
         Ok(4)
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     async fn get_ok_five() -> Result<u16> {
         Ok(5)
     }
@@ -248,12 +251,12 @@ mod join_async_tests {
         block_on(async {
             let product = try_join_async! {
                 let branch_0 = ok(2u16) ~|> {
-                    let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
-                    let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
-                    let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                    let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
+                    let branch_0 = branch_0.as_ref().ok().cloned();
+                    let branch_1 = branch_1.as_ref().ok().cloned();
+                    let branch_2 = branch_2.as_ref().ok().cloned();
+                    let branch_3 = branch_3.as_ref().ok().cloned();
                     move |value: Result<u16>| {
-                        assert_eq!(branch_0, value.as_ref().ok().map(Clone::clone));
+                        assert_eq!(branch_0, value.as_ref().ok().cloned());
                         assert_eq!(branch_1, Some(3));
                         assert_eq!(branch_2, Some(4));
                         assert_eq!(branch_3, Some(5));
@@ -261,13 +264,13 @@ mod join_async_tests {
                     }
                 } ~=> add_one_ok, //4
                 let branch_1 = get_three().await -> ok ~=> add_one_ok ~|> |value| value |> {
-                    let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
-                    let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
-                    let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                    let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
+                    let branch_0 = branch_0.as_ref().ok().cloned();
+                    let branch_1 = branch_1.as_ref().ok().cloned();
+                    let branch_2 = branch_2.as_ref().ok().cloned();
+                    let branch_3 = branch_3.as_ref().ok().cloned();
                     move |value: Result<u16>| {
                         assert_eq!(branch_0, Some(3));
-                        assert_eq!(branch_1, value.as_ref().ok().map(Clone::clone));
+                        assert_eq!(branch_1, value.as_ref().ok().cloned());
                         assert_eq!(branch_2, Some(5));
                         assert_eq!(branch_3, Some(5));
                         value.map(add_one_sync)
@@ -532,12 +535,8 @@ mod join_async_tests {
 
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
-            println!(
-                "{} {}\n{}",
-                "Hello.\nThis's is the game where winner is player, which number is closest to",
-                "the max count of links (starting with `https://`) found on one of random pages.",
-                "You play against random generator (0-500)."
-            );
+            println!("Hello.\nThis's is the game where winner is player, which number is closest to the max count of links (starting with `https://`) found on one of random pages.\nYou play against random generator (0-500).");
+
             enum GameResult {
                 Won,
                 Lost,

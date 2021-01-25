@@ -13,7 +13,6 @@ use crate::parse::utils::{is_block_expr, parse_until};
 pub struct ActionExprChainBuilder<'a> {
     #[cfg(not(feature = "static"))]
     group_determiners: &'a [GroupDeterminer],
-
     #[cfg(feature = "static")]
     group_determiners: ::std::sync::Arc<&'a [GroupDeterminer]>,
 
@@ -77,7 +76,7 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
 
             if member_index == 0 {
                 // Because first expr is `Initial`
-                let exprs = action_expr.extract_inner().expect(
+                let exprs = action_expr.get_inner_exprs().expect(
                     "join: Failed to extract initial expr. This's a bug, please report it.",
                 );
 
@@ -86,7 +85,7 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
                 // it with given branch
                 if let Let(let_expr) = exprs
                     .first()
-                    .map(Clone::clone)
+                    .cloned()
                     .expect("join: Failed to extract first expr of initial expr. This's a bug, please report it.")
                 {
                     if let Pat::Ident(pat) = &let_expr.pat {
@@ -96,12 +95,12 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
                     }
 
                     action_expr = action_expr
-                        .replace_inner(&[*let_expr.expr.clone()])
+                        .replace_inner_exprs(&[*let_expr.expr.clone()])
                         .expect("join: Failed to replace initial expr. This's a bug, please report it.");
                 }
 
                 if action_expr
-                    .extract_inner()
+                    .get_inner_exprs()
                     .expect("join: Failed to extract initial expr. This's a bug, please report it.")
                     .first()
                     .expect("join: Failed to extract first expr of initial expr. This's a bug, please report it.")
@@ -134,7 +133,7 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
                         .get_members()
                         .last()
                         .expect("join: Failed to extract last `ActionExpr` member. This's a bug, please report it.")
-                        .extract_inner()
+                        .get_inner_exprs()
                         .and_then(
                             |val|
                                 val
@@ -232,7 +231,7 @@ mod tests {
             Ok(2) => |_| Ok(3) |> |_| 4 <| Ok(5) => |v| Ok(v) <= |_| Ok(8) ?? |v| println!("{}", v) -> |v| v
         };
 
-        let members = chain.get_members().iter().cloned().collect::<Vec<_>>();
+        let members = chain.get_members().to_vec();
 
         assert_eq!(
             members[0],
@@ -313,7 +312,7 @@ mod tests {
             Ok(2) ~=> |_| Ok(3) ~|> |_| 4 ~<| Ok(5) ~=> |v| Ok(v) ~<= |_| Ok(8) ~?? |v| println!("{}", v) ~-> |v| v
         };
 
-        let members = chain.get_members().iter().cloned().collect::<Vec<_>>();
+        let members = chain.get_members().to_vec();
 
         assert_eq!(
             members[0],

@@ -9,7 +9,7 @@ use syn::{Expr, Type};
 use super::InnerExpr;
 
 ///
-/// `ProcessExpr` used to define type of expressions in process position.
+/// Used to define ordinary type of expressions in process position.
 ///
 #[cfg(not(feature = "full"))]
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -95,7 +95,7 @@ pub enum ProcessExpr {
 
 #[cfg(not(feature = "full"))]
 impl InnerExpr for ProcessExpr {
-    fn extract_inner(&self) -> Option<&[Expr]> {
+    fn get_inner_exprs(&self) -> Option<&[Expr]> {
         match self {
             Self::Map(expr) => Some(&expr[..]),
             Self::Dot(expr) => Some(&expr[..]),
@@ -115,15 +115,15 @@ impl InnerExpr for ProcessExpr {
         }
     }
 
-    fn replace_inner(self, exprs: &[Expr]) -> Option<Self> {
-        exprs.last().map(Clone::clone).and_then(|expr| match self {
+    fn replace_inner_exprs(self, exprs: &[Expr]) -> Option<Self> {
+        exprs.last().cloned().and_then(|expr| match self {
             Self::Fold(_) => exprs
                 .first()
-                .map(Clone::clone)
+                .cloned()
                 .map(|first_expr| Self::Fold([first_expr, expr])),
             Self::TryFold(_) => exprs
                 .first()
-                .map(Clone::clone)
+                .cloned()
                 .map(|first_expr| Self::TryFold([first_expr, expr])),
             other if exprs.len() == 1 => match other {
                 Self::Map(_) => Some(Self::Map([expr])),
@@ -690,7 +690,7 @@ impl ToTokens for ProcessExpr {
 
 #[cfg(feature = "full")]
 impl InnerExpr for ProcessExpr {
-    fn extract_inner(&self) -> Option<&[Expr]> {
+    fn get_inner_exprs(&self) -> Option<&[Expr]> {
         match self {
             Self::Map(expr) => Some(expr),
             Self::Dot(expr) => Some(expr),
@@ -739,15 +739,15 @@ impl InnerExpr for ProcessExpr {
         }
     }
 
-    fn replace_inner(self, exprs: &[Expr]) -> Option<Self> {
-        exprs.last().map(Clone::clone).and_then(|expr| match self {
+    fn replace_inner_exprs(self, exprs: &[Expr]) -> Option<Self> {
+        exprs.last().cloned().and_then(|expr| match self {
             Self::Fold(_) => exprs
                 .first()
-                .map(Clone::clone)
+                .cloned()
                 .map(|first_expr| Self::Fold([first_expr, expr])),
             Self::TryFold(_) => exprs
                 .first()
-                .map(Clone::clone)
+                .cloned()
                 .map(|first_expr| Self::TryFold([first_expr, expr])),
             other if exprs.len() == 1 => match other {
                 Self::Map(_) => Some(Self::Map([expr])),
@@ -850,21 +850,21 @@ mod tests {
         .into_iter()
         {
             assert_eq!(
-                process_expr.extract_inner().clone(),
+                process_expr.get_inner_exprs().clone(),
                 Some(&[expr.clone()][..])
             );
         }
 
         assert_eq!(
             ProcessExpr::Fold([expr.clone(), expr.clone()])
-                .extract_inner()
+                .get_inner_exprs()
                 .clone(),
             Some(&[expr.clone(), expr.clone()][..])
         );
 
         assert_eq!(
             ProcessExpr::TryFold([expr.clone(), expr.clone()])
-                .extract_inner()
+                .get_inner_exprs()
                 .clone(),
             Some(&[expr.clone(), expr][..])
         );
@@ -892,33 +892,33 @@ mod tests {
         {
             assert_eq!(
                 process_expr
-                    .replace_inner(&[replace_inner.clone()])
+                    .replace_inner_exprs(&[replace_inner.clone()])
                     .unwrap()
-                    .extract_inner()
+                    .get_inner_exprs()
                     .clone(),
                 Some(&[replace_inner.clone()][..])
             );
         }
 
         assert_eq!(
-            ProcessExpr::Dot([expr.clone()]).replace_inner(&[replace_inner.clone()]),
+            ProcessExpr::Dot([expr.clone()]).replace_inner_exprs(&[replace_inner.clone()]),
             None
         );
 
         assert_eq!(
             ProcessExpr::Fold([expr.clone(), expr.clone()])
-                .replace_inner(&[replace_inner.clone(), replace_inner.clone()])
+                .replace_inner_exprs(&[replace_inner.clone(), replace_inner.clone()])
                 .unwrap()
-                .extract_inner()
+                .get_inner_exprs()
                 .clone(),
             Some(&[replace_inner.clone(), replace_inner.clone()][..])
         );
 
         assert_eq!(
             ProcessExpr::TryFold([expr.clone(), expr])
-                .replace_inner(&[replace_inner.clone(), replace_inner.clone()])
+                .replace_inner_exprs(&[replace_inner.clone(), replace_inner.clone()])
                 .unwrap()
-                .extract_inner()
+                .get_inner_exprs()
                 .clone(),
             Some(&[replace_inner.clone(), replace_inner][..])
         );

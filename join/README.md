@@ -452,7 +452,7 @@ fn main() {
                 // Use `Arc` to share data with branch 1
                 -> Arc::new -> Some
                 // Find max and clone its value
-                // .and_then(|v| v.iter().max().map(Clone::clone))
+                // .and_then(|v| v.iter().max().cloned())
                 ~=> >>> ..iter().max() |> Clone::clone,
         generate_random_vec(10000, 100000000000000f64)
             .into_iter()
@@ -485,7 +485,7 @@ fn main() {
             ~=> >>> ..max(),
         and_then => |max0, max1, max2|
             // Find final max
-            [max0, max1, max2 as u64].iter().max().map(Clone::clone)
+            [max0, max1, max2 as u64].iter().max().cloned()
     }
     .unwrap();
     println!("Max: {}", max);
@@ -588,25 +588,6 @@ fn fib(num: u8) -> usize {
 
 ### Futures demo
 
-*Pay attention: this demo uses `tokio = "0.2.0-alpha.6"`*, however `join!` macros are compatible with the latest `tokio`.
-
-<details><summary>Cargo.toml</summary>
-<p>
-
-```toml
-[dependencies]
-futures = { version = "=0.3.0-alpha.19", package = "futures-preview", features=["async-await"] }
-tokio = "0.2.0-alpha.6"
-failure = "0.1.6"
-futures-timer = "1.0.2"
-reqwest = "0.10.0-alpha.2"
-```
-
-</p>
-</details>
-
-And like this:
-
 ```rust
 #![recursion_limit="1024"]
 
@@ -618,12 +599,7 @@ use failure::{format_err, Error};
 
 #[tokio::main]
 async fn main() {
-    println!(
-        "{} {}\n{}",
-        "Hello.\nThis's is the game where winner is player, which number is closest to",
-        "the max count of links (starting with `https://`) found on one of random pages.",
-        "You play against random generator (0-500)."
-    );
+    println!("Hello.\nThis's is the game where winner is player, which number is closest to the max count of links (starting with `https://`) found on one of random pages.\nYou play against random generator (0-500).");
 
     enum GameResult {
         Won,
@@ -1023,7 +999,7 @@ fn main() {
         let result_1 = action_2() ~|> |v| v as u16 + 1,
         action_2() ~|> {
             // `result_1` now is the result of `action_2()` [Ok(1u8)]
-            let result_1 = result_1.as_ref().ok().map(Clone::clone);
+            let result_1 = result_1.as_ref().ok().cloned();
             move |v| {
                 if result_1.is_some() {
                     v as u16 + 1
@@ -1033,7 +1009,7 @@ fn main() {
             }
         } ~=> {
             // `result_1` now is the result of `|v| v as u16 + 1` [Ok(2u16)]
-            let result_1 = result_1.as_ref().ok().map(Clone::clone);
+            let result_1 = result_1.as_ref().ok().cloned();
             move |v| {
                 if let Some(result_1) = result_1 {
                     Ok(v * 4 + result_1)
