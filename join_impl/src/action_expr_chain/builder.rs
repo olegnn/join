@@ -192,7 +192,7 @@ mod tests {
     impl Parse for ActionExprChain {
         fn parse(input: ParseStream) -> syn::Result<Self> {
             let builder = ActionExprChainBuilder::new(
-                DEFAULT_GROUP_DETERMINERS.clone(),
+                DEFAULT_GROUP_DETERMINERS,
                 DEFERRED_DETERMINER,
                 WRAPPER_DETERMINER,
             );
@@ -232,7 +232,7 @@ mod tests {
             Ok(2) => |_| Ok(3) |> |_| 4 <| Ok(5) => |v| Ok(v) <= |_| Ok(8) ?? |v| println!("{}", v) -> |v| v
         };
 
-        let members = chain.get_members().iter().cloned().collect::<Vec<_>>();
+        let members = chain.get_members().to_vec();
 
         assert_eq!(
             members[0],
@@ -313,7 +313,7 @@ mod tests {
             Ok(2) ~=> |_| Ok(3) ~|> |_| 4 ~<| Ok(5) ~=> |v| Ok(v) ~<= |_| Ok(8) ~?? |v| println!("{}", v) ~-> |v| v
         };
 
-        let members = chain.get_members().iter().cloned().collect::<Vec<_>>();
+        let members = chain.get_members().to_vec();
 
         assert_eq!(
             members[0],

@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::unused_unit)]
 mod join_spawn_tests {
     use join::{join_spawn, try_join_spawn};
     use std::error::Error;
@@ -13,10 +14,12 @@ mod join_spawn_tests {
         3
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     fn get_ok_four() -> Result<u16> {
         Ok(4)
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     fn get_some_five() -> Option<u16> {
         Some(5)
     }
@@ -33,6 +36,7 @@ mod join_spawn_tests {
         v + 1
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     fn add_one_ok(v: u16) -> Result<u16> {
         Ok(add_one(v))
     }
@@ -51,7 +55,7 @@ mod join_spawn_tests {
             Ok(2u16),
             Ok(get_three()),
             get_ok_four(),
-            get_some_five().ok_or("err".into()),
+            get_some_five().ok_or_else(|| "error".into()),
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -98,7 +102,7 @@ mod join_spawn_tests {
             Ok(2u16).map(add_one).and_then(add_one_ok), //4
             Ok(get_three()).and_then(add_one_ok).map(add_one).map(add_one).map(add_one), //7
             get_ok_four().map(add_one), //5
-            get_some_five().map(add_one).ok_or("error".into()).and_then(to_err).and_then(add_one_ok).or(Ok(5)), // 5
+            get_some_five().map(add_one).ok_or_else(|| "error".into()).and_then(to_err).and_then(add_one_ok).or(Ok(5)), // 5
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -124,7 +128,7 @@ mod join_spawn_tests {
             Ok(2u16) |> add_one => add_one_ok, //4
             Ok(get_three()) => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
-            get_some_five() |> add_one ..ok_or("error".into()) => to_err => add_one_ok <| Ok(5), // 5
+            get_some_five() |> add_one ..ok_or_else(|| "error".into()) => to_err => add_one_ok <| Ok(5), // 5
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -134,7 +138,7 @@ mod join_spawn_tests {
             2u16 -> Ok |> add_one => add_one_ok, //4
             get_three() -> Ok => add_one_ok |> add_one |> add_one |> add_one, //7
             get_ok_four() |> add_one, //5
-            get_some_five() |> add_one ..ok_or("error".into()) => to_err => add_one_ok <| Ok(5), // 5
+            get_some_five() |> add_one ..ok_or_else(|| "error".into()) => to_err => add_one_ok <| Ok(5), // 5
             and_then => |a, b, c, d| Ok(a + b + c + d)
         };
 
@@ -310,7 +314,7 @@ mod join_spawn_tests {
                 }
             } ~|> add_one ~|> add_one, //7
             let branch_2 = get_ok_four() ~|> add_one, //5
-            let branch_3 = get_some_five() |> add_one ..ok_or("error".into()) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
+            let branch_3 = get_some_five() |> add_one ..ok_or_else(|| "error".into()) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -423,7 +427,7 @@ mod join_spawn_tests {
                 }
             }  ~|> add_one ~|> add_one, //7
             let branch_2 = Ok::<_, BoxedError>(4u16) ~|> add_one, //5
-            let branch_3 = get_some_five() |> add_one ..ok_or("error".into()) ~=> |_| Err("".into()) <| Ok(5) ~=> add_one_ok, // 6
+            let branch_3 = get_some_five() |> add_one ..ok_or_else(|| "error".into()) ~=> |_| Err("".into()) <| Ok(5) ~=> add_one_ok, // 6
             map => |a, b, c, d| a * b * c * d
         };
 

@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::unused_unit)]
 mod join_async_tests {
     use futures::executor::block_on;
     use futures::future::{err, ok, ready};
@@ -16,10 +17,12 @@ mod join_async_tests {
         3
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     async fn get_ok_four() -> Result<u16> {
         Ok(4)
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     async fn get_ok_five() -> Result<u16> {
         Ok(5)
     }
@@ -532,12 +535,8 @@ mod join_async_tests {
 
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
-            println!(
-                "{} {}\n{}",
-                "Hello.\nThis's is the game where winner is player, which number is closest to",
-                "the max count of links (starting with `https://`) found on one of random pages.",
-                "You play against random generator (0-500)."
-            );
+            println!("Hello.\nThis's is the game where winner is player, which number is closest to the max count of links (starting with `https://`) found on one of random pages.\nYou play against random generator (0-500).");
+
             enum GameResult {
                 Won,
                 Lost,

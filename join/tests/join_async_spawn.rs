@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[allow(clippy::unused_unit)]
 mod join_async_spawn_tests {
     use futures::future::{err, ok, ready};
     use futures_timer::Delay;
@@ -17,10 +18,12 @@ mod join_async_spawn_tests {
         3
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     async fn get_ok_four() -> Result<u16> {
         Ok(4)
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     async fn get_ok_five() -> Result<u16> {
         Ok(5)
     }
