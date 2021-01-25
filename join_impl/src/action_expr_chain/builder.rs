@@ -77,7 +77,7 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
 
             if member_index == 0 {
                 // Because first expr is `Initial`
-                let exprs = action_expr.get_inner().expect(
+                let exprs = action_expr.get_inner_exprs().expect(
                     "join: Failed to extract initial expr. This's a bug, please report it.",
                 );
 
@@ -96,12 +96,12 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
                     }
 
                     action_expr = action_expr
-                        .replace_inner(&[*let_expr.expr.clone()])
+                        .replace_inner_exprs(&[*let_expr.expr.clone()])
                         .expect("join: Failed to replace initial expr. This's a bug, please report it.");
                 }
 
                 if action_expr
-                    .get_inner()
+                    .get_inner_exprs()
                     .expect("join: Failed to extract initial expr. This's a bug, please report it.")
                     .first()
                     .expect("join: Failed to extract first expr of initial expr. This's a bug, please report it.")
@@ -134,7 +134,7 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
                         .get_members()
                         .last()
                         .expect("join: Failed to extract last `ActionExpr` member. This's a bug, please report it.")
-                        .get_inner()
+                        .get_inner_exprs()
                         .and_then(
                             |val|
                                 val

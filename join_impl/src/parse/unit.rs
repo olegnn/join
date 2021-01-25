@@ -37,17 +37,22 @@ pub trait ParseUnit<N> {
 
 ///
 /// Allows to map `Self` over some parsed.
-/// 
+///
 pub trait MapParsed<T, R> {
     type Output;
 
-    fn map_parsed<F>(self, f: F) -> Self::Output where F: FnOnce(T) -> R;
+    fn map_parsed<F>(self, f: F) -> Self::Output
+    where
+        F: FnOnce(T) -> R;
 }
 
 impl<T, R, N> MapParsed<T, R> for UnitResult<T, N> {
     type Output = UnitResult<R, N>;
 
-    fn map_parsed<F>(self, f: F) -> Self::Output where F: FnOnce(T) -> R {
+    fn map_parsed<F>(self, f: F) -> Self::Output
+    where
+        F: FnOnce(T) -> R,
+    {
         self.map(|Unit { parsed, next }| Unit {
             parsed: f(parsed),
             next,

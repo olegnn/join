@@ -26,13 +26,13 @@ where
     ///
     /// Extracts `Expr`(s) from given value if applicable.
     ///
-    fn get_inner(&self) -> Option<&[Expr]>;
+    fn get_inner_exprs(&self) -> Option<&[Expr]>;
 
     ///
     /// Replaces current expr by given `Expr` if it's possible, returning Some(`Self`) with given `Expr`(s),
     /// otherwise returns `None`.
     ///
-    fn replace_inner(self, expr: &[Expr]) -> Option<Self>;
+    fn replace_inner_exprs(self, expr: &[Expr]) -> Option<Self>;
 
     ///
     /// Checks if expr can be replaced.

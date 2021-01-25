@@ -64,13 +64,13 @@ impl<E: InnerExpr> Action<E> {
 }
 
 impl<E: InnerExpr> InnerExpr for Action<E> {
-    fn replace_inner(mut self, exprs: &[Expr]) -> Option<Self> {
-        self.expr = self.expr.replace_inner(exprs)?;
+    fn replace_inner_exprs(mut self, exprs: &[Expr]) -> Option<Self> {
+        self.expr = self.expr.replace_inner_exprs(exprs)?;
         Some(self)
     }
 
-    fn get_inner(&self) -> Option<&[Expr]> {
-        self.expr.get_inner()
+    fn get_inner_exprs(&self) -> Option<&[Expr]> {
+        self.expr.get_inner_exprs()
     }
 
     fn is_replaceable(&self) -> bool {
@@ -79,19 +79,19 @@ impl<E: InnerExpr> InnerExpr for Action<E> {
 }
 
 impl InnerExpr for ActionExpr {
-    fn get_inner(&self) -> Option<&[Expr]> {
+    fn get_inner_exprs(&self) -> Option<&[Expr]> {
         match self {
-            Self::Process(expr) => expr.get_inner(),
-            Self::Err(expr) => expr.get_inner(),
-            Self::Initial(expr) => expr.get_inner(),
+            Self::Process(expr) => expr.get_inner_exprs(),
+            Self::Err(expr) => expr.get_inner_exprs(),
+            Self::Initial(expr) => expr.get_inner_exprs(),
         }
     }
 
-    fn replace_inner(self, exprs: &[Expr]) -> Option<Self> {
+    fn replace_inner_exprs(self, exprs: &[Expr]) -> Option<Self> {
         match self {
-            Self::Process(inner) => inner.replace_inner(exprs).map(Self::Process),
-            Self::Err(inner) => inner.replace_inner(exprs).map(Self::Err),
-            Self::Initial(inner) => inner.replace_inner(exprs).map(Self::Initial),
+            Self::Process(inner) => inner.replace_inner_exprs(exprs).map(Self::Process),
+            Self::Err(inner) => inner.replace_inner_exprs(exprs).map(Self::Err),
+            Self::Initial(inner) => inner.replace_inner_exprs(exprs).map(Self::Initial),
         }
     }
 
@@ -134,14 +134,14 @@ mod tests {
         .into_iter()
         {
             assert_eq!(
-                action_expr.get_inner().clone(),
+                action_expr.get_inner_exprs().clone(),
                 Some(&[expr.clone()][..])
             );
             assert_eq!(
                 action_expr
-                    .replace_inner(&[replace_expr.clone()][..])
+                    .replace_inner_exprs(&[replace_expr.clone()][..])
                     .unwrap()
-                    .get_inner(),
+                    .get_inner_exprs(),
                 Some(&[replace_expr.clone()][..])
             )
         }

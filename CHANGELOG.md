@@ -1,7 +1,10 @@
 # [0.2.1]
 
+Implementation updates only
+
 - Removed `Map` and `MapOver` traits
 - Added special `MapParsed` trait
+- Trait `InnerExpr`: `extract_inner` -> `get_inner_exprs`, `replace_inner` -> `replace_inner_exprs`
 - Minor docs updates
 
 # [0.2.0]

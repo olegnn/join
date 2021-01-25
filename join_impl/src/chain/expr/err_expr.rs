@@ -50,7 +50,7 @@ impl ToTokens for ErrExpr {
 }
 
 impl InnerExpr for ErrExpr {
-    fn get_inner(&self) -> Option<&[Expr]> {
+    fn get_inner_exprs(&self) -> Option<&[Expr]> {
         Some(match self {
             Self::Or(expr) => expr,
             Self::OrElse(expr) => expr,
@@ -58,7 +58,7 @@ impl InnerExpr for ErrExpr {
         })
     }
 
-    fn replace_inner(self, exprs: &[Expr]) -> Option<Self> {
+    fn replace_inner_exprs(self, exprs: &[Expr]) -> Option<Self> {
         exprs.last().cloned().map(|expr| match self {
             Self::Or(_) => Self::Or([expr]),
             Self::OrElse(_) => Self::OrElse([expr]),
@@ -87,7 +87,10 @@ mod tests {
         ]
         .into_iter()
         {
-            assert_eq!(err_expr.get_inner().clone(), Some(&[expr.clone()][..]));
+            assert_eq!(
+                err_expr.get_inner_exprs().clone(),
+                Some(&[expr.clone()][..])
+            );
         }
     }
 
@@ -105,9 +108,9 @@ mod tests {
         {
             assert_eq!(
                 err_expr
-                    .replace_inner(&[replace_inner.clone()][..])
+                    .replace_inner_exprs(&[replace_inner.clone()][..])
                     .unwrap()
-                    .get_inner()
+                    .get_inner_exprs()
                     .clone(),
                 Some(&[replace_inner.clone()][..])
             );

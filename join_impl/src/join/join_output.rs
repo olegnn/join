@@ -817,7 +817,7 @@ impl<'a> JoinOutput<'a> {
         let expr_index = expr_index.into() as u16;
 
         if inner_expr.is_replaceable() {
-            inner_expr.get_inner().and_then(|exprs| {
+            inner_expr.get_inner_exprs().and_then(|exprs| {
                 let (def, replace_exprs): (Option<_>, Vec<_>) = exprs
                     .iter()
                     .enumerate()
@@ -853,7 +853,7 @@ impl<'a> JoinOutput<'a> {
                             }
                         },
                     );
-                def.map(|def| (def, inner_expr.clone().replace_inner(&replace_exprs)))
+                def.map(|def| (def, inner_expr.clone().replace_inner_exprs(&replace_exprs)))
             })
         } else {
             None
@@ -924,7 +924,7 @@ impl<'a> JoinOutput<'a> {
         let replaced_expr = action_expr_wrapper
             .expr
             .clone()
-            .replace_inner(&[parse_quote! { |#internal_value_name| #prev_step_stream }])
+            .replace_inner_exprs(&[parse_quote! { |#internal_value_name| #prev_step_stream }])
             .expect("join: Failed to replace expr in unwrap expr. This's a bug, please report it.");
 
         let replaced_action_expr_position = ActionExprPos {

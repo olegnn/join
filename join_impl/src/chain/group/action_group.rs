@@ -4,7 +4,7 @@
 
 use super::command_group::CommandGroup;
 use crate::chain::expr::{Action, ActionExpr, ApplicationType, MoveType};
-use crate::parse::unit::{ParseUnit, MapParsed, Unit, UnitResult};
+use crate::parse::unit::{MapParsed, ParseUnit, Unit, UnitResult};
 use quote::quote;
 use syn::parse::ParseStream;
 
