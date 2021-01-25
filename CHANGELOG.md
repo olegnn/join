@@ -1,3 +1,9 @@
+# [0.2.1]
+
+- Removed `Map` and `MapOver` traits
+- Added special `MapParsed` trait
+- Minor docs updates
+
 # [0.2.0]
 
 - `tokio` upgraded to `1.0.1`
