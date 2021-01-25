@@ -13,7 +13,6 @@ use crate::parse::utils::{is_block_expr, parse_until};
 pub struct ActionExprChainBuilder<'a> {
     #[cfg(not(feature = "static"))]
     group_determiners: &'a [GroupDeterminer],
-
     #[cfg(feature = "static")]
     group_determiners: ::std::sync::Arc<&'a [GroupDeterminer]>,
 
@@ -192,7 +191,7 @@ mod tests {
     impl Parse for ActionExprChain {
         fn parse(input: ParseStream) -> syn::Result<Self> {
             let builder = ActionExprChainBuilder::new(
-                DEFAULT_GROUP_DETERMINERS,
+                DEFAULT_GROUP_DETERMINERS.clone(),
                 DEFERRED_DETERMINER,
                 WRAPPER_DETERMINER,
             );

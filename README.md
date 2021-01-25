@@ -643,9 +643,8 @@ use futures::future::{try_join_all, ok, ready};
 use failure::{format_err, Error};
 #[tokio::main]
 async fn main() {
-    println!(
-        "Hello.\nThis's is the game where winner is player, which number is closest to the max count of links (starting with `https://`) found on one of random pages.\nYou play against random generator (0-500).",
-    );
+    println!("Hello.\nThis's is the game where winner is player, which number is closest to the max count of links (starting with `https://`) found on one of random pages.\nYou play against random generator (0-500).");
+
     enum GameResult {
         Won,
         Lost,
