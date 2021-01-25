@@ -454,7 +454,7 @@ fn main() {
                 // Use `Arc` to share data with branch 1
                 -> Arc::new -> Some
                 // Find max and clone its value
-                // .and_then(|v| v.iter().max().map(Clone::clone))
+                // .and_then(|v| v.iter().max().cloned())
                 ~=> >>> ..iter().max() |> Clone::clone,
         generate_random_vec(10000, 100000000000000f64)
             .into_iter()
@@ -487,7 +487,7 @@ fn main() {
             ~=> >>> ..max(),
         and_then => |max0, max1, max2|
             // Find final max
-            [max0, max1, max2 as u64].iter().max().map(Clone::clone)
+            [max0, max1, max2 as u64].iter().max().cloned()
     }
     .unwrap();
     println!("Max: {}", max);
@@ -972,7 +972,7 @@ fn main() {
         let result_1 = action_2() ~|> |v| v as u16 + 1,
         action_2() ~|> {
             // `result_1` now is the result of `action_2()` [Ok(1u8)]
-            let result_1 = result_1.as_ref().ok().map(Clone::clone);
+            let result_1 = result_1.as_ref().ok().cloned();
             move |v| {
                 if result_1.is_some() {
                     v as u16 + 1
@@ -982,7 +982,7 @@ fn main() {
             }
         } ~=> {
             // `result_1` now is the result of `|v| v as u16 + 1` [Ok(2u16)]
-            let result_1 = result_1.as_ref().ok().map(Clone::clone);
+            let result_1 = result_1.as_ref().ok().cloned();
             move |v| {
                 if let Some(result_1) = result_1 {
                     Ok(v * 4 + result_1)

@@ -9,14 +9,14 @@ use syn::Expr;
 use super::InnerExpr;
 
 ///
-/// `InitialExpr` used to define initial expression.
+/// Used to define expression which is the start value in chain.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct InitialExpr(pub [Expr; 1]);
 
 impl ToTokens for InitialExpr {
     fn to_tokens(&self, output: &mut TokenStream) {
-        let expr = self.extract_inner().unwrap();
+        let expr = self.get_inner().unwrap();
         let tokens = quote! { #( #expr )* };
         output.extend(tokens);
     }
@@ -29,12 +29,12 @@ impl ToTokens for InitialExpr {
 }
 
 impl InnerExpr for InitialExpr {
-    fn extract_inner(&self) -> Option<&[Expr]> {
+    fn get_inner(&self) -> Option<&[Expr]> {
         Some(&self.0)
     }
 
     fn replace_inner(self, exprs: &[Expr]) -> Option<Self> {
-        exprs.last().map(Clone::clone).map(|expr| Self([expr]))
+        exprs.last().cloned().map(|expr| Self([expr]))
     }
 }
 
@@ -52,7 +52,7 @@ mod tests {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         assert_eq!(
-            InitialExpr([expr.clone()]).extract_inner().clone(),
+            InitialExpr([expr.clone()]).get_inner().clone(),
             Some(&[expr][..])
         );
     }
@@ -66,7 +66,7 @@ mod tests {
             InitialExpr([expr])
                 .replace_inner(&[replace_inner.clone()][..])
                 .unwrap()
-                .extract_inner()
+                .get_inner()
                 .clone(),
             Some(&[replace_inner][..])
         );

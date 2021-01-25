@@ -327,10 +327,10 @@ mod join_tests {
     fn it_tests_steps() {
         let product = try_join! {
             let branch_0 = Ok(2u16) ~|> {
-                let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
-                let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
-                let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
+                let branch_0 = branch_0.as_ref().ok().cloned();
+                let branch_1 = branch_1.as_ref().ok().cloned();
+                let branch_2 = branch_2.as_ref().ok().cloned();
+                let branch_3 = branch_3.as_ref().ok().cloned();
 
                 move |value| {
                     assert_eq!(branch_0.unwrap(), value);
@@ -341,10 +341,10 @@ mod join_tests {
                 }
             } ~=> add_one_ok, //4
             let branch_1 = Ok(get_three()) ~=> add_one_ok ~|> |value| value |> {
-                let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
-                let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
-                let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
+                let branch_0 = branch_0.as_ref().ok().cloned();
+                let branch_1 = branch_1.as_ref().ok().cloned();
+                let branch_2 = branch_2.as_ref().ok().cloned();
+                let branch_3 = branch_3.as_ref().ok().cloned();
 
                 move |value| {
                     assert_eq!(branch_0.unwrap(), 3);

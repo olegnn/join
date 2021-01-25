@@ -7,7 +7,7 @@ use syn::Expr;
 use super::*;
 
 ///
-/// `ActionExpr` is `Action` one of type `Process`, `Initial` or `Err`.
+/// `Action` with type either `Process`, `Initial` or `Err`.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ActionExpr {
@@ -41,7 +41,7 @@ impl ActionExpr {
 }
 
 ///
-/// Defines `expr` with configuration (`ApplicationType`, `MoveType`).
+/// Describes `expr` with configuration.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Action<E: InnerExpr> {
@@ -69,8 +69,8 @@ impl<E: InnerExpr> InnerExpr for Action<E> {
         Some(self)
     }
 
-    fn extract_inner(&self) -> Option<&[Expr]> {
-        self.expr.extract_inner()
+    fn get_inner(&self) -> Option<&[Expr]> {
+        self.expr.get_inner()
     }
 
     fn is_replaceable(&self) -> bool {
@@ -79,11 +79,11 @@ impl<E: InnerExpr> InnerExpr for Action<E> {
 }
 
 impl InnerExpr for ActionExpr {
-    fn extract_inner(&self) -> Option<&[Expr]> {
+    fn get_inner(&self) -> Option<&[Expr]> {
         match self {
-            Self::Process(expr) => expr.extract_inner(),
-            Self::Err(expr) => expr.extract_inner(),
-            Self::Initial(expr) => expr.extract_inner(),
+            Self::Process(expr) => expr.get_inner(),
+            Self::Err(expr) => expr.get_inner(),
+            Self::Initial(expr) => expr.get_inner(),
         }
     }
 
@@ -134,14 +134,14 @@ mod tests {
         .into_iter()
         {
             assert_eq!(
-                action_expr.extract_inner().clone(),
+                action_expr.get_inner().clone(),
                 Some(&[expr.clone()][..])
             );
             assert_eq!(
                 action_expr
                     .replace_inner(&[replace_expr.clone()][..])
                     .unwrap()
-                    .extract_inner(),
+                    .get_inner(),
                 Some(&[replace_expr.clone()][..])
             )
         }

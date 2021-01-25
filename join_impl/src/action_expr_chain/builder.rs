@@ -77,7 +77,7 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
 
             if member_index == 0 {
                 // Because first expr is `Initial`
-                let exprs = action_expr.extract_inner().expect(
+                let exprs = action_expr.get_inner().expect(
                     "join: Failed to extract initial expr. This's a bug, please report it.",
                 );
 
@@ -86,7 +86,7 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
                 // it with given branch
                 if let Let(let_expr) = exprs
                     .first()
-                    .map(Clone::clone)
+                    .cloned()
                     .expect("join: Failed to extract first expr of initial expr. This's a bug, please report it.")
                 {
                     if let Pat::Ident(pat) = &let_expr.pat {
@@ -101,7 +101,7 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
                 }
 
                 if action_expr
-                    .extract_inner()
+                    .get_inner()
                     .expect("join: Failed to extract initial expr. This's a bug, please report it.")
                     .first()
                     .expect("join: Failed to extract first expr of initial expr. This's a bug, please report it.")
@@ -134,7 +134,7 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
                         .get_members()
                         .last()
                         .expect("join: Failed to extract last `ActionExpr` member. This's a bug, please report it.")
-                        .extract_inner()
+                        .get_inner()
                         .and_then(
                             |val|
                                 val

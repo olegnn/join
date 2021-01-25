@@ -26,7 +26,7 @@ where
     ///
     /// Extracts `Expr`(s) from given value if applicable.
     ///
-    fn extract_inner(&self) -> Option<&[Expr]>;
+    fn get_inner(&self) -> Option<&[Expr]>;
 
     ///
     /// Replaces current expr by given `Expr` if it's possible, returning Some(`Self`) with given `Expr`(s),

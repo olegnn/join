@@ -282,10 +282,10 @@ mod join_spawn_tests {
     fn it_tests_steps() {
         let product = try_join_spawn! {
             let branch_0 = Ok(2u16) ~|> {
-                let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
-                let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
-                let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
+                let branch_0 = branch_0.as_ref().ok().cloned();
+                let branch_1 = branch_1.as_ref().ok().cloned();
+                let branch_2 = branch_2.as_ref().ok().cloned();
+                let branch_3 = branch_3.as_ref().ok().cloned();
 
                 move |value| {
                     assert_eq!(branch_0.unwrap(), value);
@@ -296,10 +296,10 @@ mod join_spawn_tests {
                 }
             } ~=> add_one_ok, //4
             let branch_1 = Ok(get_three()) ~=> add_one_ok ~|> {
-                let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
-                let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
-                let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
+                let branch_0 = branch_0.as_ref().ok().cloned();
+                let branch_1 = branch_1.as_ref().ok().cloned();
+                let branch_2 = branch_2.as_ref().ok().cloned();
+                let branch_3 = branch_3.as_ref().ok().cloned();
 
                 move |value| {
                     assert_eq!(branch_0.unwrap(), 3);
@@ -397,10 +397,10 @@ mod join_spawn_tests {
     fn it_checks_multi_threading_steps() {
         let product = try_join_spawn! {
             let branch_0 = Ok::<_, BoxedError>(2u16) ~|> {
-                let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
-                let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
-                let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
+                let branch_0 = branch_0.as_ref().ok().cloned();
+                let branch_1 = branch_1.as_ref().ok().cloned();
+                let branch_2 = branch_2.as_ref().ok().cloned();
+                let branch_3 = branch_3.as_ref().ok().cloned();
                 move |value| {
                     assert_eq!(branch_0, Some(value));
                     assert_eq!(branch_1, Some(3));
@@ -410,10 +410,10 @@ mod join_spawn_tests {
                 }
             } ~=> add_one_ok, //4
             let branch_1 = Ok::<_, BoxedError>(get_three()) ~=> add_one_ok ~|> |value| value |> {
-                let branch_0 = branch_0.as_ref().ok().map(Clone::clone);
-                let branch_1 = branch_1.as_ref().ok().map(Clone::clone);
-                let branch_2 = branch_2.as_ref().ok().map(Clone::clone);
-                let branch_3 = branch_3.as_ref().ok().map(Clone::clone);
+                let branch_0 = branch_0.as_ref().ok().cloned();
+                let branch_1 = branch_1.as_ref().ok().cloned();
+                let branch_2 = branch_2.as_ref().ok().cloned();
+                let branch_3 = branch_3.as_ref().ok().cloned();
                 move |value| {
                     assert_eq!(branch_0, Some(3));
                     assert_eq!(branch_1, Some(value));

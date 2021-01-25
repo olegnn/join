@@ -396,7 +396,7 @@ impl<'a> JoinOutput<'a> {
             .unzip();
 
         let joiner = if self.get_active_step_branch_count(step_number) > 1 {
-            self.custom_joiner.map(Clone::clone).or_else(|| {
+            self.custom_joiner.cloned().or_else(|| {
                 if is_async {
                     let futures_crate_path = self.futures_crate_path;
                     if is_try {
@@ -817,7 +817,7 @@ impl<'a> JoinOutput<'a> {
         let expr_index = expr_index.into() as u16;
 
         if inner_expr.is_replaceable() {
-            inner_expr.extract_inner().and_then(|exprs| {
+            inner_expr.get_inner().and_then(|exprs| {
                 let (def, replace_exprs): (Option<_>, Vec<_>) = exprs
                     .iter()
                     .enumerate()

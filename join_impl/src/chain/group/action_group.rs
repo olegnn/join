@@ -4,9 +4,7 @@
 
 use super::command_group::CommandGroup;
 use crate::chain::expr::{Action, ActionExpr, ApplicationType, MoveType};
-use crate::common::MapOver;
-use crate::parse::unit::ParseUnit;
-use crate::parse::unit::{Unit, UnitResult};
+use crate::parse::unit::{ParseUnit, MapParsed, Unit, UnitResult};
 use quote::quote;
 use syn::parse::ParseStream;
 
@@ -97,13 +95,13 @@ impl ActionGroup {
             }
         } else if group.is_process_expr() {
             group.parse_process_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (process). This is a bug, please report it.")
-                .map_over(|parsed| ActionExpr::Process(Action::new(parsed, application_type, move_type)))
+                .map_parsed(|parsed| ActionExpr::Process(Action::new(parsed, application_type, move_type)))
         } else if group.is_err_expr() {
             group.parse_err_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (err). This is a bug, please report it.")
-                .map_over(|parsed| ActionExpr::Err(Action::new(parsed, application_type, move_type)))
+                .map_parsed(|parsed| ActionExpr::Err(Action::new(parsed, application_type, move_type)))
         } else if group.is_initial_expr() {
             group.parse_initial_expr(action_expr_chain, input).expect("join: Unexpected expression type in from_parse_stream (initial). This is a bug, please report it.")
-                .map_over(|parsed| ActionExpr::Initial(Action::new(parsed, application_type, move_type)))
+                .map_parsed(|parsed| ActionExpr::Initial(Action::new(parsed, application_type, move_type)))
         } else {
             unreachable!()
         }

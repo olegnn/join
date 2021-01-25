@@ -3,11 +3,10 @@
 //! and optional next `V`
 //!
 //!
-use crate::common::MapOver;
 use syn::parse::{Parse, ParseStream};
 
 ///
-/// `Unit` defines one unit of expression parsing.
+/// Defines one unit of expression parsing.
 ///
 pub struct Unit<T, N> {
     ///
@@ -21,7 +20,7 @@ pub struct Unit<T, N> {
 }
 
 ///
-/// `UnitResult` defines `Result` of one unit expression parsing.
+/// Defines `Result` of one unit expression parsing.
 ///
 pub type UnitResult<T, N> = syn::Result<Unit<T, N>>;
 
@@ -36,13 +35,21 @@ pub trait ParseUnit<N> {
     ) -> UnitResult<T, N>;
 }
 
-impl<V, R, N> MapOver<V, R, UnitResult<R, N>> for UnitResult<V, N> {
-    fn map_over<F>(self, transform: F) -> UnitResult<R, N>
-    where
-        F: FnOnce(V) -> R,
-    {
+///
+/// Allows to map `Self` over some parsed.
+/// 
+pub trait MapParsed<T, R> {
+    type Output;
+
+    fn map_parsed<F>(self, f: F) -> Self::Output where F: FnOnce(T) -> R;
+}
+
+impl<T, R, N> MapParsed<T, R> for UnitResult<T, N> {
+    type Output = UnitResult<R, N>;
+
+    fn map_parsed<F>(self, f: F) -> Self::Output where F: FnOnce(T) -> R {
         self.map(|Unit { parsed, next }| Unit {
-            parsed: transform(parsed),
+            parsed: f(parsed),
             next,
         })
     }
