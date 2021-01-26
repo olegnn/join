@@ -1,6 +1,6 @@
 //!
 //! Chain traits, all kinds of expressions, groups etc.
-//! 
+//!
 
 pub mod expr;
 pub mod group;
