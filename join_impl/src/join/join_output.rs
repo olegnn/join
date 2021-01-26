@@ -67,7 +67,7 @@ pub struct JoinOutput<'a> {
     ///
     custom_joiner: Option<&'a TokenStream>,
     ///
-    /// Contains all branches depths. Used to calculate max length and determine if we reached branch's end.
+    /// All branches depths. Used to calculate max length and determine if we reached branch's end.
     ///
     depths: Vec<u16>,
     ///
@@ -914,7 +914,7 @@ impl<'a> JoinOutput<'a> {
             "join: Unexpected error on attempt to get last step stream. This's a bug, please report it.",
         );
 
-        let (current_step_steam, action_expr_wrapper) = step_streams.pop().expect("join: Step expressions length is zero while it should be >1. This's a bug, please report it.");
+        let (current_step_steam, action_expr_wrapper) = step_streams.pop().expect("join: Step expressions length is zero while it should be >=1. This's a bug, please report it.");
 
         let action_expr_wrapper = action_expr_wrapper
             .expect("join: Expected wrapper, found `None`. This's a bug, please report it.");
@@ -1102,7 +1102,7 @@ impl<'a> ToTokens for JoinOutput<'a> {
             .unzip();
 
         //
-        // Contains all generated code to be executed step by step and returns final step results.
+        // All generated code to be executed step by step and returns final step results.
         //
         let steps_stream = self.generate_steps(&result_pats, &result_vars);
 

@@ -62,12 +62,12 @@ pub enum CommandGroup {
     FilterMap,
     /// [ProcessExpr::FindMap]
     FindMap,
-    /// UNWRAP (Special `CommandGroup` used to define that next group position is by one level up [which will be #value.and_then(#previous_expr).#next_expr] )
+    /// UNWRAP (Special `CommandGroup` used to define that next group position is by one level up - which will be `#value.and_then(#previous_expr).#next_expr` )
     UNWRAP,
 }
 
 ///
-/// Contains all possible command groups.
+/// All possible command groups.
 ///
 #[cfg(feature = "full")]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -202,7 +202,7 @@ pub enum CommandGroup {
     TryFold,
     /// [ProcessExpr::TryForEach]
     TryForEach,
-    /// UNWRAP (Special `CommandGroup` used to define that next group position is by one level up [which will be #value.and_then(#previous_expr).#next_expr] )
+    /// UNWRAP (Special `CommandGroup` used to define that next group position is by one level up - which will be `#value.and_then(#previous_expr).#next_expr` )
     UNWRAP,
     /// [ProcessExpr::Unzip]
     Unzip,
@@ -514,7 +514,7 @@ impl CommandGroup {
     ///
     pub fn to_initial_expr(self, tokens: TokenStream) -> syn::Result<Option<InitialExpr>> {
         Ok(match self {
-            Self::Initial => Some(InitialExpr([parse2(tokens)?])),
+            Self::Initial => Some(InitialExpr::Single([parse2(tokens)?])),
             _ => None,
         })
     }
@@ -699,7 +699,7 @@ impl CommandGroup {
         input: ParseStream,
     ) -> Option<UnitResult<InitialExpr, ActionGroup>> {
         match self {
-            Self::Initial => from_single_unit!(InitialExpr, action_expr_chain_gen, input),
+            Self::Initial => from_single_unit!(InitialExpr::Single, action_expr_chain_gen, input),
             _ => None,
         }
     }

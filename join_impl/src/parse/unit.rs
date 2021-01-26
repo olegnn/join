@@ -1,6 +1,6 @@
 //!
 //! `Unit` module describes one unit of expression parsing which contains currently parsed `T`
-//! and optional next `V`
+//! and optional next `N`
 //!
 //!
 use syn::parse::{Parse, ParseStream};
@@ -26,7 +26,7 @@ pub type UnitResult<T, N> = syn::Result<Unit<T, N>>;
 
 pub trait ParseUnit<N> {
     ///
-    /// Parses input stream until next `N`
+    /// Parses input stream until next `N`.
     ///
     fn parse_unit<T: Parse>(
         &self,

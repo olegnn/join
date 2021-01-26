@@ -1,3 +1,6 @@
+//!
+//! Chain implemented for `ActionExpr`
+//! 
 pub mod builder;
 
 use crate::chain::expr::ActionExpr;

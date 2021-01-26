@@ -1,5 +1,5 @@
 //!
-//! Definition of `ActionExpr`, `ProcessActionExpr``.
+//! Definition of `ActionExpr`.
 //!
 
 use syn::Expr;
@@ -7,7 +7,7 @@ use syn::Expr;
 use super::*;
 
 ///
-/// `Action` with type either `Process`, `Initial` or `Err`.
+/// `Action` with `Expr` of type either `Process`, `Initial` or `Err`.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ActionExpr {
@@ -126,7 +126,7 @@ mod tests {
                 MoveType::None,
             )),
             ActionExpr::Initial(Action::new(
-                InitialExpr([expr.clone()]),
+                InitialExpr::Single([expr.clone()]),
                 ApplicationType::Instant,
                 MoveType::None,
             )),

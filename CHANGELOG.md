@@ -1,3 +1,11 @@
+# [0.2.2]
+
+Implementation updates only
+
+- `TryFrom` implemented for `Handler`
+- `InitialExpr` defined as enum
+- Misc docs updates
+
 # [0.2.1]
 
 Implementation updates only

@@ -236,7 +236,7 @@ mod tests {
         assert_eq!(
             members[0],
             ActionExpr::Initial(Action::new(
-                InitialExpr([parse_quote! { Ok(2) }]),
+                InitialExpr::Single([parse_quote! { Ok(2) }]),
                 ApplicationType::Instant,
                 MoveType::None
             ))
@@ -317,7 +317,7 @@ mod tests {
         assert_eq!(
             members[0],
             ActionExpr::Initial(Action::new(
-                InitialExpr([parse_quote! { Ok(2) }]),
+                InitialExpr::Single([parse_quote! { Ok(2) }]),
                 ApplicationType::Instant,
                 MoveType::None
             ))
