@@ -2,7 +2,8 @@
 
 Implementation updates only
 
-- impl `TryFrom` for `Handler`
+- `TryFrom` implemented for `Handler`
+- `InitialExpr` defined as enum
 - Misc docs updates
 
 # [0.2.1]
