@@ -1,5 +1,5 @@
 //!
-//! Contains all definitions of groups (`ActionGroup`, `CommandGroup`) and `GroupDeterminer`.
+//! All definitions of groups (`ActionGroup`, `CommandGroup`) and `GroupDeterminer`.
 //!
 
 mod action_group;

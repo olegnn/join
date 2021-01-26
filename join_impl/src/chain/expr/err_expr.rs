@@ -8,7 +8,7 @@ use syn::Expr;
 use super::InnerExpr;
 
 ///
-/// Used to define types of expression which will be evaluated in case of `Err` or `None`.
+/// Defines types of expression which will be evaluated in case of `Err` or `None`.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ErrExpr {

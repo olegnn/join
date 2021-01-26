@@ -9,6 +9,7 @@ use crate::action_expr_chain::ActionExprChainBuilder;
 use crate::chain::group::GroupDeterminer;
 use crate::chain::parse_chain::ParseChain;
 use crate::handler::Handler;
+use std::convert::TryFrom;
 use syn::parenthesized;
 use syn::parse::{Parse, ParseStream};
 use syn::{LitBool, Token};
@@ -147,10 +148,7 @@ impl Parse for JoinInputDefault {
                 if join.handler.is_some() {
                     return Err(input.error("Multiple `handler` cases found, only one allowed. Please, specify one of `map`, `and_then`, `then`."));
                 }
-                let handler = Handler::new(input)?.expect(
-                    "join: Handler `peek_handler` check failed. This's a bug, please report it.",
-                );
-                join.handler = Some(handler);
+                join.handler = Some(Handler::try_from(input)?);
             } else {
                 let expr_chain = action_expr_chain_builder.build_from_parse_stream(input)?;
                 join.branches.push(expr_chain);

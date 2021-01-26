@@ -1,9 +1,8 @@
 //!
-//! `Handler` defines handler function of 3 possible types: `map`, `and_then` and `then`.
-//! `map` and `and_then` will be evaluted in case of all successful results and `then` will be evaluated in any case,
-//! which allows user to define its own handler for every error.
+//! `Handler` implementation.
 //!
 
+use std::convert::TryFrom;
 use syn::parse::ParseStream;
 use syn::Expr;
 use syn::Token;
@@ -26,34 +25,6 @@ mod keywords {
 }
 
 impl Handler {
-    ///
-    /// Checks if input `ParseStream` next value is a `Handler` and then if it's true, attempts to parse it, otherwise returns `None`.
-    /// Will return Err if `ParseStream` must contain `Handler` but it can't be parsed.
-    ///
-    pub fn new(input: ParseStream<'_>) -> syn::Result<Option<Self>> {
-        let result = if Self::peek_then_handler(input) {
-            input.parse::<keywords::then>()?;
-            input.parse::<Token![=>]>()?;
-            Some(Self::Then(input.parse()?))
-        } else if Self::peek_and_then_handler(input) {
-            input.parse::<keywords::and_then>()?;
-            input.parse::<Token![=>]>()?;
-            Some(Self::AndThen(input.parse()?))
-        } else if Self::peek_map_handler(input) {
-            input.parse::<keywords::map>()?;
-            input.parse::<Token![=>]>()?;
-            Some(Self::Map(input.parse()?))
-        } else {
-            None
-        };
-
-        if result.is_some() {
-            input.parse::<Option<Token![,]>>()?;
-        }
-
-        Ok(result)
-    }
-
     ///
     /// Returns `true` if handler is `Map`.
     ///
@@ -112,5 +83,32 @@ impl Handler {
         match self {
             Self::Map(expr) | Self::Then(expr) | Self::AndThen(expr) => expr,
         }
+    }
+}
+
+impl<'a> TryFrom<ParseStream<'a>> for Handler {
+    type Error = syn::Error;
+    ///
+    /// Attempts to parse input as a handler.
+    ///
+    fn try_from(input: ParseStream<'a>) -> syn::Result<Self> {
+        let res = if Self::peek_then_handler(input) {
+            input.parse::<keywords::then>()?;
+            input.parse::<Token![=>]>()?;
+            Self::Then(input.parse()?)
+        } else if Self::peek_and_then_handler(input) {
+            input.parse::<keywords::and_then>()?;
+            input.parse::<Token![=>]>()?;
+            Self::AndThen(input.parse()?)
+        } else if Self::peek_map_handler(input) {
+            input.parse::<keywords::map>()?;
+            input.parse::<Token![=>]>()?;
+            Self::Map(input.parse()?)
+        } else {
+            return Err(syn::Error::new(input.span(), "Failed to parse `Handler`"));
+        };
+        input.parse::<Option<Token![,]>>()?;
+
+        Ok(res)
     }
 }

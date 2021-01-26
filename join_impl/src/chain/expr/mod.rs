@@ -1,5 +1,5 @@
 //!
-//! Contains definition of `InnerExpr` traits.
+//! All expression definitions and `InnerExpr` trait.
 //!
 
 use syn::Expr;
@@ -17,7 +17,7 @@ pub use process_expr::ProcessExpr;
 pub use types::*;
 
 ///
-/// Provides functionality to get or replace inner `Expr`(s).
+/// Provide functionality to get or replace inner `Expr`(s).
 ///
 pub trait InnerExpr
 where

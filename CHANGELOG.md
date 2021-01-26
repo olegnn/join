@@ -1,3 +1,10 @@
+# [0.2.2]
+
+Implementation updates only
+
+- impl `TryFrom` for `Handler`
+- Misc docs updates
+
 # [0.2.1]
 
 Implementation updates only

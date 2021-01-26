@@ -1,5 +1,5 @@
 //!
-//! Contains `ProcessExpr` definition.
+//! `ProcessExpr` definition.
 //!
 
 use proc_macro2::TokenStream;
@@ -88,7 +88,7 @@ pub enum ProcessExpr {
     ///
     Zip([Expr; 1]),
     ///
-    /// Special process expr used to define next group nested position [which will be #value.and_then(#previous_expr).#next_expr]
+    /// Special process expr used to define next group nested position - which will be `#value.and_then(#previous_expr).#next_expr`
     ///
     UNWRAP,
 }
@@ -408,7 +408,7 @@ pub enum ProcessExpr {
     ///
     Zip([Expr; 1]),
     ///
-    /// Special process expr used to define next group nested position [which will be #value.and_then(#previous_expr).#next_expr]
+    /// Special process expr used to define next group nested position - which will be `#value.and_then(#previous_expr).#next_expr`
     ///
     UNWRAP,
 }

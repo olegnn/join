@@ -1,5 +1,5 @@
 //!
-//! Contains `InitialExpr` definition.
+//! `InitialExpr` definition.
 //!
 
 use proc_macro2::TokenStream;
@@ -12,7 +12,9 @@ use super::InnerExpr;
 /// Used to define expression which is the start value in chain.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct InitialExpr(pub [Expr; 1]);
+pub enum InitialExpr {
+    Single([Expr; 1]),
+}
 
 impl ToTokens for InitialExpr {
     fn to_tokens(&self, output: &mut TokenStream) {
@@ -20,21 +22,17 @@ impl ToTokens for InitialExpr {
         let tokens = quote! { #( #expr )* };
         output.extend(tokens);
     }
-
-    fn into_token_stream(self) -> TokenStream {
-        let mut output = TokenStream::new();
-        self.to_tokens(&mut output);
-        output
-    }
 }
 
 impl InnerExpr for InitialExpr {
     fn get_inner_exprs(&self) -> Option<&[Expr]> {
-        Some(&self.0)
+        match self {
+            Self::Single(expr) => Some(expr),
+        }
     }
 
     fn replace_inner_exprs(self, exprs: &[Expr]) -> Option<Self> {
-        exprs.last().cloned().map(|expr| Self([expr]))
+        exprs.last().cloned().map(|expr| Self::Single([expr]))
     }
 }
 
@@ -52,7 +50,9 @@ mod tests {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         assert_eq!(
-            InitialExpr([expr.clone()]).get_inner_exprs().clone(),
+            InitialExpr::Single([expr.clone()])
+                .get_inner_exprs()
+                .clone(),
             Some(&[expr][..])
         );
     }
@@ -63,7 +63,7 @@ mod tests {
         let replace_inner: Expr = parse_quote! { |v| 1 + v };
 
         assert_eq!(
-            InitialExpr([expr])
+            InitialExpr::Single([expr])
                 .replace_inner_exprs(&[replace_inner.clone()][..])
                 .unwrap()
                 .get_inner_exprs()
@@ -77,7 +77,7 @@ mod tests {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         assert!(are_streams_equal(
-            InitialExpr([expr.clone()]).into_token_stream(),
+            InitialExpr::Single([expr.clone()]).into_token_stream(),
             expr.into_token_stream()
         ));
     }
