@@ -6,7 +6,7 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::Expr;
 
-use super::InnerExpr;
+use super::{ActionExpr, InnerExpr};
 
 ///
 /// Used to define expression which is the start value in chain.
@@ -18,14 +18,14 @@ pub enum InitialExpr {
 
 impl ToTokens for InitialExpr {
     fn to_tokens(&self, output: &mut TokenStream) {
-        let expr = self.get_inner_exprs().unwrap();
+        let expr = self.inner_exprs().unwrap();
         let tokens = quote! { #( #expr )* };
         output.extend(tokens);
     }
 }
 
 impl InnerExpr for InitialExpr {
-    fn get_inner_exprs(&self) -> Option<&[Expr]> {
+    fn inner_exprs(&self) -> Option<&[Expr]> {
         match self {
             Self::Single(expr) => Some(expr),
         }
@@ -33,6 +33,12 @@ impl InnerExpr for InitialExpr {
 
     fn replace_inner_exprs(self, exprs: &[Expr]) -> Option<Self> {
         exprs.last().cloned().map(|expr| Self::Single([expr]))
+    }
+}
+
+impl Into<ActionExpr> for InitialExpr {
+    fn into(self) -> ActionExpr {
+        ActionExpr::Initial(self)
     }
 }
 
@@ -50,9 +56,7 @@ mod tests {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         assert_eq!(
-            InitialExpr::Single([expr.clone()])
-                .get_inner_exprs()
-                .clone(),
+            InitialExpr::Single([expr.clone()]).inner_exprs().clone(),
             Some(&[expr][..])
         );
     }
@@ -66,7 +70,7 @@ mod tests {
             InitialExpr::Single([expr])
                 .replace_inner_exprs(&[replace_inner.clone()][..])
                 .unwrap()
-                .get_inner_exprs()
+                .inner_exprs()
                 .clone(),
             Some(&[replace_inner][..])
         );

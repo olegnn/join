@@ -5,7 +5,7 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::Expr;
 
-use super::InnerExpr;
+use super::{ActionExpr, InnerExpr};
 
 ///
 /// Defines types of expression which will be evaluated in case of `Err` or `None`.
@@ -50,7 +50,7 @@ impl ToTokens for ErrExpr {
 }
 
 impl InnerExpr for ErrExpr {
-    fn get_inner_exprs(&self) -> Option<&[Expr]> {
+    fn inner_exprs(&self) -> Option<&[Expr]> {
         Some(match self {
             Self::Or(expr) => expr,
             Self::OrElse(expr) => expr,
@@ -64,6 +64,12 @@ impl InnerExpr for ErrExpr {
             Self::OrElse(_) => Self::OrElse([expr]),
             Self::MapErr(_) => Self::MapErr([expr]),
         })
+    }
+}
+
+impl Into<ActionExpr> for ErrExpr {
+    fn into(self) -> ActionExpr {
+        ActionExpr::Err(self)
     }
 }
 
@@ -87,10 +93,7 @@ mod tests {
         ]
         .into_iter()
         {
-            assert_eq!(
-                err_expr.get_inner_exprs().clone(),
-                Some(&[expr.clone()][..])
-            );
+            assert_eq!(err_expr.inner_exprs().clone(), Some(&[expr.clone()][..]));
         }
     }
 
@@ -110,7 +113,7 @@ mod tests {
                 err_expr
                     .replace_inner_exprs(&[replace_inner.clone()][..])
                     .unwrap()
-                    .get_inner_exprs()
+                    .inner_exprs()
                     .clone(),
                 Some(&[replace_inner.clone()][..])
             );

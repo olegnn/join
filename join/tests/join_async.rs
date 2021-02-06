@@ -13,21 +13,21 @@ mod join_async_tests {
 
     type _Result<T, E> = std::result::Result<T, E>;
 
-    async fn get_three() -> u16 {
+    async fn three() -> u16 {
         3
     }
 
     #[allow(clippy::unnecessary_wraps)]
-    async fn get_ok_four() -> Result<u16> {
+    async fn ok_four() -> Result<u16> {
         Ok(4)
     }
 
     #[allow(clippy::unnecessary_wraps)]
-    async fn get_ok_five() -> Result<u16> {
+    async fn ok_five() -> Result<u16> {
         Ok(5)
     }
 
-    async fn get_err() -> Result<u16> {
+    async fn make_err() -> Result<u16> {
         Err("error".into())
     }
 
@@ -56,9 +56,9 @@ mod join_async_tests {
         block_on(async {
             let product = try_join_async! {
                 ok(2u16),
-                ok(get_three().await),
-                get_ok_four(),
-                ok(get_ok_five().await.unwrap()),
+                ok(three().await),
+                ok_four(),
+                ok(ok_five().await.unwrap()),
                 and_then => |a, b, c, d| ok(a * b * c * d)
             };
 
@@ -66,15 +66,15 @@ mod join_async_tests {
 
             let err = try_join_async! {
                 ok(2u16),
-                ok(get_three().await),
-                get_ok_four(),
-                get_err(),
+                ok(three().await),
+                ok_four(),
+                make_err(),
                 and_then => |a, b, c, d| ok(a * b * c * d)
             };
 
             assert_eq!(
                 format!("{:?}", err.await.unwrap_err()),
-                format!("{:?}", get_err().await.unwrap_err())
+                format!("{:?}", make_err().await.unwrap_err())
             );
         });
     }
@@ -84,9 +84,9 @@ mod join_async_tests {
         block_on(async {
             let product = try_join_async! {
                 ok(2u16).map(add_one_to_ok).and_then(add_one_ok), //4
-                ok(get_three().await).and_then(add_one_ok).map(add_one_to_ok).map(add_one_to_ok).map(add_one_to_ok), //7
-                get_ok_four().map(add_one_to_ok), //5
-                get_ok_five().map(|v| v).and_then(to_err).and_then(add_one_ok).or_else(|_| ok(5)), // 5
+                ok(three().await).and_then(add_one_ok).map(add_one_to_ok).map(add_one_to_ok).map(add_one_to_ok), //7
+                ok_four().map(add_one_to_ok), //5
+                ok_five().map(|v| v).and_then(to_err).and_then(add_one_ok).or_else(|_| ok(5)), // 5
                 and_then => |a, b, c, d| ok(a * b * c * d)
             };
 
@@ -94,15 +94,15 @@ mod join_async_tests {
 
             let err = try_join_async! {
                 ok(2).map(add_one_to_ok),
-                ok(get_three().await).and_then(to_err),
-                get_ok_four(),
-                get_err(),
+                ok(three().await).and_then(to_err),
+                ok_four(),
+                make_err(),
                 map => |a, b, c, d| a * b * c * d
             };
 
             assert_eq!(
                 format!("{:?}", err.await.unwrap_err()),
-                format!("{:?}", to_err(get_three().await).await.unwrap_err())
+                format!("{:?}", to_err(three().await).await.unwrap_err())
             );
         });
     }
@@ -112,9 +112,9 @@ mod join_async_tests {
         block_on(async {
             let product = try_join_async! {
                 ok(2u16) |> add_one_to_ok => add_one_ok, //4
-                ok(get_three().await) => add_one_ok |> add_one_to_ok |> add_one_to_ok |> add_one_to_ok, //7
-                get_ok_four() |> add_one_to_ok, //5
-                get_ok_five() |> |v| v |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
+                ok(three().await) => add_one_ok |> add_one_to_ok |> add_one_to_ok |> add_one_to_ok, //7
+                ok_four() |> add_one_to_ok, //5
+                ok_five() |> |v| v |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
                 map => |a, b, c, d| a * b * c * d
             };
 
@@ -122,9 +122,9 @@ mod join_async_tests {
 
             let sum = try_join_async! {
                 2u16 -> ok |> add_one_to_ok => add_one_ok, //4
-                get_three().await -> ok => add_one_ok |> add_one_to_ok |> add_one_to_ok |> add_one_to_ok, //7
-                get_ok_four() |> add_one_to_ok, //5
-                get_ok_five() |> |v| v |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
+                three().await -> ok => add_one_ok |> add_one_to_ok |> add_one_to_ok |> add_one_to_ok, //7
+                ok_four() |> add_one_to_ok, //5
+                ok_five() |> |v| v |> add_one_to_ok => to_err => add_one_ok <= |_| ok(5), // 5
                 and_then => |a, b, c, d| ok(a + b + c + d)
             };
 
@@ -132,16 +132,16 @@ mod join_async_tests {
 
             let err: Result<u16> = try_join_async! {
                 ok(2) |> add_one_to_ok,
-                ok(get_three().await) => to_err,
-                get_ok_four() => |_| err("some error".into()),
-                get_err(),
+                ok(three().await) => to_err,
+                ok_four() => |_| err("some error".into()),
+                make_err(),
                 map => |a: u16, b: u16, c: u16, d: u16| a * b * c * d
             }
             .await;
 
             assert_eq!(
                 format!("{:?}", err.unwrap_err()),
-                format!("{:?}", to_err(get_three().await).await.unwrap_err())
+                format!("{:?}", to_err(three().await).await.unwrap_err())
             );
         });
     }
@@ -152,7 +152,7 @@ mod join_async_tests {
             let ok_value = try_join_async! {
                 ok(2u16),
                 ok(3u16),
-                get_ok_four(),
+                ok_four(),
                 and_then => |_a, _b, _c| ok::<Option<u16>, _>(None)
             };
 
@@ -161,7 +161,7 @@ mod join_async_tests {
             let err_value = try_join_async! {
                 ok(2u16),
                 ok(3u16),
-                get_ok_four(),
+                ok_four(),
                 and_then => |a, _b, _c| to_err(a)
             };
 
@@ -173,7 +173,7 @@ mod join_async_tests {
             let okay = try_join_async! {
                 ready(Ok(2u16)),
                 ready(Ok(3u16)),
-                get_ok_five(),
+                ok_five(),
                 map => |a, _b, _c| a
             };
 
@@ -182,7 +182,7 @@ mod join_async_tests {
             let error: Result<u16> = try_join_async! {
                 ready(Ok(2u16)),
                 ready(Ok(3u16)),
-                get_ok_five(),
+                ok_five(),
                 and_then => |_a, _b, _c| ready(Err("error".into()))
             }
             .await;
@@ -192,7 +192,7 @@ mod join_async_tests {
             let okay = try_join_async! {
                 ready(Ok(2u16)),
                 ready(Ok(3u16)),
-                get_ok_five(),
+                ok_five(),
                 map => |a, b, c| a + b + c
             };
 
@@ -211,7 +211,7 @@ mod join_async_tests {
             let error = try_join_async! {
                 ready(Ok(2u16)),
                 Err("hey".into()) -> ready,
-                get_ok_five(),
+                ok_five(),
                 map => |a: u16, b: u16, c: u16| a + b + c
             };
 
@@ -220,7 +220,7 @@ mod join_async_tests {
             let ok_value = join_async! {
                 ok(2u16),
                 ok(3u16),
-                get_ok_four(),
+                ok_four(),
                 then => |a: Result<u16>, b: Result<u16>, c: Result<u16>| ok::<_,()>(a.unwrap() + b.unwrap() + c.unwrap())
             };
 
@@ -229,7 +229,7 @@ mod join_async_tests {
             let err_value = join_async! {
                 ok(2u16),
                 ok(3u16),
-                get_ok_four(),
+                ok_four(),
                 then => |a: Result<u16>, b: Result<u16>, c: Result<u16>| err::<u16, _>(a.unwrap() + b.unwrap() + c.unwrap())
             };
 
@@ -263,7 +263,7 @@ mod join_async_tests {
                         value.map(add_one_sync)
                     }
                 } ~=> add_one_ok, //4
-                let branch_1 = get_three().await -> ok ~=> add_one_ok ~|> |value| value |> {
+                let branch_1 = three().await -> ok ~=> add_one_ok ~|> |value| value |> {
                     let branch_0 = branch_0.as_ref().ok().cloned();
                     let branch_1 = branch_1.as_ref().ok().cloned();
                     let branch_2 = branch_2.as_ref().ok().cloned();
@@ -276,8 +276,8 @@ mod join_async_tests {
                         value.map(add_one_sync)
                     }
                 } ~|> add_one_to_ok ~|> add_one_to_ok, //7
-                let branch_2 = get_ok_four() ~|> add_one_to_ok, //5
-                let branch_3 = get_ok_five() ~|> |v| v ~|> add_one_to_ok ~=> to_err <= |_| ok(5) ~=> add_one_ok, // 6
+                let branch_2 = ok_four() ~|> add_one_to_ok, //5
+                let branch_3 = ok_five() ~|> |v| v ~|> add_one_to_ok ~=> to_err <= |_| ok(5) ~=> add_one_ok, // 6
                 map => |a, b, c, d| a * b * c * d
             };
 
@@ -548,7 +548,7 @@ mod join_async_tests {
             let game = try_join_async! {
                 // Make requests to several sites
                 // and calculate count of links starting from `https://`
-                get_urls_to_calculate_link_count()
+                urls_to_calculate_link_count()
                     |> {
                         // If pass block statement instead of fn, it will be placed before current step,
                         // so it will us allow to capture some variables from context
@@ -582,7 +582,7 @@ mod join_async_tests {
                         }
                         ..unwrap_or(()),
                 // Concurrently it makes request to the site which generates random number
-                get_url_to_get_random_number()
+                url_to_random_number()
                     -> ok
                     => {
                         // If pass block statement instead of fn, it will be placed before current step,
@@ -637,7 +637,7 @@ mod join_async_tests {
             ).unwrap_or_else(|error| eprintln!("Error: {:#?}", error));
         });
 
-        fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
+        fn urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
             iter(
                  vec![
                      "https://en.wikipedia.org/w/api.php?format=json&action=query&generator=random&grnnamespace=0&prop=revisions|images&rvprop=content&grnlimit=100",
@@ -647,7 +647,7 @@ mod join_async_tests {
              )
         }
 
-        fn get_url_to_get_random_number() -> &'static str {
+        fn url_to_random_number() -> &'static str {
             "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
         }
 

@@ -3,12 +3,14 @@
 //! and optional next `N`
 //!
 //!
+use std::fmt::Debug;
 use syn::parse::{Parse, ParseStream};
 
 ///
 /// Defines one unit of expression parsing.
 ///
-pub struct Unit<T, N> {
+#[derive(Debug, Clone)]
+pub struct Unit<T: Clone + Debug, N: Clone + Debug> {
     ///
     /// Parsed value (for example `Expr` { Ok(1) }).
     ///
@@ -24,11 +26,11 @@ pub struct Unit<T, N> {
 ///
 pub type UnitResult<T, N> = syn::Result<Unit<T, N>>;
 
-pub trait ParseUnit<N> {
+pub trait ParseUnit<N: Clone + Debug> {
     ///
     /// Parses input stream until next `N`.
     ///
-    fn parse_unit<T: Parse>(
+    fn parse_unit<T: Parse + Clone + Debug>(
         &self,
         input: ParseStream,
         allow_empty_parsed: bool,
@@ -39,14 +41,14 @@ pub trait ParseUnit<N> {
 /// Allows to map `Self` over some parsed.
 ///
 pub trait MapParsed<T, R> {
-    type Output;
+    type Output: Clone + Debug;
 
     fn map_parsed<F>(self, f: F) -> Self::Output
     where
         F: FnOnce(T) -> R;
 }
 
-impl<T, R, N> MapParsed<T, R> for UnitResult<T, N> {
+impl<T: Clone + Debug, R: Clone + Debug, N: Clone + Debug> MapParsed<T, R> for UnitResult<T, N> {
     type Output = UnitResult<R, N>;
 
     fn map_parsed<F>(self, f: F) -> Self::Output

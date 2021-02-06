@@ -35,7 +35,7 @@ where
     ///
     /// Returns self members.
     ///
-    fn get_members(&self) -> &[Self::Member];
+    fn members(&self) -> &[Self::Member];
 
     ///
     /// Returns chain length.
@@ -57,5 +57,5 @@ where
     ///
     /// Returns optional `Identifier` associated with chain.
     ///
-    fn get_id(&self) -> Option<&Self::Identifier>;
+    fn id(&self) -> Option<&Self::Identifier>;
 }

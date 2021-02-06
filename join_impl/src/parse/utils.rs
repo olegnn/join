@@ -4,12 +4,12 @@
 
 use proc_macro2::{TokenStream, TokenTree};
 use quote::ToTokens;
+use std::fmt::Debug;
 use syn::parse::{Parse, ParseStream};
 use syn::{parse2, Expr};
 
 use super::unit::{Unit, UnitResult};
-use crate::chain::expr::{ApplicationType, MoveType};
-use crate::chain::group::{ActionGroup, CommandGroup, GroupDeterminer};
+use crate::chain::group::{ActionGroup, ApplicationType, Combinator, GroupDeterminer, MoveType};
 
 ///
 /// Returns `true` if given stream is valid `Expr`.
@@ -35,7 +35,7 @@ pub fn is_block_expr(expr: &Expr) -> bool {
 ///
 /// Parses input `ParseStream` until one of provided `GroupDeterminer`'s check will be valid or it reaches end.
 ///
-pub fn parse_until<'a, T: Parse>(
+pub fn parse_until<'a, T: Parse + Clone + Debug>(
     input: ParseStream<'_>,
     group_determiners: impl Iterator<Item = &'a GroupDeterminer> + Clone,
     deferred_determiner: &'a GroupDeterminer,
@@ -82,12 +82,12 @@ pub fn parse_until<'a, T: Parse>(
     // Parses group determiner's tokens. (for ex. => -> |> etc.)
     //
     if let Some(group) = next {
-        if let Some(group_type) = group.get_group_type() {
+        if let Some(group_type) = group.group_type() {
             let forked = input.fork();
             group.erase_input(&forked)?;
 
             wrap = wrapper_determiner.check_input(&forked);
-            if wrap && group_type == CommandGroup::UNWRAP {
+            if wrap && group_type == Combinator::UNWRAP {
                 return Err(input.error("Action can be either wrapped or unwrapped but not both"));
             } else if wrap && !group_type.can_be_wrapper() {
                 return Err(input.error("This combinator can't be wrapper"));
@@ -102,7 +102,7 @@ pub fn parse_until<'a, T: Parse>(
     Ok(Unit {
         parsed: parse2(tokens)?,
         next: next.and_then(|group| {
-            group.get_group_type().map(|group_type| {
+            group.group_type().map(|group_type| {
                 ActionGroup::new(
                     group_type,
                     if deferred {
@@ -112,7 +112,7 @@ pub fn parse_until<'a, T: Parse>(
                     },
                     if wrap {
                         MoveType::Wrap
-                    } else if group_type == CommandGroup::UNWRAP {
+                    } else if group_type == Combinator::UNWRAP {
                         MoveType::Unwrap
                     } else {
                         MoveType::None
@@ -124,7 +124,7 @@ pub fn parse_until<'a, T: Parse>(
 }
 
 ///
-/// Skips next item it `ParseStream`. Returns `true` in case of success.
+/// Skips next item in `ParseStream`. Returns `true` in case of success.
 ///
 pub fn skip(input: ParseStream<'_>) -> bool {
     input

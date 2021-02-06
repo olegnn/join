@@ -112,12 +112,12 @@ pub fn construct_expr_wrapper_name(
 ///
 /// use join::try_join_spawn;
 ///
-/// fn get_current_thread_name() -> String {
+/// fn current_thread_name() -> String {
 ///     thread::current().name().unwrap().to_owned()
 /// }
 ///
 /// fn print_branch_thread_name(index: &Result<usize, ()>) {
-///     println!("Branch: {}. Thread name: {}.", index.unwrap(), get_current_thread_name());
+///     println!("Branch: {}. Thread name: {}.", index.unwrap(), current_thread_name());
 /// }
 ///
 /// let _ = try_join_spawn! {

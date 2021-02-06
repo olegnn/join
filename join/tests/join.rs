@@ -10,25 +10,25 @@ mod join_tests {
 
     type _Result<T, E> = std::result::Result<T, E>;
 
-    fn get_three() -> u16 {
+    fn three() -> u16 {
         3
     }
 
     #[allow(clippy::unnecessary_wraps)]
-    fn get_ok_four() -> Result<u16> {
+    fn ok_four() -> Result<u16> {
         Ok(4)
     }
 
     #[allow(clippy::unnecessary_wraps)]
-    fn get_some_five() -> Option<u16> {
+    fn some_five() -> Option<u16> {
         Some(5)
     }
 
-    fn get_err() -> Result<u16> {
+    fn make_err() -> Result<u16> {
         Err("error".to_string().into())
     }
 
-    fn get_none() -> Option<u16> {
+    fn none() -> Option<u16> {
         None
     }
 
@@ -130,9 +130,9 @@ mod join_tests {
     fn it_produces_n_branches_with_length_1() {
         let product = try_join! {
             Ok(2u16),
-            Ok(get_three()),
-            get_ok_four(),
-            get_some_five().ok_or_else(|| "error".into()),
+            Ok(three()),
+            ok_four(),
+            some_five().ok_or_else(|| "error".into()),
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -140,22 +140,22 @@ mod join_tests {
 
         let err = try_join! {
             Ok(2),
-            Ok(get_three()),
-            get_ok_four(),
-            get_err(),
+            Ok(three()),
+            ok_four(),
+            make_err(),
             map => |a, b, c, d| a * b * c * d
         };
 
         assert_eq!(
             err.unwrap_err().to_string(),
-            get_err().unwrap_err().to_string()
+            make_err().unwrap_err().to_string()
         );
 
         let product = try_join! {
             Some(2),
-            Some(get_three()),
-            get_some_five(),
-            get_ok_four().ok(),
+            Some(three()),
+            some_five(),
+            ok_four().ok(),
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -163,10 +163,10 @@ mod join_tests {
 
         let none = try_join! {
             Some(2),
-            Some(get_three()),
-            get_some_five(),
-            get_none(),
-            get_ok_four().ok(),
+            Some(three()),
+            some_five(),
+            none(),
+            ok_four().ok(),
             map => |a, b, c, d, e| a * b * c * d * e
         };
 
@@ -177,9 +177,9 @@ mod join_tests {
     fn it_produces_n_branches_with_any_length() {
         let product = try_join! {
             Ok(2u16).map(add_one).and_then(add_one_ok), //4
-            Ok(get_three()).and_then(add_one_ok).map(add_one).map(add_one).map(add_one), //7
-            get_ok_four().map(add_one), //5
-            get_some_five().map(add_one).ok_or_else(|| "error".into()).and_then(to_err).and_then(add_one_ok).or(Ok(5)), // 5
+            Ok(three()).and_then(add_one_ok).map(add_one).map(add_one).map(add_one), //7
+            ok_four().map(add_one), //5
+            some_five().map(add_one).ok_or_else(|| "error".into()).and_then(to_err).and_then(add_one_ok).or(Ok(5)), // 5
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -187,15 +187,15 @@ mod join_tests {
 
         let err = try_join! {
             Ok(2).map(add_one),
-            Ok(get_three()).and_then(to_err),
-            get_ok_four().and_then(|_| -> Result<u16> { Err("ERROR".into()) }),
-            get_err(),
+            Ok(three()).and_then(to_err),
+            ok_four().and_then(|_| -> Result<u16> { Err("ERROR".into()) }),
+            make_err(),
             map => |a, b, c, d| a * b * c * d
         };
 
         assert_eq!(
             err.unwrap_err().to_string(),
-            to_err(get_three()).unwrap_err().to_string()
+            to_err(three()).unwrap_err().to_string()
         );
     }
 
@@ -203,9 +203,9 @@ mod join_tests {
     fn it_produces_n_branches_with_any_length_using_combinators() {
         let product = try_join! {
             Ok(2u16) |> add_one => add_one_ok, //4
-            Ok(get_three()) => add_one_ok |> add_one |> add_one |> add_one, //7
-            get_ok_four() |> add_one, //5
-            get_some_five() |> add_one ..ok_or_else(|| "error".into()) => to_err => add_one_ok <| Ok(5), // 5
+            Ok(three()) => add_one_ok |> add_one |> add_one |> add_one, //7
+            ok_four() |> add_one, //5
+            some_five() |> add_one ..ok_or_else(|| "error".into()) => to_err => add_one_ok <| Ok(5), // 5
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -213,9 +213,9 @@ mod join_tests {
 
         let sum = try_join! {
             2u16 -> Ok |> add_one => add_one_ok, //4
-            get_three() -> Ok => add_one_ok |> add_one |> add_one |> add_one, //7
-            get_ok_four() |> add_one, //5
-            get_some_five() |> add_one ..ok_or_else(|| "error".into()) => to_err => add_one_ok <| Ok(5), // 5
+            three() -> Ok => add_one_ok |> add_one |> add_one |> add_one, //7
+            ok_four() |> add_one, //5
+            some_five() |> add_one ..ok_or_else(|| "error".into()) => to_err => add_one_ok <| Ok(5), // 5
             and_then => |a, b, c, d| Ok(a + b + c + d)
         };
 
@@ -223,22 +223,22 @@ mod join_tests {
 
         let err = try_join! {
             Ok(2) |> add_one,
-            Ok(get_three()) => to_err,
-            get_ok_four() => |_| -> Result<u16> { Err("ERROR!".into()) },
-            get_err(),
+            Ok(three()) => to_err,
+            ok_four() => |_| -> Result<u16> { Err("ERROR!".into()) },
+            make_err(),
             map => |a, b, c, d| a * b * c * d
         };
 
         assert_eq!(
             err.unwrap_err().to_string(),
-            to_err(get_three()).unwrap_err().to_string()
+            to_err(three()).unwrap_err().to_string()
         );
 
         let none = try_join! {
             2 -> Some |> add_one,
-            Some(get_three()) => to_none,
-            get_ok_four() => |_| -> Result<u16> { Ok(10) } ..ok(),
-            get_none(),
+            Some(three()) => to_none,
+            ok_four() => |_| -> Result<u16> { Ok(10) } ..ok(),
+            none(),
             map => |a, b, c, d| a * b * c * d
         };
 
@@ -250,7 +250,7 @@ mod join_tests {
         let ok = try_join! {
             Ok(2),
             Ok(3),
-            get_ok_four(),
+            ok_four(),
             and_then => |_a, _b, _c| Ok::<Option<u16>, _>(None)
         };
 
@@ -259,7 +259,7 @@ mod join_tests {
         let err = try_join! {
             Ok(2),
             Ok(3),
-            get_ok_four(),
+            ok_four(),
             and_then => |a: u8, _b, _c| Err::<Option<u16>, _>(a.to_string().into())
         };
 
@@ -271,7 +271,7 @@ mod join_tests {
         let some = try_join! {
             Some(2),
             Some(3),
-            get_some_five(),
+            some_five(),
             and_then => |a, _b, _c| Some(a)
         };
 
@@ -280,7 +280,7 @@ mod join_tests {
         let none = try_join! {
             Some(2),
             Some(3),
-            get_some_five(),
+            some_five(),
             and_then => |_a, _b, _c| None::<u16>
         };
 
@@ -289,7 +289,7 @@ mod join_tests {
         let some = try_join! {
             Some(2u16),
             Some(3u16),
-            get_some_five(),
+            some_five(),
             map => |a, b, c| a + b + c
         };
 
@@ -298,7 +298,7 @@ mod join_tests {
         let none: Option<u16> = try_join! {
             Some(2u16),
             None,
-            get_some_five(),
+            some_five(),
             and_then => |a: u16, b: u16, c: u16| -> Option<u16> { Some(a + b + c) }
         };
 
@@ -306,7 +306,7 @@ mod join_tests {
 
         let then: Result<u16> = Ok(2);
         let map: Result<u16> = Ok(3);
-        let and_then = get_ok_four;
+        let and_then = ok_four;
 
         let ok = join! {
             then,
@@ -320,7 +320,7 @@ mod join_tests {
         let err = join! {
             Ok(2),
             Ok(3),
-            get_ok_four(),
+            ok_four(),
             then => |a: Result<u16>, b: Result<u16>, c: Result<u16>| Err::<u16, _>(a.unwrap() + b.unwrap() + c.unwrap())
         };
 
@@ -344,7 +344,7 @@ mod join_tests {
                     add_one(value)
                 }
             } ~=> add_one_ok, //4
-            let branch_1 = Ok(get_three()) ~=> add_one_ok ~|> |value| value |> {
+            let branch_1 = Ok(three()) ~=> add_one_ok ~|> |value| value |> {
                 let branch_0 = branch_0.as_ref().ok().cloned();
                 let branch_1 = branch_1.as_ref().ok().cloned();
                 let branch_2 = branch_2.as_ref().ok().cloned();
@@ -358,8 +358,8 @@ mod join_tests {
                     add_one(value)
                 }
             } ~|> add_one ~|> add_one, //7
-            let branch_2 = get_ok_four() ~|> add_one, //5
-            let branch_3 = get_some_five() |> add_one ..ok_or_else(|| "error".into()) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
+            let branch_2 = ok_four() ~|> add_one, //5
+            let branch_3 = some_five() |> add_one ..ok_or_else(|| "error".into()) ~=> to_err <| Ok(5) ~=> add_one_ok, // 6
             map => |a, b, c, d| a * b * c * d
         };
 
