@@ -2,8 +2,8 @@
 
 Huge implementation refactoring.
 
-- `ExprGroup<ActionExpr>` is now enum of `Process`, `Err`, `Initial`
-- `ExprGroup` defines `ExprGroup<ActionExpr>` with `ActionGroup`
+- `ActionExpr` is now enum of `Process`, `Err`, `Initial`
+- `ExprGroup` defines `ActionExpr` with `ActionGroup`
 - `CommandGroup` enum => `Combinator` enum
 - `TryFrom` implemented for `Handler`
 - Refactored internal macros implementation a bit
