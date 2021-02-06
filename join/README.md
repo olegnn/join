@@ -456,8 +456,8 @@ fn main() {
                 ~=> >>> ..iter().max() |> Clone::clone,
         generate_random_vec(10000, 100000000000000f64)
             .into_iter()
-            // .map(get_sqrt) (Extract sqrt from every element)
-            |> get_sqrt
+            // .map(sqrt) (Extract sqrt from every element)
+            |> sqrt
             // Some(...)
             -> Some
             // .and_then(|v| v...)
@@ -511,7 +511,7 @@ where
     *value % 2u8.into() == 0u8.into()
 }
 
-fn get_sqrt<T>(value: T) -> T
+fn sqrt<T>(value: T) -> T
 where
     T: Into<f64>,
     f64: Into<T>,
@@ -612,7 +612,7 @@ async fn main() {
     let game = try_join_async! {
         // Make requests to several sites
         // and calculate count of links starting from `https://`
-        get_urls_to_calculate_link_count()
+        urls_to_calculate_link_count()
             |> {
                 // If pass block statement instead of fn, it will be placed before current step,
                 // so it will us allow to capture some variables from context
@@ -652,7 +652,7 @@ async fn main() {
                 }
                 ..unwrap_or(()),
         // Concurrently it makes request to the site which generates random number
-        get_url_to_get_random_number()
+        url_to_random_number()
             // Wrap previous result into `ok(...)`
             -> ok
             // .and_then(...)
@@ -711,7 +711,7 @@ async fn main() {
     ).unwrap_or_else(|error| eprintln!("Error: {:#?}", error));
 }
 
-fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
+fn urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
     iter(
         vec![
             "https://en.wikipedia.org/w/api.php?format=json&action=query&generator=random&grnnamespace=0&prop=revisions|images&rvprop=content&grnlimit=100",
@@ -721,7 +721,7 @@ fn get_urls_to_calculate_link_count() -> impl Stream<Item = &'static str> {
     )   
 }
 
-fn get_url_to_get_random_number() -> &'static str {
+fn url_to_random_number() -> &'static str {
     "https://www.random.org/integers/?num=1&min=0&max=500&col=1&base=10&format=plain&rnd=new"
 }
 
@@ -905,12 +905,12 @@ use std::thread;
 
 use join::try_join_spawn;
 
-fn get_current_thread_name() -> String {
+fn current_thread_name() -> String {
     thread::current().name().unwrap().to_owned()
 }
 
 fn print_branch_thread_name(index: &Result<usize, ()>) {
-    println!("Branch: {}. Thread name: {}.", index.unwrap(), get_current_thread_name());
+    println!("Branch: {}. Thread name: {}.", index.unwrap(), current_thread_name());
 }
 
 fn main() {

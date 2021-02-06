@@ -1,40 +1,44 @@
 //!
-//! Contains `InitialExpr` definition.
+//! `InitialExpr` definition.
 //!
 
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::Expr;
 
-use super::InnerExpr;
+use super::{ActionExpr, InnerExpr};
 
 ///
 /// Used to define expression which is the start value in chain.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct InitialExpr(pub [Expr; 1]);
+pub enum InitialExpr {
+    Single([Expr; 1]),
+}
 
 impl ToTokens for InitialExpr {
     fn to_tokens(&self, output: &mut TokenStream) {
-        let expr = self.get_inner_exprs().unwrap();
+        let expr = self.inner_exprs().unwrap();
         let tokens = quote! { #( #expr )* };
         output.extend(tokens);
-    }
-
-    fn into_token_stream(self) -> TokenStream {
-        let mut output = TokenStream::new();
-        self.to_tokens(&mut output);
-        output
     }
 }
 
 impl InnerExpr for InitialExpr {
-    fn get_inner_exprs(&self) -> Option<&[Expr]> {
-        Some(&self.0)
+    fn inner_exprs(&self) -> Option<&[Expr]> {
+        match self {
+            Self::Single(expr) => Some(expr),
+        }
     }
 
     fn replace_inner_exprs(self, exprs: &[Expr]) -> Option<Self> {
-        exprs.last().cloned().map(|expr| Self([expr]))
+        exprs.last().cloned().map(|expr| Self::Single([expr]))
+    }
+}
+
+impl Into<ActionExpr> for InitialExpr {
+    fn into(self) -> ActionExpr {
+        ActionExpr::Initial(self)
     }
 }
 
@@ -52,7 +56,7 @@ mod tests {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         assert_eq!(
-            InitialExpr([expr.clone()]).get_inner_exprs().clone(),
+            InitialExpr::Single([expr.clone()]).inner_exprs().clone(),
             Some(&[expr][..])
         );
     }
@@ -63,10 +67,10 @@ mod tests {
         let replace_inner: Expr = parse_quote! { |v| 1 + v };
 
         assert_eq!(
-            InitialExpr([expr])
+            InitialExpr::Single([expr])
                 .replace_inner_exprs(&[replace_inner.clone()][..])
                 .unwrap()
-                .get_inner_exprs()
+                .inner_exprs()
                 .clone(),
             Some(&[replace_inner][..])
         );
@@ -77,7 +81,7 @@ mod tests {
         let expr: Expr = parse_quote! { |v| v + 1 };
 
         assert!(are_streams_equal(
-            InitialExpr([expr.clone()]).into_token_stream(),
+            InitialExpr::Single([expr.clone()]).into_token_stream(),
             expr.into_token_stream()
         ));
     }

@@ -1,5 +1,5 @@
 //!
-//! Defines `Join` trait and `Join` type to generate output of the `join!` macro based on input and given config.
+//! Macro output generator.
 //!
 
 pub mod config;
@@ -36,32 +36,32 @@ pub trait JoinInput {
     ///
     /// Returns custom futures_crate_path taken from macro input if exists.
     ///
-    fn get_futures_crate_path(&self) -> Option<&Path>;
+    fn futures_crate_path(&self) -> Option<&Path>;
 
     ///
     /// Returns branches, each of branches is an object implemented `Chain` trait.
     ///
-    fn get_branches(&self) -> &[Self::Chain];
+    fn branches(&self) -> &[Self::Chain];
 
     ///
     /// Returns `Handler` if exists.
     ///
-    fn get_handler(&self) -> Option<&Self::Handler>;
+    fn handler(&self) -> Option<&Self::Handler>;
 
     ///
     /// Returns custom joiner if exists.
     ///
-    fn get_joiner(&self) -> Option<&TokenStream>;
+    fn joiner(&self) -> Option<&TokenStream>;
 
     ///
     /// Returns transpose results configuration if specified.
     ///
-    fn get_transpose_results_option(&self) -> Option<bool>;
+    fn transpose_results_option(&self) -> Option<bool>;
 
     ///
     /// Returns lazy branches configuration if provided.
     ///
-    fn get_lazy_branches_option(&self) -> Option<bool>;
+    fn lazy_branches_option(&self) -> Option<bool>;
 }
 
 ///
@@ -80,27 +80,27 @@ impl JoinInput for JoinInputDefault {
     type Chain = ActionExprChain;
     type Handler = Handler;
 
-    fn get_futures_crate_path(&self) -> Option<&Path> {
+    fn futures_crate_path(&self) -> Option<&Path> {
         self.futures_crate_path.as_ref()
     }
 
-    fn get_branches(&self) -> &[Self::Chain] {
+    fn branches(&self) -> &[Self::Chain] {
         &self.branches
     }
 
-    fn get_handler(&self) -> Option<&Self::Handler> {
+    fn handler(&self) -> Option<&Self::Handler> {
         self.handler.as_ref()
     }
 
-    fn get_joiner(&self) -> Option<&TokenStream> {
+    fn joiner(&self) -> Option<&TokenStream> {
         self.custom_joiner.as_ref()
     }
 
-    fn get_transpose_results_option(&self) -> Option<bool> {
+    fn transpose_results_option(&self) -> Option<bool> {
         self.transpose_results.as_ref().copied()
     }
 
-    fn get_lazy_branches_option(&self) -> Option<bool> {
+    fn lazy_branches_option(&self) -> Option<bool> {
         self.lazy_branches.as_ref().copied()
     }
 }
@@ -115,18 +115,18 @@ pub fn generate_join<T: JoinInput<Chain = ActionExprChain, Handler = Handler>>(
     let default_futures_crate_path = parse_quote! { ::futures };
 
     JoinOutput::new(
-        join.get_branches(),
-        join.get_handler(),
-        if let Some(futures_crate_path) = join.get_futures_crate_path() {
+        join.branches(),
+        join.handler(),
+        if let Some(futures_crate_path) = join.futures_crate_path() {
             Some(futures_crate_path)
         } else if config.is_async {
             Some(&default_futures_crate_path)
         } else {
             None
         },
-        join.get_joiner(),
-        join.get_transpose_results_option(),
-        join.get_lazy_branches_option(),
+        join.joiner(),
+        join.transpose_results_option(),
+        join.lazy_branches_option(),
         config,
     )
     .unwrap()

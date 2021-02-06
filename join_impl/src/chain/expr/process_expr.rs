@@ -1,12 +1,12 @@
 //!
-//! Contains `ProcessExpr` definition.
+//! `ProcessExpr` definition.
 //!
 
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{Expr, Type};
 
-use super::InnerExpr;
+use super::{ActionExpr, InnerExpr};
 
 ///
 /// Used to define ordinary type of expressions in process position.
@@ -54,7 +54,7 @@ pub enum ProcessExpr {
     ///
     /// .collect::<Type>()
     ///
-    Collect(Option<Type>),
+    Collect(Option<[Type; 1]>),
     ///
     /// .enumerate()
     ///
@@ -82,20 +82,20 @@ pub enum ProcessExpr {
     ///
     /// .unzip::<A, B, FromA, FromB>()
     ///
-    Unzip(Option<(Type, Type, Type, Type)>),
+    Unzip(Option<[Type; 4]>),
     ///
     /// .zip(Expr)
     ///
     Zip([Expr; 1]),
     ///
-    /// Special process expr used to define next group nested position [which will be #value.and_then(#previous_expr).#next_expr]
+    /// Special process expr used to define next group nested position - which will be `#value.and_then(#previous_expr).#next_expr`
     ///
     UNWRAP,
 }
 
 #[cfg(not(feature = "full"))]
 impl InnerExpr for ProcessExpr {
-    fn get_inner_exprs(&self) -> Option<&[Expr]> {
+    fn inner_exprs(&self) -> Option<&[Expr]> {
         match self {
             Self::Map(expr) => Some(&expr[..]),
             Self::Dot(expr) => Some(&expr[..]),
@@ -206,7 +206,7 @@ pub enum ProcessExpr {
     ///
     /// .collect::<Type>()
     ///
-    Collect(Option<Type>),
+    Collect(Option<[Type; 1]>),
     ///
     /// .copied(Expr)
     ///
@@ -402,13 +402,13 @@ pub enum ProcessExpr {
     ///
     /// .unzip::<A, B, FromA, FromB>()
     ///
-    Unzip(Option<(Type, Type, Type, Type)>),
+    Unzip(Option<[Type; 4]>),
     ///
     /// .zip(Expr)
     ///
     Zip([Expr; 1]),
     ///
-    /// Special process expr used to define next group nested position [which will be #value.and_then(#previous_expr).#next_expr]
+    /// Special process expr used to define next group nested position - which will be `#value.and_then(#previous_expr).#next_expr`
     ///
     UNWRAP,
 }
@@ -439,9 +439,14 @@ impl ToTokens for ProcessExpr {
             Self::Chain([expr]) => {
                 quote! { .chain(#expr) }
             }
-            Self::Collect(type_spec) => {
-                quote! { .collect::<#type_spec>() }
-            }
+            Self::Collect(type_spec) => match type_spec {
+                Some([type_s]) => {
+                    quote! { .collect::<#type_s>() }
+                }
+                None => {
+                    quote! { .collect() }
+                }
+            },
             Self::Enumerate => {
                 quote! { .enumerate() }
             }
@@ -468,7 +473,7 @@ impl ToTokens for ProcessExpr {
             }
             Self::Unzip(type_spec) => type_spec
                 .as_ref()
-                .map(|(a, b, c, d)| quote! { .unzip::<#a, #b, #c, #d>() })
+                .map(|[a, b, c, d]| quote! { .unzip::<#a, #b, #c, #d>() })
                 .unwrap_or_else(|| quote! { .unzip() }),
             Self::Zip([expr]) => {
                 quote! { .zip(#expr) }
@@ -520,9 +525,14 @@ impl ToTokens for ProcessExpr {
             Self::Cmp([expr]) => {
                 quote! { .cmp(#expr) }
             }
-            Self::Collect(type_spec) => {
-                quote! { .collect::<#type_spec>() }
-            }
+            Self::Collect(type_spec) => match type_spec {
+                Some([type_s]) => {
+                    quote! { .collect::<#type_s>() }
+                }
+                None => {
+                    quote! { .collect() }
+                }
+            },
             Self::Copied => {
                 quote! { .copied() }
             }
@@ -669,7 +679,7 @@ impl ToTokens for ProcessExpr {
             }
             Self::Unzip(type_spec) => type_spec
                 .as_ref()
-                .map(|(a, b, c, d)| quote! { .unzip::<#a, #b, #c, #d>() })
+                .map(|[a, b, c, d]| quote! { .unzip::<#a, #b, #c, #d>() })
                 .unwrap_or_else(|| quote! { .unzip() }),
             Self::Zip([expr]) => {
                 quote! { .zip(#expr) }
@@ -690,7 +700,7 @@ impl ToTokens for ProcessExpr {
 
 #[cfg(feature = "full")]
 impl InnerExpr for ProcessExpr {
-    fn get_inner_exprs(&self) -> Option<&[Expr]> {
+    fn inner_exprs(&self) -> Option<&[Expr]> {
         match self {
             Self::Map(expr) => Some(expr),
             Self::Dot(expr) => Some(expr),
@@ -820,6 +830,12 @@ impl InnerExpr for ProcessExpr {
     }
 }
 
+impl Into<ActionExpr> for ProcessExpr {
+    fn into(self) -> ActionExpr {
+        ActionExpr::Process(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -850,21 +866,21 @@ mod tests {
         .into_iter()
         {
             assert_eq!(
-                process_expr.get_inner_exprs().clone(),
+                process_expr.inner_exprs().clone(),
                 Some(&[expr.clone()][..])
             );
         }
 
         assert_eq!(
             ProcessExpr::Fold([expr.clone(), expr.clone()])
-                .get_inner_exprs()
+                .inner_exprs()
                 .clone(),
             Some(&[expr.clone(), expr.clone()][..])
         );
 
         assert_eq!(
             ProcessExpr::TryFold([expr.clone(), expr.clone()])
-                .get_inner_exprs()
+                .inner_exprs()
                 .clone(),
             Some(&[expr.clone(), expr][..])
         );
@@ -894,7 +910,7 @@ mod tests {
                 process_expr
                     .replace_inner_exprs(&[replace_inner.clone()])
                     .unwrap()
-                    .get_inner_exprs()
+                    .inner_exprs()
                     .clone(),
                 Some(&[replace_inner.clone()][..])
             );
@@ -909,7 +925,7 @@ mod tests {
             ProcessExpr::Fold([expr.clone(), expr.clone()])
                 .replace_inner_exprs(&[replace_inner.clone(), replace_inner.clone()])
                 .unwrap()
-                .get_inner_exprs()
+                .inner_exprs()
                 .clone(),
             Some(&[replace_inner.clone(), replace_inner.clone()][..])
         );
@@ -918,7 +934,7 @@ mod tests {
             ProcessExpr::TryFold([expr.clone(), expr])
                 .replace_inner_exprs(&[replace_inner.clone(), replace_inner.clone()])
                 .unwrap()
-                .get_inner_exprs()
+                .inner_exprs()
                 .clone(),
             Some(&[replace_inner.clone(), replace_inner][..])
         );
@@ -977,9 +993,14 @@ mod tests {
                     ProcessExpr::Chain([expr]) => {
                         quote! { .chain(#expr) }
                     }
-                    ProcessExpr::Collect(type_spec) => {
-                        quote! { .collect::<#type_spec>() }
-                    }
+                    ProcessExpr::Collect(type_spec) => match type_spec {
+                        Some([type_s]) => {
+                            quote! { .collect::<#type_s>() }
+                        }
+                        None => {
+                            quote! { .collect() }
+                        }
+                    },
                     ProcessExpr::Enumerate => {
                         quote! { .enumerate() }
                     }
@@ -1006,7 +1027,7 @@ mod tests {
                     }
                     ProcessExpr::Unzip(type_spec) => type_spec
                         .as_ref()
-                        .map(|(a, b, c, d)| quote! { .unzip::<#a, #b, #c, #d>() })
+                        .map(|[a, b, c, d]| quote! { .unzip::<#a, #b, #c, #d>() })
                         .unwrap_or_else(|| quote! { .unzip() }),
                     ProcessExpr::Zip([expr]) => {
                         quote! { .zip(#expr) }
@@ -1054,9 +1075,14 @@ mod tests {
                     ProcessExpr::Cmp([expr]) => {
                         quote! { .cmp(#expr) }
                     }
-                    ProcessExpr::Collect(type_spec) => {
-                        quote! { .collect::<#type_spec>() }
-                    }
+                    ProcessExpr::Collect(type_spec) => match type_spec {
+                        Some([type_s]) => {
+                            quote! { .collect::<#type_s>() }
+                        }
+                        None => {
+                            quote! { .collect() }
+                        }
+                    },
                     ProcessExpr::Copied => {
                         quote! { .copied() }
                     }
@@ -1203,7 +1229,7 @@ mod tests {
                     }
                     ProcessExpr::Unzip(type_spec) => type_spec
                         .as_ref()
-                        .map(|(a, b, c, d)| quote! { .unzip::<#a, #b, #c, #d>() })
+                        .map(|[a, b, c, d]| quote! { .unzip::<#a, #b, #c, #d>() })
                         .unwrap_or_else(|| quote! { .unzip() }),
                     ProcessExpr::Zip([expr]) => {
                         quote! { .zip(#expr) }

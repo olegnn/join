@@ -6,7 +6,7 @@ use crate::parse::utils::is_valid_stream;
 use proc_macro2::{TokenStream, TokenTree};
 use syn::parse::{Parse, ParseStream};
 
-use super::CommandGroup;
+use super::Combinator;
 
 pub type CheckStreamFn = fn(ParseStream) -> bool;
 
@@ -21,18 +21,18 @@ unsafe impl std::marker::Send for CheckStreamFnPointer {}
 unsafe impl std::marker::Sync for CheckStreamFnPointer {}
 
 ///
-/// `GroupDeterminer` is used to determine any `CommandGroup` or separator (for ex. `,`) in `ParseStream`
+/// `GroupDeterminer` is used to determine any `Combinator` or separator (for ex. `,`) in `ParseStream`
 ///
 #[derive(Clone)]
 pub struct GroupDeterminer {
-    group_type: Option<CommandGroup>,
+    group_type: Option<Combinator>,
     check_input_fn: CheckStreamFnPointer,
     validate_parsed: bool,
     length: u8,
 }
 
 ///
-/// Creates `GroupDeterminer` for given `CommandGroup`s with provided tokens.
+/// Creates `GroupDeterminer` for given `Combinator`s with provided tokens.
 ///
 #[macro_export]
 macro_rules! define_group_determiners {
@@ -41,7 +41,7 @@ macro_rules! define_group_determiners {
             $crate::define_determiner_with_no_group!(Token![,] => 0),
             $(
                 $crate::define_group_determiner!(
-                    $crate::chain::group::CommandGroup::$group_type => $($token),+ => $length
+                    $crate::chain::group::Combinator::$group_type => $($token),+ => $length
                 )
             ),*,
             $crate::chain::group::GroupDeterminer::new_const(
@@ -55,7 +55,7 @@ macro_rules! define_group_determiners {
 }
 
 ///
-/// Creates `GroupDeterminer` with no `CommandGroup` and provided tokens.
+/// Creates `GroupDeterminer` with no `Combinator` and provided tokens.
 ///
 #[macro_export]
 macro_rules! define_determiner_with_no_group {
@@ -103,15 +103,15 @@ macro_rules! define_tokens_checker {
 }
 
 ///
-/// Creates `GroupDeterminer` with given (`CommandGroup` => tokens => length => ?Check parsed tokens? (optional bool))
+/// Creates `GroupDeterminer` with given (`Combinator` => tokens => length => ?Check parsed tokens? (optional bool))
 ///
 /// # Example:
 /// ```
-/// use join_impl::chain::group::CommandGroup;
+/// use join_impl::chain::group::Combinator;
 /// use join_impl::define_group_determiner;
 /// use syn::Token;
 ///
-/// let then_determiner = define_group_determiner!(CommandGroup::Then => Token![->] => 2); // last param is optional, `true` by default
+/// let then_determiner = define_group_determiner!(Combinator::Then => Token![->] => 2); // last param is optional, `true` by default
 /// ```
 ///
 #[macro_export]
@@ -156,7 +156,7 @@ impl GroupDeterminer {
     /// ```
     ///
     pub const fn new_const(
-        group_type: Option<CommandGroup>,
+        group_type: Option<Combinator>,
         check_input_fn: *const (),
         validate_parsed: bool,
         length: u8,
@@ -194,7 +194,7 @@ impl GroupDeterminer {
     /// ```
     ///
     pub fn new(
-        group_type: impl Into<Option<CommandGroup>>,
+        group_type: impl Into<Option<Combinator>>,
         check_input_fn: CheckStreamFn,
         validate_parsed: bool,
         length: u8,
@@ -210,7 +210,7 @@ impl GroupDeterminer {
     ///
     /// Returns type of group of `GroupDeterminer`.
     ///
-    pub fn get_group_type(&self) -> Option<CommandGroup> {
+    pub fn group_type(&self) -> Option<Combinator> {
         self.group_type
     }
 
@@ -273,7 +273,7 @@ mod tests {
             1,
         );
 
-        assert_eq!(first_comma_determiner.get_group_type(), None);
+        assert_eq!(first_comma_determiner.group_type(), None);
         assert!(first_comma_determiner.check_parsed::<::syn::Expr>(::quote::quote! { , }));
         assert_eq!(first_comma_determiner.len(), 1);
     }
@@ -284,9 +284,9 @@ mod tests {
             input.peek(::syn::Token![=>])
         }
 
-        let then_determiner = GroupDeterminer::new(CommandGroup::Then, check_then, true, 2);
+        let then_determiner = GroupDeterminer::new(Combinator::Then, check_then, true, 2);
 
-        assert_eq!(then_determiner.get_group_type(), Some(CommandGroup::Then));
+        assert_eq!(then_determiner.group_type(), Some(Combinator::Then));
         assert!(then_determiner.check_parsed::<::syn::Expr>(::quote::quote! { 23 }));
         assert_eq!(then_determiner.len(), 2);
     }

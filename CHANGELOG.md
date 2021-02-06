@@ -1,10 +1,23 @@
+# [0.3.0]
+
+Huge implementation refactoring.
+
+- `ActionExpr` is now enum of `Process`, `Err`, `Initial`
+- `ExprGroup` defines `ActionExpr` with `ActionGroup`
+- `CommandGroup` enum => `Combinator` enum
+- `TryFrom` implemented for `Handler`
+- Refactored internal macros implementation a bit
+- `InitialExpr` defined as enum
+- Remove `get_` prefix from all functions
+- Misc docs updates
+
 # [0.2.1]
 
 Implementation updates only
 
 - Removed `Map` and `MapOver` traits
 - Added special `MapParsed` trait
-- Trait `InnerExpr`: `extract_inner` -> `get_inner_exprs`, `replace_inner` -> `replace_inner_exprs`
+- Trait `InnerExpr`: `extract_inner` -> `inner_exprs`, `replace_inner` -> `replace_inner_exprs`
 - Minor docs updates
 
 # [0.2.0]

@@ -10,20 +10,21 @@ use syn::{parse_quote, Ident, Index, PatIdent, Path};
 use super::config::Config;
 use super::name_constructors::*;
 use crate::action_expr_chain::ActionExprChain;
-use crate::chain::expr::{Action, ActionExpr, ApplicationType, InnerExpr, MoveType, ProcessExpr};
+use crate::chain::expr::{ActionExpr, InnerExpr, ProcessExpr};
+use crate::chain::group::{ApplicationType, ExprGroup, MoveType};
 use crate::chain::Chain;
 use crate::handler::Handler;
 use crate::parse::utils::is_block_expr;
 
 struct ActionExprPos<'a> {
-    pub expr: &'a ActionExpr,
+    pub expr: &'a ExprGroup<ActionExpr>,
     pub branch_index: u16,
     pub expr_index: u16,
 }
 
 impl<'a> ActionExprPos<'a> {
     fn new(
-        expr: &'a ActionExpr,
+        expr: &'a ExprGroup<ActionExpr>,
         branch_index: impl Into<usize>,
         expr_index: impl Into<usize>,
     ) -> Self {
@@ -53,11 +54,11 @@ pub struct JoinOutput<'a> {
     ///
     branch_pats: Vec<Option<&'a PatIdent>>,
     ///
-    /// `ActionExpr` groups each of which represents chain of `Instant` actions but every next group is `Deferred` from prev.
+    /// `ExprGroup<ActionExpr>` groups each of which represents chain of `Instant` actions but every next group is `Deferred` from prev.
     /// [[map, or_else, map, and_then], [map, and_then]] =>
     /// it will be interpreted as `expr.map().or_else().map().and_then()`, and after first will be finished, `expr.map().and_then()`
     ///
-    chains: Vec<Vec<Vec<&'a ActionExpr>>>,
+    chains: Vec<Vec<Vec<&'a ExprGroup<ActionExpr>>>>,
     ///
     /// Macro call params.
     ///
@@ -67,7 +68,7 @@ pub struct JoinOutput<'a> {
     ///
     custom_joiner: Option<&'a TokenStream>,
     ///
-    /// Contains all branches depths. Used to calculate max length and determine if we reached branch's end.
+    /// All branches depths. Used to calculate max length and determine if we reached branch's end.
     ///
     depths: Vec<u16>,
     ///
@@ -135,29 +136,20 @@ impl<'a> JoinOutput<'a> {
                 let (depths_and_paths, chains): (Vec<_>, Vec<_>) = branches
                     .iter()
                     .map(|expr_chain| {
-                        let (depth, steps) = expr_chain.get_members().iter().fold(
+                        let (depth, steps) = expr_chain.members().iter().fold(
                             (1, vec![Vec::new()]),
-                            |(depth, mut chain_acc), member| match member {
-                                ActionExpr::Process(Action {
-                                    application_type, ..
-                                })
-                                | ActionExpr::Err(Action {
-                                    application_type, ..
-                                })
-                                | ActionExpr::Initial(Action {
-                                    application_type, ..
-                                }) => {
-                                    if application_type == &ApplicationType::Deferred {
-                                        chain_acc.push(vec![member]);
-                                        (depth + 1, chain_acc)
-                                    } else {
-                                        chain_acc.last_mut().unwrap().push(member);
-                                        (depth, chain_acc)
-                                    }
+                            |(depth, mut chain_acc), member| match *member.application_type() {
+                                ApplicationType::Deferred => {
+                                    chain_acc.push(vec![member]);
+                                    (depth + 1, chain_acc)
+                                }
+                                _ => {
+                                    chain_acc.last_mut().unwrap().push(member);
+                                    (depth, chain_acc)
                                 }
                             },
                         );
-                        ((depth, expr_chain.get_id()), steps)
+                        ((depth, expr_chain.id()), steps)
                     })
                     .unzip();
 
@@ -364,7 +356,7 @@ impl<'a> JoinOutput<'a> {
                         .map(|(def_stream, chain)| {
                             (
                                 def_stream,
-                                if self.get_active_step_branch_count(step_number) > 1 {
+                                if self.active_step_branch_count(step_number) > 1 {
                                     let chain = if self.lazy_branches {
                                         quote! { move || #chain }
                                     } else {
@@ -395,7 +387,7 @@ impl<'a> JoinOutput<'a> {
             )
             .unzip();
 
-        let joiner = if self.get_active_step_branch_count(step_number) > 1 {
+        let joiner = if self.active_step_branch_count(step_number) > 1 {
             self.custom_joiner.cloned().or_else(|| {
                 if is_async {
                     let futures_crate_path = self.futures_crate_path;
@@ -612,7 +604,7 @@ impl<'a> JoinOutput<'a> {
     ///
     /// Returns provided `PatIdent` or autogenerated branch name for use in `let` bindings.
     ///
-    pub fn get_branch_result_pat(&self, branch_index: impl Into<usize>) -> TokenStream {
+    pub fn branch_result_pat(&self, branch_index: impl Into<usize>) -> TokenStream {
         let branch_index = branch_index.into();
         self.branch_pats[branch_index]
             .map(ToTokens::into_token_stream)
@@ -622,7 +614,7 @@ impl<'a> JoinOutput<'a> {
     ///
     /// Returns provided or autogenerated `Ident` for use in expressions.
     ///
-    pub fn get_branch_result_name(&self, branch_index: impl Into<usize>) -> Ident {
+    pub fn branch_result_name(&self, branch_index: impl Into<usize>) -> Ident {
         let branch_index = branch_index.into();
         self.branch_pats[branch_index]
             .map(|pat| pat.ident.clone())
@@ -649,7 +641,7 @@ impl<'a> JoinOutput<'a> {
     ///
     /// Returns count of active branches for given step.
     ///
-    pub fn get_active_step_branch_count(&self, step_number: impl Into<usize>) -> u16 {
+    pub fn active_step_branch_count(&self, step_number: impl Into<usize>) -> u16 {
         let step_number = step_number.into() as u16;
         self.depths
             .iter()
@@ -681,7 +673,7 @@ impl<'a> JoinOutput<'a> {
         let step_number = step_number.into() as u16;
         let index = index.into();
 
-        if self.get_active_step_branch_count(step_number) > 1 {
+        if self.active_step_branch_count(step_number) > 1 {
             let index = Index::from(index);
             quote! { #step_results_name.#index }
         } else {
@@ -702,7 +694,7 @@ impl<'a> JoinOutput<'a> {
             is_async, is_spawn, ..
         } = self.config;
 
-        if is_async || !is_spawn || self.get_active_step_branch_count(step_number) < 2 {
+        if is_async || !is_spawn || self.active_step_branch_count(step_number) < 2 {
             None
         } else {
             let thread_builders = (0..self.branch_count).filter_map(|branch_index| {
@@ -817,7 +809,7 @@ impl<'a> JoinOutput<'a> {
         let expr_index = expr_index.into() as u16;
 
         if inner_expr.is_replaceable() {
-            inner_expr.get_inner_exprs().and_then(|exprs| {
+            inner_expr.inner_exprs().and_then(|exprs| {
                 let (def, replace_exprs): (Option<_>, Vec<_>) = exprs
                     .iter()
                     .enumerate()
@@ -914,7 +906,7 @@ impl<'a> JoinOutput<'a> {
             "join: Unexpected error on attempt to get last step stream. This's a bug, please report it.",
         );
 
-        let (current_step_steam, action_expr_wrapper) = step_streams.pop().expect("join: Step expressions length is zero while it should be >1. This's a bug, please report it.");
+        let (current_step_steam, action_expr_wrapper) = step_streams.pop().expect("join: Step expressions length is zero while it should be >=1. This's a bug, please report it.");
 
         let action_expr_wrapper = action_expr_wrapper
             .expect("join: Expected wrapper, found `None`. This's a bug, please report it.");
@@ -951,7 +943,7 @@ impl<'a> JoinOutput<'a> {
     }
 
     ///
-    /// Produces definition stream and step stream for given `ActionExpr` (if `Some`).
+    /// Produces definition stream and step stream for given `ExprGroup<ActionExpr>` (if `Some`).
     ///
     fn generate_def_and_step_streams<'b>(
         &self,
@@ -967,10 +959,8 @@ impl<'a> JoinOutput<'a> {
             expr_index,
         }) = action_expr_pos.into()
         {
-            match action_expr {
-                ActionExpr::Process(Action {
-                    expr: process_expr, ..
-                }) => {
+            match action_expr.expr() {
+                ActionExpr::Process(process_expr) => {
                     let (def_stream, replaced_expr) =
                         self.separate_block_expr(process_expr, branch_index, expr_index);
 
@@ -986,7 +976,7 @@ impl<'a> JoinOutput<'a> {
                         step_stream,
                     )
                 }
-                ActionExpr::Err(Action { expr: err_expr, .. }) => {
+                ActionExpr::Err(err_expr) => {
                     let (def_stream, replaced_expr) =
                         self.separate_block_expr(err_expr, branch_index, expr_index);
 
@@ -999,9 +989,7 @@ impl<'a> JoinOutput<'a> {
                         quote! { #prev_step_stream#err_expr },
                     )
                 }
-                ActionExpr::Initial(Action {
-                    expr: initial_expr, ..
-                }) => {
+                ActionExpr::Initial(initial_expr) => {
                     let (def_stream, replaced_expr) =
                         self.separate_block_expr(initial_expr, branch_index, expr_index);
 
@@ -1035,10 +1023,10 @@ impl<'a> JoinOutput<'a> {
             expr_index,
         } = action_expr_pos.into().expect("join: Unexpected `None` `ActionExprPos` in `process_step_action_expr`. This's a bug, please report it.");
 
-        match action_expr.get_move_type() {
+        match action_expr.move_type() {
             MoveType::Unwrap => self.wrap_last_step_stream(
                 step_acc,
-                None, // Because now only `CommandGroup::UNWRAP` can have this `MoveType`
+                None, // Because now only `Combinator::UNWRAP` can have this `MoveType`
             ),
             MoveType::Wrap => {
                 let StepAcc {
@@ -1095,14 +1083,14 @@ impl<'a> ToTokens for JoinOutput<'a> {
         let (result_pats, result_vars): (Vec<_>, Vec<_>) = (0..self.branch_count)
             .map(|branch_index| {
                 (
-                    self.get_branch_result_pat(branch_index),
-                    self.get_branch_result_name(branch_index),
+                    self.branch_result_pat(branch_index),
+                    self.branch_result_name(branch_index),
                 )
             })
             .unzip();
 
         //
-        // Contains all generated code to be executed step by step and returns final step results.
+        // All generated code to be executed step by step and returns final step results.
         //
         let steps_stream = self.generate_steps(&result_pats, &result_vars);
 

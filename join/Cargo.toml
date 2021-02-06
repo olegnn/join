@@ -1,6 +1,6 @@
 [package]
 name = "join"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["olegnn <olegnosov1@gmail.com>"]
 license = "MIT"
 description = """
@@ -22,7 +22,7 @@ proc-macro = true
 full = ["join_impl/full"]
 
 [dependencies]
-join_impl = { path = "../join_impl", version = "0.2.0" }
+join_impl = { path = "../join_impl", version = "0.3.0" }
 syn = { version = "1.0", features = ["full", "extra-traits"] }
 
 [dev-dependencies]

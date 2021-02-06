@@ -1,36 +1,40 @@
+//!
+//! `Chain` implemented for `ExprGroup<ActionExpr>` .
+//!
 pub mod builder;
 
 use crate::chain::expr::ActionExpr;
+use crate::chain::group::ExprGroup;
 use crate::chain::Chain;
 pub use builder::ActionExprChainBuilder;
 use syn::PatIdent;
 
 ///
-/// Chain with members of type `ActionExpr`. and optional `PatIdent` identifier.
+/// Chain with members of type `ExprGroup<ActionExpr>` and optional `PatIdent` identifier.
 ///
 pub struct ActionExprChain {
     ident: Option<PatIdent>,
-    members: Vec<ActionExpr>,
+    members: Vec<ExprGroup<ActionExpr>>,
 }
 
 ///
-/// Implementation of `Chain` with `ActionExpr` members.
+/// Implementation of `Chain` with `ExprGroup<ActionExpr>` members.
 ///
 impl Chain for ActionExprChain
 where
     Self: Sized,
 {
-    type Member = ActionExpr;
+    type Member = ExprGroup<ActionExpr>;
     type Identifier = PatIdent;
 
-    fn new(ident: impl Into<Option<PatIdent>>, members: &[ActionExpr]) -> Self {
+    fn new(ident: impl Into<Option<PatIdent>>, members: &[ExprGroup<ActionExpr>]) -> Self {
         Self {
             ident: ident.into(),
             members: members.to_vec(),
         }
     }
 
-    fn append_member(&mut self, val: ActionExpr) -> usize {
+    fn append_member(&mut self, val: ExprGroup<ActionExpr>) -> usize {
         self.members.push(val);
         self.members.len()
     }
@@ -40,11 +44,11 @@ where
         self
     }
 
-    fn get_members(&self) -> &[Self::Member] {
+    fn members(&self) -> &[Self::Member] {
         &self.members
     }
 
-    fn get_id(&self) -> Option<&Self::Identifier> {
+    fn id(&self) -> Option<&Self::Identifier> {
         self.ident.as_ref()
     }
 
