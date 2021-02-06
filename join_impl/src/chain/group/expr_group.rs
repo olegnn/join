@@ -23,6 +23,9 @@ impl ExprGroup<ActionExpr> {
         Self { expr, action }
     }
 
+    ///
+    /// Returns inner expression.
+    ///
     pub fn expr(&self) -> &ActionExpr {
         &self.expr
     }

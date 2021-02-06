@@ -2,12 +2,13 @@
 
 Huge implementation refactoring.
 
-# [0.2.2]
-
-Implementation updates only
-
+- `ActionExpr` is now enum of `Process`, `Err`, `Initial`
+- `ExprGroup` defines `ActionExpr` with `ActionGroup`
+- `CommandGroup` enum => `Combinator` enum
 - `TryFrom` implemented for `Handler`
+- Refactored internal macros implementation a bit
 - `InitialExpr` defined as enum
+- Remove `get_` prefix from all functions
 - Misc docs updates
 
 # [0.2.1]

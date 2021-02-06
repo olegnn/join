@@ -88,6 +88,7 @@ impl Handler {
 
 impl<'a> TryFrom<ParseStream<'a>> for Handler {
     type Error = syn::Error;
+
     ///
     /// Attempts to parse input as a handler.
     ///

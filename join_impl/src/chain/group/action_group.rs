@@ -21,7 +21,7 @@ pub struct ActionGroup {
 
 impl ActionGroup {
     ///
-    /// Creates new `ActionGroup` with provided configuration.
+    /// Creates new `ActionGroup` using provided configuration.
     ///
     pub fn new(
         combinator: Combinator,
@@ -36,7 +36,7 @@ impl ActionGroup {
     }
 
     ///
-    /// Parses `ParseStream` as `ActionExpr` using given `ParseUnit`.
+    /// Parses `ParseStream` as `ExprGroup`<`ActionExpr`> using given `ParseUnit`.
     ///
     pub fn parse_stream(
         &self,
@@ -90,7 +90,7 @@ impl ActionGroup {
     }
 
     ///
-    /// Attempts to parse given `ParseStream` as `ProcessExpr`.
+    /// Attempts to parse given `ParseStream` as `ExprGroup`<`ActionExpr`>.
     ///
     #[cfg(not(feature = "full"))]
     fn parse_action_expr(
@@ -173,7 +173,7 @@ impl ActionGroup {
     }
 
     ///
-    /// Attempts to parse given `ParseStream` as `ProcessExpr`.
+    /// Attempts to parse given `ParseStream` as `ExprGroup`<`ActionExpr`>.
     ///
     #[cfg(feature = "full")]
     fn parse_action_expr(
