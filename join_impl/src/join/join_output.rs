@@ -54,7 +54,7 @@ pub struct JoinOutput<'a> {
     ///
     branch_pats: Vec<Option<&'a PatIdent>>,
     ///
-    /// `ActionExpr` groups each of which represents chain of `Instant` actions but every next group is `Deferred` from prev.
+    /// `ExprGroup<ActionExpr>` groups each of which represents chain of `Instant` actions but every next group is `Deferred` from prev.
     /// [[map, or_else, map, and_then], [map, and_then]] =>
     /// it will be interpreted as `expr.map().or_else().map().and_then()`, and after first will be finished, `expr.map().and_then()`
     ///
@@ -943,7 +943,7 @@ impl<'a> JoinOutput<'a> {
     }
 
     ///
-    /// Produces definition stream and step stream for given `ActionExpr` (if `Some`).
+    /// Produces definition stream and step stream for given `ExprGroup<ActionExpr>` (if `Some`).
     ///
     fn generate_def_and_step_streams<'b>(
         &self,

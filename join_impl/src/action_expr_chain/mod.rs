@@ -1,5 +1,5 @@
 //!
-//! Chain implemented for `ActionExpr`
+//! `Chain` implemented for `ExprGroup<ActionExpr>` .
 //!
 pub mod builder;
 
@@ -10,7 +10,7 @@ pub use builder::ActionExprChainBuilder;
 use syn::PatIdent;
 
 ///
-/// Chain with members of type `ActionExpr`. and optional `PatIdent` identifier.
+/// Chain with members of type `ExprGroup<ActionExpr>` and optional `PatIdent` identifier.
 ///
 pub struct ActionExprChain {
     ident: Option<PatIdent>,
@@ -18,7 +18,7 @@ pub struct ActionExprChain {
 }
 
 ///
-/// Implementation of `Chain` with `ActionExpr` members.
+/// Implementation of `Chain` with `ExprGroup<ActionExpr>` members.
 ///
 impl Chain for ActionExprChain
 where

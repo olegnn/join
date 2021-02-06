@@ -9,49 +9,49 @@
 #[cfg(not(feature = "full"))]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Combinator {
-    /// [ProcessExpr::Map]
+    /// [crate::chain::expr::ProcessExpr::Map]
     Map,
-    /// [ProcessExpr::Dot]
+    /// [crate::chain::expr::ProcessExpr::Dot]
     Dot,
-    /// [ProcessExpr::Filter]
+    /// [crate::chain::expr::ProcessExpr::Filter]
     Filter,
-    /// [ProcessExpr::Inspect]
+    /// [crate::chain::expr::ProcessExpr::Inspect]
     Inspect,
-    /// [ProcessExpr::Then]
+    /// [crate::chain::expr::ProcessExpr::Then]
     Then,
-    /// [ProcessExpr::AndThen]
+    /// [crate::chain::expr::ProcessExpr::AndThen]
     AndThen,
-    /// [ErrExpr::Or]
+    /// [crate::chain::expr::ErrExpr::Or]
     Or,
-    /// [ErrExpr::OrElse]
+    /// [crate::chain::expr::ErrExpr::OrElse]
     OrElse,
-    /// [ErrExpr::MapErr]
+    /// [crate::chain::expr::ErrExpr::MapErr]
     MapErr,
-    /// [InitialExpr]
+    /// [crate::chain::expr::InitialExpr]
     Initial,
-    /// [ProcessExpr::Chain]
+    /// [crate::chain::expr::ProcessExpr::Chain]
     Chain,
-    /// [ProcessExpr::Flatten]
+    /// [crate::chain::expr::ProcessExpr::Flatten]
     Flatten,
-    /// [ProcessExpr::Collect]
+    /// [crate::chain::expr::ProcessExpr::Collect]
     Collect,
-    /// [ProcessExpr::Enumerate]
+    /// [crate::chain::expr::ProcessExpr::Enumerate]
     Enumerate,
-    /// [ProcessExpr::Find]
+    /// [crate::chain::expr::ProcessExpr::Find]
     Find,
-    /// [ProcessExpr::Fold]
+    /// [crate::chain::expr::ProcessExpr::Fold]
     Fold,
-    /// [ProcessExpr::TryFold]
+    /// [crate::chain::expr::ProcessExpr::TryFold]
     TryFold,
-    /// [ProcessExpr::Unzip]
+    /// [crate::chain::expr::ProcessExpr::Unzip]
     Unzip,
-    /// [ProcessExpr::Zip]
+    /// [crate::chain::expr::ProcessExpr::Zip]
     Zip,
-    /// [ProcessExpr::Partition]
+    /// [crate::chain::expr::ProcessExpr::Partition]
     Partition,
-    /// [ProcessExpr::FilterMap]
+    /// [crate::chain::expr::ProcessExpr::FilterMap]
     FilterMap,
-    /// [ProcessExpr::FindMap]
+    /// [crate::chain::expr::ProcessExpr::FindMap]
     FindMap,
     /// UNWRAP (Special `Combinator` used to define that next group position is by one level up - which will be `#value.and_then(#previous_expr).#next_expr` )
     UNWRAP,
@@ -63,141 +63,141 @@ pub enum Combinator {
 #[cfg(feature = "full")]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Combinator {
-    /// [ProcessExpr::Map]
+    /// [crate::chain::expr::ProcessExpr::Map]
     Map,
-    /// [ProcessExpr::Dot]
+    /// [crate::chain::expr::ProcessExpr::Dot]
     Dot,
-    /// [ProcessExpr::Filter]
+    /// [crate::chain::expr::ProcessExpr::Filter]
     Filter,
-    /// [ProcessExpr::Inspect]
+    /// [crate::chain::expr::ProcessExpr::Inspect]
     Inspect,
-    /// [ProcessExpr::Then]
+    /// [crate::chain::expr::ProcessExpr::Then]
     Then,
-    /// [ProcessExpr::AndThen]
+    /// [crate::chain::expr::ProcessExpr::AndThen]
     AndThen,
-    /// [ErrExpr::Or]
+    /// [crate::chain::expr::ErrExpr::Or]
     Or,
-    /// [ErrExpr::OrElse]
+    /// [crate::chain::expr::ErrExpr::OrElse]
     OrElse,
-    /// [ErrExpr::MapErr]
+    /// [crate::chain::expr::ErrExpr::MapErr]
     MapErr,
-    /// [InitialExpr]
+    /// [crate::chain::expr::InitialExpr]
     Initial,
-    /// [ProcessExpr::All]
+    /// [crate::chain::expr::ProcessExpr::All]
     All,
-    /// [ProcessExpr::Any]
+    /// [crate::chain::expr::ProcessExpr::Any]
     Any,
-    /// [ProcessExpr::ByRef]
+    /// [crate::chain::expr::ProcessExpr::ByRef]
     ByRef,
-    /// [ProcessExpr::Chain]
+    /// [crate::chain::expr::ProcessExpr::Chain]
     Chain,
-    /// [ProcessExpr::Cloned]
+    /// [crate::chain::expr::ProcessExpr::Cloned]
     Cloned,
-    /// [ProcessExpr::Cmp]
+    /// [crate::chain::expr::ProcessExpr::Cmp]
     Cmp,
-    /// [ProcessExpr::Collect]
+    /// [crate::chain::expr::ProcessExpr::Collect]
     Collect,
-    /// [ProcessExpr::Copied]
+    /// [crate::chain::expr::ProcessExpr::Copied]
     Copied,
-    /// [ProcessExpr::Count]
+    /// [crate::chain::expr::ProcessExpr::Count]
     Count,
-    /// [ProcessExpr::Cycle]
+    /// [crate::chain::expr::ProcessExpr::Cycle]
     Cycle,
-    /// [ProcessExpr::Enumerate]
+    /// [crate::chain::expr::ProcessExpr::Enumerate]
     Enumerate,
-    /// [ProcessExpr::Eq]
+    /// [crate::chain::expr::ProcessExpr::Eq]
     Eq,
-    /// [ProcessExpr::FilterMap]
+    /// [crate::chain::expr::ProcessExpr::FilterMap]
     FilterMap,
-    /// [ProcessExpr::Find]
+    /// [crate::chain::expr::ProcessExpr::Find]
     Find,
-    /// [ProcessExpr::FindMap]
+    /// [crate::chain::expr::ProcessExpr::FindMap]
     FindMap,
-    /// [ProcessExpr::FlatMap]
+    /// [crate::chain::expr::ProcessExpr::FlatMap]
     FlatMap,
-    /// [ProcessExpr::Flatten]
+    /// [crate::chain::expr::ProcessExpr::Flatten]
     Flatten,
-    /// [ProcessExpr::Fold]
+    /// [crate::chain::expr::ProcessExpr::Fold]
     Fold,
-    /// [ProcessExpr::ForEach]
+    /// [crate::chain::expr::ProcessExpr::ForEach]
     ForEach,
-    /// [ProcessExpr::Fuse]
+    /// [crate::chain::expr::ProcessExpr::Fuse]
     Fuse,
-    /// [ProcessExpr::Ge]
+    /// [crate::chain::expr::ProcessExpr::Ge]
     Ge,
-    /// [ProcessExpr::Gt]
+    /// [crate::chain::expr::ProcessExpr::Gt]
     Gt,
-    /// [ProcessExpr::IsSorted]
+    /// [crate::chain::expr::ProcessExpr::IsSorted]
     IsSorted,
-    /// [ProcessExpr::IsSortedBy]
+    /// [crate::chain::expr::ProcessExpr::IsSortedBy]
     IsSortedBy,
-    /// [ProcessExpr::IsSortedByKey]
+    /// [crate::chain::expr::ProcessExpr::IsSortedByKey]
     IsSortedByKey,
-    /// [ProcessExpr::Last]
+    /// [crate::chain::expr::ProcessExpr::Last]
     Last,
-    /// [ProcessExpr::Le]
+    /// [crate::chain::expr::ProcessExpr::Le]
     Le,
-    /// [ProcessExpr::Lt]
+    /// [crate::chain::expr::ProcessExpr::Lt]
     Lt,
-    /// [ProcessExpr::Max]
+    /// [crate::chain::expr::ProcessExpr::Max]
     Max,
-    /// [ProcessExpr::MaxBy]
+    /// [crate::chain::expr::ProcessExpr::MaxBy]
     MaxBy,
-    /// [ProcessExpr::MaxByKey]
+    /// [crate::chain::expr::ProcessExpr::MaxByKey]
     MaxByKey,
-    /// [ProcessExpr::Min]
+    /// [crate::chain::expr::ProcessExpr::Min]
     Min,
-    /// [ProcessExpr::MinBy]
+    /// [crate::chain::expr::ProcessExpr::MinBy]
     MinBy,
-    /// [ProcessExpr::MinByKey]
+    /// [crate::chain::expr::ProcessExpr::MinByKey]
     MinByKey,
-    /// [ProcessExpr::Ne]
+    /// [crate::chain::expr::ProcessExpr::Ne]
     Ne,
-    /// [ProcessExpr::Nth]
+    /// [crate::chain::expr::ProcessExpr::Nth]
     Nth,
-    /// [ProcessExpr::PartialCmp]
+    /// [crate::chain::expr::ProcessExpr::PartialCmp]
     PartialCmp,
-    /// [ProcessExpr::IsPartitioned]
+    /// [crate::chain::expr::ProcessExpr::IsPartitioned]
     IsPartitioned,
-    /// [ProcessExpr::Partition]
+    /// [crate::chain::expr::ProcessExpr::Partition]
     Partition,
-    /// [ProcessExpr::PartitionInPlace]
+    /// [crate::chain::expr::ProcessExpr::PartitionInPlace]
     PartitionInPlace,
-    /// [ProcessExpr::Peekable]
+    /// [crate::chain::expr::ProcessExpr::Peekable]
     Peekable,
-    /// [ProcessExpr::Position]
+    /// [crate::chain::expr::ProcessExpr::Position]
     Position,
-    /// [ProcessExpr::Product]
+    /// [crate::chain::expr::ProcessExpr::Product]
     Product,
-    /// [ProcessExpr::Rev]
+    /// [crate::chain::expr::ProcessExpr::Rev]
     Rev,
-    /// [ProcessExpr::Rposition]
+    /// [crate::chain::expr::ProcessExpr::Rposition]
     Rposition,
-    /// [ProcessExpr::Scan]
+    /// [crate::chain::expr::ProcessExpr::Scan]
     Scan,
-    /// [ProcessExpr::SizeHint]
+    /// [crate::chain::expr::ProcessExpr::SizeHint]
     SizeHint,
-    /// [ProcessExpr::Skip]
+    /// [crate::chain::expr::ProcessExpr::Skip]
     Skip,
-    /// [ProcessExpr::SkipWhile]
+    /// [crate::chain::expr::ProcessExpr::SkipWhile]
     SkipWhile,
-    /// [ProcessExpr::StepBy]
+    /// [crate::chain::expr::ProcessExpr::StepBy]
     StepBy,
-    /// [ProcessExpr::Sum]
+    /// [crate::chain::expr::ProcessExpr::Sum]
     Sum,
-    /// [ProcessExpr::Take]
+    /// [crate::chain::expr::ProcessExpr::Take]
     Take,
-    /// [ProcessExpr::TakeWhile]
+    /// [crate::chain::expr::ProcessExpr::TakeWhile]
     TakeWhile,
-    /// [ProcessExpr::TryFold]
+    /// [crate::chain::expr::ProcessExpr::TryFold]
     TryFold,
-    /// [ProcessExpr::TryForEach]
+    /// [crate::chain::expr::ProcessExpr::TryForEach]
     TryForEach,
     /// UNWRAP (Special `Combinator` used to define that next group position is by one level up - which will be `#value.and_then(#previous_expr).#next_expr` )
     UNWRAP,
-    /// [ProcessExpr::Unzip]
+    /// [crate::chain::expr::ProcessExpr::Unzip]
     Unzip,
-    /// [ProcessExpr::Zip]
+    /// [crate::chain::expr::ProcessExpr::Zip]
     Zip,
 }
 

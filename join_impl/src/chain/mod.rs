@@ -1,5 +1,5 @@
 //!
-//! Chain traits, all kinds of expressions, groups etc.
+//! Generic chain with all kinds of expressions, groups etc.
 //!
 
 pub mod expr;

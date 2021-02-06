@@ -7,7 +7,7 @@ use super::{ErrExpr, InitialExpr, ProcessExpr};
 use syn::Expr;
 
 ///
-/// One of either `Process`, `Err` or `Initial` expr.
+/// One of either `Process`, `Err` or `Initial` expression.
 ///
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ActionExpr {

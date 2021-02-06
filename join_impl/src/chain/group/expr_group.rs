@@ -1,5 +1,5 @@
 //!
-//! Definition of `ActionExpr`.
+//! Definition of `ExprGroup<ActionExpr>` .
 //!
 use crate::chain::expr::{ActionExpr, InnerExpr};
 use syn::Expr;
@@ -17,7 +17,7 @@ pub struct ExprGroup<E: InnerExpr> {
 
 impl ExprGroup<ActionExpr> {
     ///
-    /// Creates new `ActionExpr` with given expr and config.
+    /// Creates new `ExprGroup<ActionExpr>` with given expr and config.
     ///
     pub fn new(expr: ActionExpr, action: ActionGroup) -> Self {
         Self { expr, action }

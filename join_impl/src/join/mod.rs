@@ -1,5 +1,5 @@
 //!
-//! `JoinInput` trait used to generate output of the `join!` macro based on input and given config.
+//! Macro output generator.
 //!
 
 pub mod config;

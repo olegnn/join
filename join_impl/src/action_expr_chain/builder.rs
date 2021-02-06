@@ -137,7 +137,7 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
                     if chain
                         .members()
                         .last()
-                        .expect("join: Failed to extract last `ActionExpr` member. This's a bug, please report it.")
+                        .expect("join: Failed to extract last `ExprGroup<ActionExpr>` member. This's a bug, please report it.")
                         .inner_exprs()
                         .and_then(
                             |val|
