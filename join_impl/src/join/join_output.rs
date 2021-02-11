@@ -18,8 +18,8 @@ use crate::parse::utils::is_block_expr;
 
 struct ActionExprPos<'a> {
     pub expr: &'a ExprGroup<ActionExpr>,
-    pub branch_index: u16,
-    pub expr_index: u16,
+    pub branch_index: usize,
+    pub expr_index: usize,
 }
 
 impl<'a> ActionExprPos<'a> {
@@ -30,8 +30,8 @@ impl<'a> ActionExprPos<'a> {
     ) -> Self {
         Self {
             expr,
-            branch_index: branch_index.into() as u16,
-            expr_index: expr_index.into() as u16,
+            branch_index: branch_index.into(),
+            expr_index: expr_index.into(),
         }
     }
 }
@@ -48,7 +48,7 @@ pub struct JoinOutput<'a> {
     ///
     /// Total branch count.
     ///
-    branch_count: u16,
+    branch_count: usize,
     ///
     /// Provided result names for branches.
     ///
@@ -70,7 +70,7 @@ pub struct JoinOutput<'a> {
     ///
     /// All branches depths. Used to calculate max length and determine if we reached branch's end.
     ///
-    depths: Vec<u16>,
+    depths: Vec<usize>,
     ///
     /// Provided futures crate path.
     ///
@@ -86,7 +86,7 @@ pub struct JoinOutput<'a> {
     ///
     /// Max step count of all branches.
     ///
-    max_step_count: u16,
+    max_step_count: usize,
     ///
     /// Transform tuple of `Result`'s (`Option`s) into `Result`/`Option` of tuple.
     ///
@@ -118,7 +118,7 @@ impl<'a> JoinOutput<'a> {
             is_spawn,
         } = config;
 
-        let branch_count = branches.len() as u16;
+        let branch_count = branches.len();
 
         if !is_try
             && (handler.map(Handler::is_map).unwrap_or(false)
@@ -153,7 +153,7 @@ impl<'a> JoinOutput<'a> {
                     })
                     .unzip();
 
-                let (depths, branch_pats): (Vec<u16>, Vec<Option<&PatIdent>>) =
+                let (depths, branch_pats): (Vec<usize>, Vec<Option<&PatIdent>>) =
                     depths_and_paths.into_iter().unzip();
 
                 Self {
@@ -289,7 +289,7 @@ impl<'a> JoinOutput<'a> {
         result_vars: &[TVar],
         step_results_name: &TName,
     ) -> TokenStream {
-        let step_number = step_number.into() as u16;
+        let step_number = step_number.into();
         let Config {
             is_async,
             is_spawn,
@@ -298,7 +298,7 @@ impl<'a> JoinOutput<'a> {
 
         let (def_streams, step_streams): (Vec<_>, Vec<_>) = self.chains
             .iter()
-            .map(|chain| chain.get(step_number as usize))
+            .map(|chain| chain.get(step_number))
             .enumerate()
             .filter_map(
                 |(branch_index, chain_step_actions)|
@@ -461,7 +461,7 @@ impl<'a> JoinOutput<'a> {
             self.extract_results_tuple(&step_results_name, &result_pats, None, step_number);
         let err_to_err = quote! { Err(err) => Err(err) };
 
-        if is_try && (step_number as u16) < max_step_count - 1 {
+        if is_try && (step_number) < max_step_count - 1 {
             if transpose {
                 let (is_result_successful, result_vars_matcher): (Vec<_>, Vec<_>) = result_vars
                     .iter()
@@ -496,7 +496,7 @@ impl<'a> JoinOutput<'a> {
                 }
             } else {
                 let current_step_results = if is_async {
-                    let mut index: u16 = 0;
+                    let mut index: usize = 0;
                     let ok_result_vars = (0..branch_count).filter_map(|branch_index| {
                         if self.is_branch_active_in_step(step_number, branch_index) {
                             let result_var = self.generate_indexed_step_results_name(
@@ -641,12 +641,12 @@ impl<'a> JoinOutput<'a> {
     ///
     /// Returns count of active branches for given step.
     ///
-    pub fn active_step_branch_count(&self, step_number: impl Into<usize>) -> u16 {
-        let step_number = step_number.into() as u16;
+    pub fn active_step_branch_count(&self, step_number: impl Into<usize>) -> usize {
+        let step_number = step_number.into();
         self.depths
             .iter()
             .filter(|&&branch_depth| branch_depth > step_number)
-            .count() as u16
+            .count()
     }
 
     ///
@@ -657,7 +657,7 @@ impl<'a> JoinOutput<'a> {
         step_number: impl Into<usize>,
         branch_index: impl Into<usize>,
     ) -> bool {
-        self.depths[branch_index.into()] > step_number.into() as u16
+        self.depths[branch_index.into()] > step_number.into()
     }
 
     ///
@@ -670,7 +670,7 @@ impl<'a> JoinOutput<'a> {
         step_number: impl Into<usize>,
         index: impl Into<usize>,
     ) -> TokenStream {
-        let step_number = step_number.into() as u16;
+        let step_number = step_number.into();
         let index = index.into();
 
         if self.active_step_branch_count(step_number) > 1 {
@@ -689,7 +689,7 @@ impl<'a> JoinOutput<'a> {
         step_number: impl Into<usize>,
         step_results_name: &TName,
     ) -> Option<(TokenStream, TokenStream)> {
-        let step_number = step_number.into() as u16;
+        let step_number = step_number.into();
         let Config {
             is_async, is_spawn, ..
         } = self.config;
@@ -707,7 +707,7 @@ impl<'a> JoinOutput<'a> {
                 }
             });
 
-            let mut index: u16 = 0;
+            let mut index: usize = 0;
             let result_joiners = (0..self.branch_count).filter_map(|branch_index| {
                 if self.is_branch_active_in_step(step_number, branch_index) {
                     let step_result = self.generate_indexed_step_results_name(
@@ -805,8 +805,8 @@ impl<'a> JoinOutput<'a> {
         branch_index: impl Into<usize>,
         expr_index: impl Into<usize>,
     ) -> (Option<TokenStream>, Option<ExprType>) {
-        let branch_index = branch_index.into() as u16;
-        let expr_index = expr_index.into() as u16;
+        let branch_index = branch_index.into();
+        let expr_index = expr_index.into();
 
         if inner_expr.is_replaceable() {
             inner_expr.inner_exprs().and_then(|exprs| {
@@ -871,7 +871,7 @@ impl<'a> JoinOutput<'a> {
         let extracted = step_number.map_or_else(
             || quote! { let (#( #result_vars ),*) = #results_var; },
             |step_number| {
-                let mut index: u16 = 0;
+                let mut index: usize = 0;
                 let result_vars = result_vars.iter().filter(|_| {
                     let result = self.is_branch_active_in_step(step_number, index);
                     index += 1;
@@ -1156,7 +1156,7 @@ impl<'a> ToTokens for JoinOutput<'a> {
 
                     Some(
                        quote! {
-                            fn #construct_thread_builder_fn_name(branch_index: u16) -> ::std::thread::Builder {
+                            fn #construct_thread_builder_fn_name(branch_index: usize) -> ::std::thread::Builder {
                                 let thread_name = format!("join_{}", branch_index);
                                 ::std::thread::Builder::new().name(
                                     ::std::thread::current().name()

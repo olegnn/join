@@ -25,7 +25,7 @@ unsafe impl std::marker::Sync for CheckStreamFnPointer {}
 ///
 #[derive(Clone)]
 pub struct GroupDeterminer {
-    group_type: Option<Combinator>,
+    combinator: Option<Combinator>,
     check_input_fn: CheckStreamFnPointer,
     validate_parsed: bool,
     length: u8,
@@ -36,12 +36,12 @@ pub struct GroupDeterminer {
 ///
 #[macro_export]
 macro_rules! define_group_determiners {
-    ($($group_type: ident => $($token: expr),+ => $length: expr),+) => {{
+    ($($combinator: ident => $($token: expr),+ => $length: expr),+) => {{
         [
             $crate::define_determiner_with_no_group!(Token![,] => 0),
             $(
                 $crate::define_group_determiner!(
-                    $crate::chain::group::Combinator::$group_type => $($token),+ => $length
+                    $crate::chain::group::Combinator::$combinator => $($token),+ => $length
                 )
             ),*,
             $crate::chain::group::GroupDeterminer::new_const(
@@ -116,18 +116,18 @@ macro_rules! define_tokens_checker {
 ///
 #[macro_export]
 macro_rules! define_group_determiner {
-    ($group_type: expr => $($tokens: expr),+ => $length: expr => $validate_parsed: expr) => {{
+    ($combinator: expr => $($tokens: expr),+ => $length: expr => $validate_parsed: expr) => {{
         let check_tokens = $crate::define_tokens_checker!($($tokens),*);
         $crate::chain::group::GroupDeterminer::new_const(
-            Some($group_type),
+            Some($combinator),
             check_tokens as *const (),
             $validate_parsed,
             $length
         )
     }};
-    ($group_type: expr => $($tokens: expr),+ => $length: expr) => {
+    ($combinator: expr => $($tokens: expr),+ => $length: expr) => {
         $crate::define_group_determiner!(
-            $group_type => $($tokens),+ => $length => true
+            $combinator => $($tokens),+ => $length => true
         )
     };
 }
@@ -156,13 +156,13 @@ impl GroupDeterminer {
     /// ```
     ///
     pub const fn new_const(
-        group_type: Option<Combinator>,
+        combinator: Option<Combinator>,
         check_input_fn: *const (),
         validate_parsed: bool,
         length: u8,
     ) -> Self {
         Self {
-            group_type,
+            combinator,
             check_input_fn: CheckStreamFnPointer {
                 raw: check_input_fn,
             },
@@ -194,13 +194,13 @@ impl GroupDeterminer {
     /// ```
     ///
     pub fn new(
-        group_type: impl Into<Option<Combinator>>,
+        combinator: impl Into<Option<Combinator>>,
         check_input_fn: CheckStreamFn,
         validate_parsed: bool,
         length: u8,
     ) -> Self {
         Self {
-            group_type: group_type.into(),
+            combinator: combinator.into(),
             check_input_fn: CheckStreamFnPointer { f: check_input_fn },
             validate_parsed,
             length,
@@ -210,8 +210,8 @@ impl GroupDeterminer {
     ///
     /// Returns type of group of `GroupDeterminer`.
     ///
-    pub fn group_type(&self) -> Option<Combinator> {
-        self.group_type
+    pub fn combinator(&self) -> Option<Combinator> {
+        self.combinator
     }
 
     ///
@@ -273,7 +273,7 @@ mod tests {
             1,
         );
 
-        assert_eq!(first_comma_determiner.group_type(), None);
+        assert_eq!(first_comma_determiner.combinator(), None);
         assert!(first_comma_determiner.check_parsed::<::syn::Expr>(::quote::quote! { , }));
         assert_eq!(first_comma_determiner.len(), 1);
     }
@@ -286,7 +286,7 @@ mod tests {
 
         let then_determiner = GroupDeterminer::new(Combinator::Then, check_then, true, 2);
 
-        assert_eq!(then_determiner.group_type(), Some(Combinator::Then));
+        assert_eq!(then_determiner.combinator(), Some(Combinator::Then));
         assert!(then_determiner.check_parsed::<::syn::Expr>(::quote::quote! { 23 }));
         assert_eq!(then_determiner.len(), 2);
     }
