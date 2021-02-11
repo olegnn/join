@@ -65,21 +65,21 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
     ///
     fn build_from_parse_stream(&self, input: ParseStream<'_>) -> syn::Result<ActionExprChain> {
         let mut chain = ActionExprChain::new(None, &[]);
-        let mut group_type = ActionGroup::new(
+        let mut action_group = ActionGroup::new(
             Combinator::Initial,
             ApplicationType::Instant,
             MoveType::None,
         );
-        let mut member_index = 0;
-        let mut wrapper_count = 0i16;
+        let mut member_idx = 0;
+        let mut wrapper_count = 0isize;
 
         loop {
             let Unit {
                 parsed: mut action_expr,
                 next,
-            } = group_type.parse_stream(self, input)?;
+            } = action_group.parse_stream(self, input)?;
 
-            if member_index == 0 {
+            if member_idx == 0 {
                 // Because first expr is `Initial`
                 let exprs = action_expr.inner_exprs().expect(
                     "join: Failed to extract initial expr. This's a bug, please report it.",
@@ -128,8 +128,8 @@ impl<'a> ParseChain<ActionExprChain> for ActionExprChainBuilder<'a> {
                     break Err(input.error("Unexpected `<<<`"));
                 }
 
-                group_type = next;
-                member_index += 1;
+                action_group = next;
+                member_idx += 1;
             } else {
                 break if chain.is_empty() {
                     Err(input.error("Chain can't be empty"))

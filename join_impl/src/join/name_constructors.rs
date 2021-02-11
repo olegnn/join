@@ -9,27 +9,27 @@ use quote::format_ident;
 /// Constructs name for variable with given index.
 ///
 pub fn construct_var_name(index: impl Into<usize>) -> Ident {
-    format_ident!("__v{}", index.into() as u16)
+    format_ident!("__v{}", index.into())
 }
 ///
 /// Constructs step result name using given index.
 ///
 pub fn construct_step_results_name(index: impl Into<usize>) -> Ident {
-    format_ident!("__sr{}", index.into() as u16)
+    format_ident!("__sr{}", index.into())
 }
 
 ///
 /// Constructs result name with given index.
 ///
 pub fn construct_result_name(index: impl Into<usize>) -> Ident {
-    format_ident!("__r{}", index.into() as u16)
+    format_ident!("__r{}", index.into())
 }
 
 ///
 /// Constructs thread builder name with given index.
 ///
 pub fn construct_thread_builder_name(index: impl Into<usize>) -> Ident {
-    format_ident!("__j{}", index.into() as u16)
+    format_ident!("__j{}", index.into())
 }
 
 ///
@@ -77,9 +77,9 @@ pub fn construct_expr_wrapper_name(
 ) -> Ident {
     format_ident!(
         "__ew{}{}{}",
-        index.into() as u16,
-        expr_index.into() as u16,
-        internal_index.into() as u16
+        index.into(),
+        expr_index.into(),
+        internal_index.into()
     )
 }
 

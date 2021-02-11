@@ -82,14 +82,14 @@ pub fn parse_until<'a, T: Parse + Clone + Debug>(
     // Parses group determiner's tokens. (for ex. => -> |> etc.)
     //
     if let Some(group) = next {
-        if let Some(group_type) = group.group_type() {
+        if let Some(combinator) = group.combinator() {
             let forked = input.fork();
             group.erase_input(&forked)?;
 
             wrap = wrapper_determiner.check_input(&forked);
-            if wrap && group_type == Combinator::UNWRAP {
+            if wrap && combinator == Combinator::UNWRAP {
                 return Err(input.error("Action can be either wrapped or unwrapped but not both"));
-            } else if wrap && !group_type.can_be_wrapper() {
+            } else if wrap && !combinator.can_be_wrapper() {
                 return Err(input.error("This combinator can't be wrapper"));
             }
             if wrap {
@@ -102,9 +102,9 @@ pub fn parse_until<'a, T: Parse + Clone + Debug>(
     Ok(Unit {
         parsed: parse2(tokens)?,
         next: next.and_then(|group| {
-            group.group_type().map(|group_type| {
+            group.combinator().map(|combinator| {
                 ActionGroup::new(
-                    group_type,
+                    combinator,
                     if deferred {
                         ApplicationType::Deferred
                     } else {
@@ -112,7 +112,7 @@ pub fn parse_until<'a, T: Parse + Clone + Debug>(
                     },
                     if wrap {
                         MoveType::Wrap
-                    } else if group_type == Combinator::UNWRAP {
+                    } else if combinator == Combinator::UNWRAP {
                         MoveType::Unwrap
                     } else {
                         MoveType::None
