@@ -25,7 +25,7 @@ where
     ///
     /// Adds member to chain.
     ///
-    fn append_member(&mut self, member: Self::Member) -> usize;
+    fn append_member(&mut self, member: Self::Member);
 
     ///
     /// Removes member from chain.
@@ -52,7 +52,7 @@ where
     ///
     /// Sets chain identifier.
     ///
-    fn set_id(&mut self, id: impl Into<Option<Self::Identifier>>) -> &mut Self;
+    fn set_id(&mut self, id: impl Into<Option<Self::Identifier>>);
 
     ///
     /// Returns optional `Identifier` associated with chain.

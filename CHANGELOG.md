@@ -1,3 +1,7 @@
+# [0.3.1]
+
+- Update `Chain` trait
+
 # [0.3.0]
 
 Huge implementation refactoring.

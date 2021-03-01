@@ -34,14 +34,12 @@ where
         }
     }
 
-    fn append_member(&mut self, val: ExprGroup<ActionExpr>) -> usize {
-        self.members.push(val);
-        self.members.len()
+    fn append_member(&mut self, val: ExprGroup<ActionExpr>) {
+        self.members.push(val)
     }
 
-    fn set_id(&mut self, val: impl Into<Option<PatIdent>>) -> &mut Self {
-        self.ident = val.into();
-        self
+    fn set_id(&mut self, val: impl Into<Option<PatIdent>>) {
+        self.ident = val.into()
     }
 
     fn members(&self) -> &[Self::Member] {
