@@ -76,7 +76,7 @@ pub fn construct_expr_wrapper_name(
     internal_index: impl Into<usize>,
 ) -> Ident {
     format_ident!(
-        "__ew{}{}{}",
+        "__ew{}_{}_{}",
         index.into(),
         expr_index.into(),
         internal_index.into()
