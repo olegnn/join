@@ -3,18 +3,20 @@
 //!
 
 use proc_macro2::TokenStream;
-use quote::quote;
-use quote::ToTokens;
+use quote::{quote, ToTokens};
 use syn::{parse_quote, Ident, Index, PatIdent, Path};
 
-use super::config::Config;
-use super::name_constructors::*;
-use crate::action_expr_chain::ActionExprChain;
-use crate::chain::expr::{ActionExpr, InnerExpr, ProcessExpr};
-use crate::chain::group::{ApplicationType, ExprGroup, MoveType};
-use crate::chain::Chain;
-use crate::handler::Handler;
-use crate::parse::utils::is_block_expr;
+use super::{config::Config, name_constructors::*};
+use crate::{
+    action_expr_chain::ActionExprChain,
+    chain::{
+        expr::{ActionExpr, InnerExpr, ProcessExpr},
+        group::{ApplicationType, ExprGroup, MoveType},
+        Chain,
+    },
+    handler::Handler,
+    parse::utils::is_block_expr,
+};
 
 struct ActionExprPos<'a> {
     pub expr: &'a ExprGroup<ActionExpr>,
@@ -458,7 +460,7 @@ impl<'a> JoinOutput<'a> {
         } = self.config;
 
         let extracted_results =
-            self.extract_results_tuple(&step_results_name, &result_pats, None, step_number);
+            self.extract_results_tuple(&step_results_name, result_pats, None, step_number);
         let err_to_err = quote! { Err(err) => Err(err) };
 
         if is_try && (step_number) < max_step_count - 1 {
@@ -532,7 +534,7 @@ impl<'a> JoinOutput<'a> {
                 }
             }
         } else if transpose && is_try {
-            let transposer = self.generate_results_transposer(&result_vars, None);
+            let transposer = self.generate_results_transposer(result_vars, None);
 
             quote! {
                 #step_stream

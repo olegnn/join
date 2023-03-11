@@ -2,11 +2,13 @@
 //! Utils for `join!` macro parsing and code generation.
 //!
 
+use core::fmt::Debug;
 use proc_macro2::{TokenStream, TokenTree};
 use quote::ToTokens;
-use std::fmt::Debug;
-use syn::parse::{Parse, ParseStream};
-use syn::{parse2, Expr};
+use syn::{
+    parse::{Parse, ParseStream},
+    parse2, Expr,
+};
 
 use super::unit::{Unit, UnitResult};
 use crate::chain::group::{ActionGroup, ApplicationType, Combinator, GroupDeterminer, MoveType};

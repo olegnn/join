@@ -4,8 +4,7 @@ mod join_async_spawn_tests {
     use futures::future::{err, ok, ready};
     use futures_timer::Delay;
     use join::{join_async_spawn, try_join_async_spawn};
-    use std::error::Error;
-    use std::time::Duration;
+    use std::{error::Error, time::Duration};
     use tokio::runtime::Runtime;
 
     type BoxedError = Box<dyn Error + Send + Sync>;
@@ -325,7 +324,7 @@ mod join_async_spawn_tests {
 
             let values = Arc::new(Mutex::new(Vec::new()));
 
-            let _ = join_async_spawn! {
+            join_async_spawn! {
                 ok((values.clone(), 1u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(1)).await.unwrap();
@@ -436,7 +435,7 @@ mod join_async_spawn_tests {
     fn it_tests_multi_step_single_branch() {
         let rt = Runtime::new().unwrap();
         rt.block_on(async {
-            let values = try_join_async_spawn! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ok ~=> >>> ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,()> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
+            let values = try_join_async_spawn! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ok ~=> >>> ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,()> ~|> |v| v ~=> ok }.await.unwrap();
             assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
         });
     }

@@ -257,8 +257,7 @@ impl GroupDeterminer {
 
 #[cfg(test)]
 mod tests {
-    use super::super::*;
-    use super::*;
+    use super::{super::*, *};
 
     #[test]
     fn it_creates_comma_determiner() {

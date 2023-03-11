@@ -1,8 +1,10 @@
 #[cfg(test)]
 #[allow(clippy::unused_unit)]
 mod join_async_tests {
-    use futures::executor::block_on;
-    use futures::future::{err, ok, ready};
+    use futures::{
+        executor::block_on,
+        future::{err, ok, ready},
+    };
     use futures_timer::Delay;
     use join::{join_async, try_join_async};
     use std::error::Error;
@@ -289,12 +291,11 @@ mod join_async_tests {
     fn it_checks_concurrent_branches_execution() {
         block_on(async {
             use futures::lock::Mutex;
-            use std::sync::Arc;
-            use std::time::Duration;
+            use std::{sync::Arc, time::Duration};
 
             let values = Arc::new(Mutex::new(Vec::new()));
 
-            let _ = join_async! {
+            join_async! {
                 ok((values.clone(), 1u16)) => |(values, value)| async move {
                     values.lock().await.push(value);
                     Delay::new(Duration::from_secs(1)).await.unwrap();
@@ -391,6 +392,7 @@ mod join_async_tests {
     }
 
     #[allow(unreachable_code)]
+    #[allow(clippy::diverging_sub_expression)]
     #[test]
     fn it_creates_unpolled_future() {
         block_on(async {
@@ -418,7 +420,7 @@ mod join_async_tests {
     #[test]
     fn it_tests_multi_step_single_branch() {
         block_on(async {
-            let values = try_join_async! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ok ~=> >>> ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,()> ~|> |v| v ~=> |v| ok(v) }.await.unwrap();
+            let values = try_join_async! { vec![1u8,2,3,4,5,6,7,8,9].into_iter() -> ok ~=> >>> ?> |v| v % 3 != 0 =>[] Vec<_> -> ok::<_,()> ~|> |v| v ~=> ok }.await.unwrap();
             assert_eq!(values, vec![1u8, 2, 4, 5, 7, 8]);
         });
     }
@@ -485,8 +487,7 @@ mod join_async_tests {
 
     #[test]
     fn it_tests_nested_macro_combinations() {
-        use futures::executor::block_on;
-        use futures::future::*;
+        use futures::{executor::block_on, future::*};
         use join::*;
 
         block_on(async {
@@ -527,8 +528,10 @@ mod join_async_tests {
     #[test]
     fn it_tests_readme_demo_async_behaviour_and_requires_internet_connection() {
         use failure::format_err;
-        use futures::future::{ok, ready, try_join_all};
-        use futures::stream::{iter, Stream};
+        use futures::{
+            future::{ok, ready, try_join_all},
+            stream::{iter, Stream},
+        };
         use join::try_join_async;
         use reqwest::Client;
         use tokio::runtime::Runtime;
@@ -577,7 +580,7 @@ mod join_async_tests {
                         ..as_ref()
                         |> |(url, count)| {
                             let split = url.to_owned().split('/').collect::<Vec<_>>();
-                            let domain_name = split.get(2).unwrap_or(&url);
+                            let domain_name = split.get(2).unwrap_or(url);
                             println!("Max `https://` link count found on `{}`: {}", domain_name, count)
                         }
                         ..unwrap_or(()),
@@ -624,7 +627,7 @@ mod join_async_tests {
                 }
             };
 
-            let _ = game.await.map(
+            game.await.map(
                 |result|
                     println!(
                         "You {}",

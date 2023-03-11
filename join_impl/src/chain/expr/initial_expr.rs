@@ -36,9 +36,9 @@ impl InnerExpr for InitialExpr {
     }
 }
 
-impl Into<ActionExpr> for InitialExpr {
-    fn into(self) -> ActionExpr {
-        ActionExpr::Initial(self)
+impl From<InitialExpr> for ActionExpr {
+    fn from(val: InitialExpr) -> Self {
+        ActionExpr::Initial(val)
     }
 }
 

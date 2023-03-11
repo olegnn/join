@@ -323,15 +323,17 @@ mod join_spawn_tests {
 
     #[test]
     fn it_checks_multi_threading() {
-        use std::sync::{Arc, Mutex};
-        use std::thread;
-        use std::time::Duration;
+        use std::{
+            sync::{Arc, Mutex},
+            thread,
+            time::Duration,
+        };
 
         let values = Arc::new(Mutex::new(Vec::new()));
 
         let (values0, values1, values2) = (values.clone(), values.clone(), values.clone());
 
-        let _ = join_spawn! {
+        join_spawn! {
             Ok::<_,u8>((values0, 1)) |> |(values, value)| {
                 values.lock().unwrap().push(value);
                 thread::sleep(Duration::from_secs(1));

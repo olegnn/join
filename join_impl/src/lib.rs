@@ -3,6 +3,7 @@
 //!
 #![allow(clippy::large_enum_variant)]
 
+extern crate alloc;
 extern crate proc_macro;
 extern crate proc_macro2;
 extern crate quote;

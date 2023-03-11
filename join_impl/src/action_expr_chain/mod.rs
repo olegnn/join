@@ -3,9 +3,7 @@
 //!
 pub mod builder;
 
-use crate::chain::expr::ActionExpr;
-use crate::chain::group::ExprGroup;
-use crate::chain::Chain;
+use crate::chain::{expr::ActionExpr, group::ExprGroup, Chain};
 pub use builder::ActionExprChainBuilder;
 use syn::PatIdent;
 
