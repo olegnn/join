@@ -690,12 +690,6 @@ impl ToTokens for ProcessExpr {
         };
         output.extend(tokens);
     }
-
-    fn into_token_stream(self) -> TokenStream {
-        let mut output = TokenStream::new();
-        self.to_tokens(&mut output);
-        output
-    }
 }
 
 #[cfg(feature = "full")]
@@ -831,9 +825,9 @@ impl InnerExpr for ProcessExpr {
     }
 }
 
-impl Into<ActionExpr> for ProcessExpr {
-    fn into(self) -> ActionExpr {
-        ActionExpr::Process(self)
+impl From<ProcessExpr> for ActionExpr {
+    fn from(val: ProcessExpr) -> Self {
+        ActionExpr::Process(val)
     }
 }
 

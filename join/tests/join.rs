@@ -479,8 +479,7 @@ mod join_tests {
 
     #[test]
     fn it_tests_nested_macro_combinations() {
-        use futures::executor::block_on;
-        use futures::future::*;
+        use futures::{executor::block_on, future::*};
         use join::*;
 
         block_on(async {

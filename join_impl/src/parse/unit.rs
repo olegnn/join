@@ -3,7 +3,7 @@
 //! and optional next `N`
 //!
 //!
-use std::fmt::Debug;
+use core::fmt::Debug;
 use syn::parse::{Parse, ParseStream};
 
 ///

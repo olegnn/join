@@ -14,8 +14,7 @@ use quote::ToTokens;
 use syn::Path;
 
 use super::handler::Handler;
-use crate::action_expr_chain::ActionExprChain;
-use crate::chain::Chain;
+use crate::{action_expr_chain::ActionExprChain, chain::Chain};
 use join_output::JoinOutput;
 use syn::parse_quote;
 

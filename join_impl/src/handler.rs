@@ -2,10 +2,8 @@
 //! `Handler` implementation.
 //!
 
-use std::convert::TryFrom;
-use syn::parse::ParseStream;
-use syn::Expr;
-use syn::Token;
+use core::convert::TryFrom;
+use syn::{parse::ParseStream, Expr, Token};
 
 ///
 /// map => expr,

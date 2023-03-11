@@ -3,11 +3,14 @@
 //!
 
 use super::{ApplicationType, Combinator, ExprGroup, MoveType};
-use crate::chain::expr::{ActionExpr, ErrExpr, InitialExpr, ProcessExpr};
-use crate::parse::empty::Empty;
-use crate::parse::unit::{ParseUnit, Unit, UnitResult};
-use syn::parse::ParseStream;
-use syn::parse_quote;
+use crate::{
+    chain::expr::{ActionExpr, ErrExpr, InitialExpr, ProcessExpr},
+    parse::{
+        empty::Empty,
+        unit::{ParseUnit, Unit, UnitResult},
+    },
+};
+use syn::{parse::ParseStream, parse_quote};
 
 ///
 /// `Combinator` with configuration.
@@ -68,7 +71,7 @@ impl ActionGroup {
     ///
     /// Attempts to build a wrapper expression from `Self` using provided `ActionGroup`.
     ///
-    fn to_wrapper_action_expr(&self) -> Option<ExprGroup<ActionExpr>> {
+    fn to_wrapper_action_expr(self) -> Option<ExprGroup<ActionExpr>> {
         let return_val = parse_quote! { |__v| __v };
 
         Some(ExprGroup::new(
@@ -85,7 +88,7 @@ impl ActionGroup {
                 Combinator::MapErr => ActionExpr::Err(ErrExpr::MapErr([return_val])),
                 _ => return None,
             },
-            *self,
+            self,
         ))
     }
 

@@ -75,8 +75,7 @@ impl<E: InnerExpr> InnerExpr for ExprGroup<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chain::expr::*;
-    use crate::chain::group::Combinator;
+    use crate::chain::{expr::*, group::Combinator};
     use syn::{parse_quote, Expr};
 
     #[test]

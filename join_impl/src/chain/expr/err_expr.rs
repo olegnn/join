@@ -41,12 +41,6 @@ impl ToTokens for ErrExpr {
         };
         output.extend(tokens);
     }
-
-    fn into_token_stream(self) -> TokenStream {
-        let mut output = TokenStream::new();
-        self.to_tokens(&mut output);
-        output
-    }
 }
 
 impl InnerExpr for ErrExpr {
@@ -67,9 +61,9 @@ impl InnerExpr for ErrExpr {
     }
 }
 
-impl Into<ActionExpr> for ErrExpr {
-    fn into(self) -> ActionExpr {
-        ActionExpr::Err(self)
+impl From<ErrExpr> for ActionExpr {
+    fn from(val: ErrExpr) -> Self {
+        ActionExpr::Err(val)
     }
 }
 

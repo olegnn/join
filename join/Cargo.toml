@@ -19,10 +19,9 @@ name = "join"
 proc-macro = true
 
 [features]
-full = ["join_impl/full"]
 
 [dependencies]
-join_impl = { path = "../join_impl", version = "0.3.0" }
+join_impl = { path = "../join_impl", version = "0.3.1" }
 syn = { version = "1.0", features = ["full", "extra-traits"] }
 
 [dev-dependencies]

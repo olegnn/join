@@ -4,22 +4,27 @@
 
 use quote::ToTokens;
 use std::fmt::Debug;
-use syn::parse::{Parse, ParseStream};
-use syn::Expr::Let;
-use syn::{Pat, Token};
+use syn::{
+    parse::{Parse, ParseStream},
+    Expr::Let,
+    Pat, Token,
+};
 
 use super::ActionExprChain;
-use crate::chain::expr::InnerExpr;
-use crate::chain::group::{ActionGroup, ApplicationType, Combinator, GroupDeterminer, MoveType};
-use crate::chain::{Chain, ParseChain};
-use crate::parse::unit::{ParseUnit, Unit, UnitResult};
-use crate::parse::utils::{is_block_expr, parse_until};
+use crate::{
+    chain::{
+        expr::InnerExpr,
+        group::{ActionGroup, ApplicationType, Combinator, GroupDeterminer, MoveType},
+        Chain, ParseChain,
+    },
+    parse::{
+        unit::{ParseUnit, Unit, UnitResult},
+        utils::{is_block_expr, parse_until},
+    },
+};
 
 pub struct ActionExprChainBuilder<'a> {
-    #[cfg(not(feature = "static"))]
     group_determiners: &'a [GroupDeterminer],
-    #[cfg(feature = "static")]
-    group_determiners: ::std::sync::Arc<&'a [GroupDeterminer]>,
 
     deferred_determiner: &'a GroupDeterminer,
     wrapper_determiner: &'a GroupDeterminer,
@@ -29,25 +34,8 @@ impl<'a> ActionExprChainBuilder<'a> {
     ///
     /// Creates new `ActionExprChainBuilderOutput` with given `GroupDeterminer`'s.
     ///
-    #[cfg(not(feature = "static"))]
     pub fn new(
         group_determiners: &'a [GroupDeterminer],
-        deferred_determiner: &'a GroupDeterminer,
-        wrapper_determiner: &'a GroupDeterminer,
-    ) -> Self {
-        Self {
-            group_determiners,
-            deferred_determiner,
-            wrapper_determiner,
-        }
-    }
-
-    ///
-    /// Creates new `ActionExprChainBuilderOutput` with given `GroupDeterminer`'s.
-    ///
-    #[cfg(feature = "static")]
-    pub fn new(
-        group_determiners: ::std::sync::Arc<&'a [GroupDeterminer]>,
         deferred_determiner: &'a GroupDeterminer,
         wrapper_determiner: &'a GroupDeterminer,
     ) -> Self {
@@ -179,23 +167,24 @@ impl<'a> ParseUnit<ActionGroup> for ActionExprChainBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(not(feature = "static"))]
-    use super::super::super::join::parse::DEFAULT_GROUP_DETERMINERS;
-    #[cfg(feature = "static")]
-    use super::super::super::join::parse::DEFAULT_GROUP_DETERMINERS_STATIC as DEFAULT_GROUP_DETERMINERS;
-    use super::super::super::join::parse::{DEFERRED_DETERMINER, WRAPPER_DETERMINER};
-    use super::*;
-    use crate::chain::expr::{ActionExpr, ErrExpr, InitialExpr, ProcessExpr};
-    use crate::chain::group::{ApplicationType, Combinator, ExprGroup, MoveType};
+    use super::{
+        super::super::join::parse::{
+            DEFAULT_GROUP_DETERMINERS, DEFERRED_DETERMINER, WRAPPER_DETERMINER,
+        },
+        *,
+    };
+    use crate::chain::{
+        expr::{ActionExpr, ErrExpr, InitialExpr, ProcessExpr},
+        group::{ApplicationType, Combinator, ExprGroup, MoveType},
+    };
     use ::quote::quote;
-    use ::syn::parse::Parse;
-    use ::syn::{parse2, parse_quote};
+    use ::syn::{parse::Parse, parse2, parse_quote};
     use syn::parse::ParseStream;
 
     impl Parse for ActionExprChain {
         fn parse(input: ParseStream) -> syn::Result<Self> {
             let builder = ActionExprChainBuilder::new(
-                DEFAULT_GROUP_DETERMINERS.clone(),
+                DEFAULT_GROUP_DETERMINERS,
                 DEFERRED_DETERMINER,
                 WRAPPER_DETERMINER,
             );

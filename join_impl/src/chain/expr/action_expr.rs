@@ -2,8 +2,7 @@
 //! Enum of all expression types.
 //!
 
-use super::InnerExpr;
-use super::{ErrExpr, InitialExpr, ProcessExpr};
+use super::{ErrExpr, InitialExpr, InnerExpr, ProcessExpr};
 use syn::Expr;
 
 ///

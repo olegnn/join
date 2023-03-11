@@ -5,17 +5,18 @@
 //!
 //!
 use super::JoinInputDefault;
-use crate::action_expr_chain::ActionExprChainBuilder;
-use crate::chain::group::GroupDeterminer;
-use crate::chain::parse_chain::ParseChain;
-use crate::handler::Handler;
-use std::convert::TryFrom;
-use syn::parenthesized;
-use syn::parse::{Parse, ParseStream};
-use syn::{LitBool, Token};
-
-#[cfg(feature = "full")]
-use std::sync::Arc;
+use crate::{
+    action_expr_chain::ActionExprChainBuilder,
+    chain::{group::GroupDeterminer, parse_chain::ParseChain},
+    handler::Handler,
+};
+use alloc::vec::Vec;
+use core::convert::TryFrom;
+use syn::{
+    parenthesized,
+    parse::{Parse, ParseStream},
+    LitBool, Token,
+};
 
 mod keywords {
     syn::custom_keyword!(futures_crate_path);
@@ -68,14 +69,6 @@ pub const WRAPPER_DETERMINER: &GroupDeterminer = &crate::define_determiner_with_
     Token![>], Token![>], Token![>] => 3
 };
 
-#[cfg(feature = "static")]
-::lazy_static::lazy_static! {
-    ///
-    /// Static `GroupDeterminer`s definition which will be used if `static` feature is enabled.
-    ///
-    pub static ref DEFAULT_GROUP_DETERMINERS_STATIC: Arc<&'static [GroupDeterminer]> = Arc::new(DEFAULT_GROUP_DETERMINERS);
-}
-
 impl Parse for JoinInputDefault {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let mut join = Self {
@@ -87,16 +80,8 @@ impl Parse for JoinInputDefault {
             lazy_branches: None,
         };
 
-        #[cfg(not(feature = "static"))]
         let action_expr_chain_builder = ActionExprChainBuilder::new(
             DEFAULT_GROUP_DETERMINERS,
-            DEFERRED_DETERMINER,
-            WRAPPER_DETERMINER,
-        );
-
-        #[cfg(feature = "static")]
-        let action_expr_chain_builder = ActionExprChainBuilder::new(
-            DEFAULT_GROUP_DETERMINERS_STATIC.clone(),
             DEFERRED_DETERMINER,
             WRAPPER_DETERMINER,
         );
@@ -144,7 +129,7 @@ impl Parse for JoinInputDefault {
         }
 
         while !input.is_empty() {
-            if Handler::peek_handler(&input) {
+            if Handler::peek_handler(input) {
                 if join.handler.is_some() {
                     return Err(input.error("Multiple `handler` cases found, only one allowed. Please, specify one of `map`, `and_then`, `then`."));
                 }
