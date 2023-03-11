@@ -2,7 +2,7 @@
 #[allow(clippy::unused_unit)]
 mod join_tests {
     use join::{join, try_join};
-    use std::error::Error;
+    use std::{convert::identity, error::Error};
 
     type BoxedError = Box<dyn Error + Send + Sync>;
 
@@ -441,6 +441,34 @@ mod join_tests {
     fn it_produces_single_value() {
         let value = try_join! { Some(1) };
         assert_eq!(value.unwrap(), 1);
+    }
+
+    #[test]
+    fn it_tests_step_expr_with_large_indices() {
+        let value = try_join! {
+            Some(1),
+            Some(2i32) |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> {
+                let b = 5;
+
+                move |opt| opt - b
+            },
+            Some(3),
+            Some(4),
+            Some(5),
+            Some(6),
+            Some(7),
+            Some(8),
+            Some(9),
+            Some(10),
+            Some(11),
+            Some(12) |> {
+                let a = 1;
+
+                move |opt| opt + a
+            },
+            map => |_, f, _, _, _, _, _, _, _, _, _, val| f + val
+        };
+        assert_eq!(value.unwrap(), 10);
     }
 
     #[test]

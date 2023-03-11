@@ -807,25 +807,26 @@ impl InnerExpr for ProcessExpr {
     }
 
     fn is_replaceable(&self) -> bool {
-        !matches!(self,
+        !matches!(
+            self,
             Self::Dot(_)
-            | Self::Collect(_)
-            | Self::Max
-            | Self::Min
-            | Self::Unzip(_)
-            | Self::IsSorted
-            | Self::IsPartitioned
-            | Self::ByRef
-            | Self::Sum
-            | Self::SizeHint
-            | Self::Product
-            | Self::Cloned
-            | Self::Copied
-            | Self::Flatten
-            | Self::Count
-            | Self::Cycle
-            | Self::Enumerate
-            | Self::Rev
+                | Self::Collect(_)
+                | Self::Max
+                | Self::Min
+                | Self::Unzip(_)
+                | Self::IsSorted
+                | Self::IsPartitioned
+                | Self::ByRef
+                | Self::Sum
+                | Self::SizeHint
+                | Self::Product
+                | Self::Cloned
+                | Self::Copied
+                | Self::Flatten
+                | Self::Count
+                | Self::Cycle
+                | Self::Enumerate
+                | Self::Rev
         )
     }
 }
