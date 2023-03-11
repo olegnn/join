@@ -447,12 +447,14 @@ mod join_tests {
     fn it_tests_step_expr_with_large_indices() {
         let value = try_join! {
             Some(1),
-            Some(2i32) |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> {
-                let b = 5;
+            Some(2) |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> identity |> {
+                // This step expression previously had the name collision with the twelfth branch's step expression
+                let a = 5;
 
-                move |opt| opt - b
+                move |val| val - a
             },
-            Some(3),
+            // Just a very long chain with step expressions
+            Some(3) |> { let a = 1; move |v| v + a } |> { let a = 2; move |v| v + a } |> { let a = 3; move |v| v + a } |> { let a = 4; move |v| v + a } |> { let a = 5; move |v| v + a } |> { let a = 6; move |v| v + a } |> { let a = 7; move |v| v + a } |> { let a = 8; move |v| v + a } |> { let a = 9; move |v| v + a } |> { let a = 10; move |v| v + a } |> { let a = 11; move |v| v + a } |> { let a = 12; move |v| v + a } |> { let a = 13; move |v| v + a } |> { let a = 14; move |v| v + a } |> { let a = 15; move |v| v + a } |> { let a = 16; move |v| v + a } |> { let a = 17; move |v| v + a } |> { let a = 18; move |v| v + a } |> { let a = 19; move |v| v + a } |> { let a = 20; move |v| v + a },
             Some(4),
             Some(5),
             Some(6),
@@ -462,13 +464,19 @@ mod join_tests {
             Some(10),
             Some(11),
             Some(12) |> {
-                let a = 1;
+                let b = 1;
 
-                move |opt| opt + a
+                move |val| val + b
             },
-            map => |_, f, _, _, _, _, _, _, _, _, _, val| f + val
+            map => |_, second, third, _, _, _, _, _, _, _, _, twelfth| {
+                assert_eq!(second, -3);
+                assert_eq!(third, (1..=20).sum::<i32>() + 3);
+                assert_eq!(twelfth, 13);
+
+                second + twelfth + third
+            }
         };
-        assert_eq!(value.unwrap(), 10);
+        assert_eq!(value.unwrap(), 223);
     }
 
     #[test]
